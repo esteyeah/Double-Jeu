@@ -33,6 +33,7 @@ export const reactorMeta: GameMeta = {
   maxPlayers: 8,
   durationMinutes: [10, 20],
   supportsHotseat: true,
+  supportsBots: true,
   rules: [
     "Le cœur de la station orbitale s'emballe. Chacun reçoit en secret un rôle : Technicien ou Saboteur. Personne ne connaît le rôle des autres, et un rôle a parfois été écarté : on ne sait pas toujours combien il y a de Saboteurs.",
     'Au début de chaque manche, chacun découvre en secret ses trappes : combien de Barres de contrôle il possède, et s’il cache la Surcharge. Elles sont ensuite mélangées face cachée : même leur propriétaire ne sait plus laquelle est laquelle.',

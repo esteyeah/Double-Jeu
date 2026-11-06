@@ -30,6 +30,13 @@ export interface GameResult {
   detail?: string;
 }
 
+/** Option réglable par l'hôte (durée, nombre de manches…), affichée dans le lobby. */
+export interface GameSetting {
+  key: string;
+  label: string;
+  choices: { value: string | number | boolean; label: string }[];
+}
+
 export interface GameMeta {
   id: string;
   name: string;
@@ -39,6 +46,13 @@ export interface GameMeta {
   durationMinutes: [number, number];
   /** Jouable sur un seul appareil qu'on se passe. */
   supportsHotseat: boolean;
+  /**
+   * Des bots peuvent occuper des sièges. Faux pour les jeux de discussion pure :
+   * le module peut quand même fournir `bot` pour remplacer un joueur déconnecté.
+   */
+  supportsBots: boolean;
+  /** Options proposées à l'hôte. Les valeurs sont validées par `configSchema`. */
+  settings?: GameSetting[];
   /** Règles affichées dans le lobby, un paragraphe par entrée. */
   rules: string[];
 }
@@ -60,8 +74,11 @@ export interface GameModule<State, Move, View, Config> {
   expectedActors(state: State): PlayerId[];
   /** `null` si le coup est légal, sinon un message lisible. */
   validate(state: State, by: PlayerId, move: Move): string | null;
-  /** Applique un coup déjà validé et renvoie un NOUVEL état. */
-  apply(state: State, by: PlayerId, move: Move, rng: Rng): State;
+  /**
+   * Applique un coup déjà validé et renvoie un NOUVEL état.
+   * `now` (ms) vient du runtime : le moteur reste pur et testable (chronos, délais).
+   */
+  apply(state: State, by: PlayerId, move: Move, rng: Rng, now: number): State;
   /** Projection de l'état pour un joueur (`null` = spectateur / écran partagé). */
   view(state: State, viewer: PlayerId | null): View;
   result(state: State): GameResult | null;

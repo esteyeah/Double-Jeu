@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@arcade/game-sdk": "workspace:*",
+    "@arcade/interrogation": "workspace:*",
     "@arcade/protocol": "workspace:*",
     "@arcade/reactor": "workspace:*",
     "next": "^16.4.5",

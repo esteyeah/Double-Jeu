@@ -29,9 +29,10 @@ export class GameSession {
   constructor(
     readonly mod: AnyGameModule,
     readonly players: PlayerInfo[],
+    config: unknown,
     private readonly hooks: GameSessionHooks,
   ) {
-    this.state = mod.setup(players, mod.defaultConfig, this.rng);
+    this.state = mod.setup(players, config, this.rng);
   }
 
   get result(): GameResult | null {

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@arcade/game-sdk": "workspace:*",
+    "@arcade/interrogation": "workspace:*",
     "@arcade/protocol": "workspace:*",
     "@arcade/reactor": "workspace:*",
     "socket.io": "^4.8.4",

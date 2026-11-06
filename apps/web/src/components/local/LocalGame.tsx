@@ -21,18 +21,20 @@ import { Handoff } from './Handoff';
 export function LocalGame({
   game,
   players,
+  config,
   onReplay,
   onExit,
 }: {
   game: ClientGame;
   players: PlayerInfo[];
+  config: Record<string, unknown>;
   onReplay: () => void;
   onExit: () => void;
 }) {
   const mod = game.module;
   const { Board } = game;
   const rng = useMemo(() => cryptoRng(), []);
-  const [state, setState] = useState<unknown>(() => mod.setup(players, mod.defaultConfig, rng));
+  const [state, setState] = useState<unknown>(() => mod.setup(players, config, rng));
   /** Joueur qui a confirmé tenir le téléphone pendant la phase privée. */
   const [unlockedFor, setUnlockedFor] = useState<PlayerId | null>(null);
   /** « Revoir mes cartes » pendant une phase publique. */

@@ -1,0 +1,135 @@
+import { z } from 'zod';
+import type { LogEntry, PlayerId, PlayerInfo } from '@arcade/game-sdk';
+
+export type Role = 'inspector' | 'culprit' | 'innocent';
+export type Phase = 'briefing' | 'interrogation' | 'review' | 'scores' | 'over';
+
+export const WORDS_PER_SUSPECT = 3;
+export const GRILLS_PER_ROUND = 3;
+
+export const interrogationConfigSchema = z.object({
+  /** Durée indicative de l'interrogatoire. */
+  minutes: z.union([z.literal(3), z.literal(5), z.literal(7)]),
+  /** 0 = chacun est Enquêteur une fois. */
+  rounds: z.union([z.literal(0), z.literal(3), z.literal(5)]),
+});
+export type InterrogationConfig = z.infer<typeof interrogationConfigSchema>;
+
+const playerRef = z.string().min(1).max(64);
+const wordInput = z.string().trim().min(1).max(40);
+
+export const interrogationMoveSchema = z.discriminatedUnion('type', [
+  /** « J'ai lu mon rôle » (briefing). */
+  z.object({ type: z.literal('ack') }),
+  /** L'Enquêteur pense avoir entendu un mot secret chez ce suspect. */
+  z.object({ type: z.literal('grill'), target: playerRef, word: wordInput }),
+  /** L'Enquêteur clôt l'interrogatoire en accusant un suspect. */
+  z.object({ type: z.literal('accuse'), target: playerRef }),
+  /** Un suspect indique les mots qu'il a vraiment placés (après révélation). */
+  z.object({ type: z.literal('declare'), placed: z.array(wordInput).max(WORDS_PER_SUSPECT) }),
+  /** L'Enquêteur passe à la manche suivante. */
+  z.object({ type: z.literal('next') }),
+]);
+export type InterrogationMove = z.infer<typeof interrogationMoveSchema>;
+
+/**
+ * Comparaison tolérante : casse, accents, tirets, espaces et pluriel simple.
+ * « Arc en ciel », « arcs-en-ciel » et « arc-en-ciel » désignent le même mot.
+ */
+export function normalizeWord(word: string): string {
+  const base = word
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z]+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((part) => (part.length > 3 ? part.replace(/[sx]$/, '') : part))
+    .join(' ');
+  return base;
+}
+
+export interface Grill {
+  target: PlayerId;
+  word: string;
+  hit: boolean;
+}
+
+export interface RoundScore {
+  playerId: PlayerId;
+  points: number;
+  reasons: string[];
+}
+
+// ───────── État complet (jamais envoyé tel quel) ─────────
+
+export interface InterrogationState {
+  players: PlayerInfo[];
+  config: InterrogationConfig;
+  totalRounds: number;
+  round: number;
+  /** Ordre de passage de l'Enquêteur. */
+  order: PlayerId[];
+  inspector: PlayerId;
+  caseIndex: number;
+  usedCases: number[];
+  usedWords: string[];
+  culprit: PlayerId;
+  words: Record<PlayerId, string[]>;
+  burned: Record<PlayerId, string[]>;
+  grills: Grill[];
+  endsAt: number | null;
+  accused: PlayerId | null;
+  declared: Record<PlayerId, string[]>;
+  acked: PlayerId[];
+  phase: Phase;
+  scores: Record<PlayerId, number>;
+  lastRound: RoundScore[] | null;
+  log: LogEntry[];
+}
+
+// ───────── Vue filtrée ─────────
+
+export interface InterrogationPlayerView {
+  id: PlayerId;
+  name: string;
+  isBot: boolean;
+  score: number;
+  acked: boolean;
+  declared: boolean;
+  /** L'Enquêteur est public ; Coupable/Innocent seulement pour soi, ou après révélation. */
+  role: Role | null;
+}
+
+export interface RevealedWord {
+  word: string;
+  burned: boolean;
+  /** null tant que le suspect n'a pas déclaré. */
+  placed: boolean | null;
+}
+
+export interface InterrogationView {
+  phase: Phase;
+  round: number;
+  totalRounds: number;
+  inspector: PlayerId;
+  case: { title: string; text: string };
+  endsAt: number | null;
+  minutes: number;
+  grillsLeft: number;
+  grills: Grill[];
+  players: InterrogationPlayerView[];
+  me: { id: PlayerId; role: Role; words: { word: string; burned: boolean }[] } | null;
+  accused: PlayerId | null;
+  /** Révélé à partir de la phase « review ». */
+  culprit: PlayerId | null;
+  reveal: Record<PlayerId, RevealedWord[]> | null;
+  lastRound: RoundScore[] | null;
+  log: string[];
+}
+
+export const ROLE_LABEL: Record<Role, string> = {
+  inspector: 'Enquêteur',
+  culprit: 'Coupable',
+  innocent: 'Innocent',
+};

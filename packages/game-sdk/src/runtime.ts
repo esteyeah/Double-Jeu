@@ -13,13 +13,14 @@ export function applyMove<State>(
   by: PlayerId,
   rawMove: unknown,
   rng: Rng,
+  now: number = Date.now(),
 ): MoveOutcome<State> {
   if (mod.result(state)) return { ok: false, error: 'La partie est terminée.' };
   const parsed = mod.moveSchema.safeParse(rawMove);
   if (!parsed.success) return { ok: false, error: 'Coup mal formé.' };
   const error = mod.validate(state, by, parsed.data);
   if (error) return { ok: false, error };
-  return { ok: true, state: mod.apply(state, by, parsed.data, rng) };
+  return { ok: true, state: mod.apply(state, by, parsed.data, rng, now) };
 }
 
 export function snapshotFor<State>(
@@ -74,16 +75,18 @@ export function simulate<State>(
   mod: AnyGameModule,
   players: PlayerInfo[],
   rng: Rng,
-  options: { maxSteps?: number; onStep?: (state: State) => void } = {},
+  options: { maxSteps?: number; onStep?: (state: State) => void; config?: unknown } = {},
 ): { state: State; steps: number } {
   const maxSteps = options.maxSteps ?? 10_000;
-  let state = mod.setup(players, mod.defaultConfig, rng) as State;
+  let state = mod.setup(players, options.config ?? mod.defaultConfig, rng) as State;
+  let clock = 0; // horloge virtuelle : une minute par coup
   const ids = players.map((p) => p.id);
   for (let steps = 0; steps < maxSteps; steps++) {
     if (mod.result(state)) return { state, steps };
     const next = nextBotMove(mod, state, ids, rng);
     if (!next) throw new Error(`Partie bloquée après ${steps} coups`);
-    const out = applyMove(mod, state, next.by, next.move, rng);
+    clock += 60_000;
+    const out = applyMove(mod, state, next.by, next.move, rng, clock);
     if (!out.ok) throw new Error(`Le bot ${next.by} a joué un coup refusé : ${out.error}`);
     state = out.state;
     options.onStep?.(state);

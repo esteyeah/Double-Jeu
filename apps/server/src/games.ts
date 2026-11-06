@@ -1,9 +1,11 @@
 import type { AnyGameModule } from '@arcade/game-sdk';
+import { interrogation } from '@arcade/interrogation';
 import { reactor } from '@arcade/reactor';
 
 /** Registre des moteurs côté serveur. Ajouter un jeu = une ligne ici. */
 const registry: Record<string, AnyGameModule> = {
   [reactor.meta.id]: reactor,
+  [interrogation.meta.id]: interrogation,
 };
 
 export function getGame(id: string): AnyGameModule | undefined {

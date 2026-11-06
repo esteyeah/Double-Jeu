@@ -1,5 +1,7 @@
 import type { ComponentType } from 'react';
 import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
+import { interrogation } from '@arcade/interrogation';
+import InterrogationBoard from '@arcade/interrogation/client';
 import { reactor } from '@arcade/reactor';
 import ReactorBoard from '@arcade/reactor/client';
 
@@ -13,6 +15,7 @@ export interface ClientGame {
 /** Jeux jouables. Ajouter un jeu = une entrée ici + une dans le registre du serveur. */
 const games: Record<string, ClientGame> = {
   reactor: { module: reactor, Board: ReactorBoard },
+  interrogation: { module: interrogation, Board: InterrogationBoard },
 };
 
 export function getClientGame(id: string): ClientGame | undefined {
@@ -75,8 +78,8 @@ export const catalog: CatalogEntry[] = [
     id: 'interrogation',
     name: 'Garde à vue',
     tagline: 'Glissez vos mots secrets dans vos réponses sous le nez de l’enquêteur.',
-    players: '4–7',
-    ready: false,
+    players: '4–8',
+    ready: true,
     accent: 'from-muted/30',
   },
 ];

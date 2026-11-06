@@ -6,6 +6,7 @@ import type { Ack, RoomState } from '@arcade/protocol';
 import { getClientGame } from '@/games/registry';
 import { request } from '@/lib/online';
 import { Button, ErrorNote, Panel, Rules } from '../ui/kit';
+import { SettingsForm } from '../ui/Settings';
 import { InviteBox } from './Invite';
 
 export function Lobby({ room, me }: { room: RoomState; me: PlayerId | null }) {
@@ -35,6 +36,16 @@ export function Lobby({ room, me }: { room: RoomState; me: PlayerId | null }) {
             </span>
           </div>
           <p className="mt-1 text-muted">{meta.tagline}</p>
+          {meta.settings && (
+            <div className="mt-4">
+              <SettingsForm
+                settings={meta.settings}
+                config={room.config}
+                readOnly={!isHost}
+                onChange={(patch) => run(request('room:setConfig', { config: patch }))}
+              />
+            </div>
+          )}
           <div className="mt-3">
             <Rules rules={meta.rules} />
           </div>
@@ -90,9 +101,11 @@ export function Lobby({ room, me }: { room: RoomState; me: PlayerId | null }) {
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           {isHost ? (
             <>
-              <Button disabled={n >= max} onClick={() => run(request('room:addBot', {}))}>
-                + Ajouter un bot
-              </Button>
+              {meta?.supportsBots && (
+                <Button disabled={n >= max} onClick={() => run(request('room:addBot', {}))}>
+                  + Ajouter un bot
+                </Button>
+              )}
               <Button
                 variant="primary"
                 disabled={!canStart}
@@ -108,8 +121,13 @@ export function Lobby({ room, me }: { room: RoomState; me: PlayerId | null }) {
         </div>
         {isHost && missing > 0 && (
           <p className="mt-2 text-xs text-muted">
-            Encore {missing} joueur{missing > 1 ? 's' : ''} (ou bot{missing > 1 ? 's' : ''}) pour
-            lancer.
+            Encore {missing} joueur{missing > 1 ? 's' : ''}
+            {meta?.supportsBots ? ` (ou bot${missing > 1 ? 's' : ''})` : ''} pour lancer.
+          </p>
+        )}
+        {meta && !meta.supportsBots && (
+          <p className="mt-2 text-xs text-muted">
+            Jeu de parole : il se joue entre humains, autour d’une table ou en appel vocal.
           </p>
         )}
         <div className="mt-3">

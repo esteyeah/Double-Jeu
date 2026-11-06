@@ -118,7 +118,8 @@ export function RoomScreen({ code }: { code: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-4 sm:py-6">
+    // pb-24 : sur mobile, le bouton Chat flottant ne doit pas masquer le bas de la page.
+    <main className="mx-auto max-w-6xl px-4 pt-4 pb-24 sm:pt-6 lg:pb-6">
       <header className="mb-4 flex items-center gap-3">
         <Link href="/" className="text-sm text-muted hover:text-fg" aria-label="Accueil">
           ←

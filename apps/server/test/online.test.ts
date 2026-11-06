@@ -96,6 +96,22 @@ describe('lobby', () => {
     expect((await call(guest.socket, 'room:start')).error).toMatch(/hôte/);
   });
 
+  it('applique les options validées et refuse les valeurs hors liste', async () => {
+    const host = await connect();
+    await call(host.socket, 'room:create', { name: 'Hôte', gameId: 'interrogation' });
+    const updated = waitFor<RoomState>(host.socket, 'room:state', (s) => s.config.minutes === 3);
+    expect((await call(host.socket, 'room:setConfig', { config: { minutes: 3 } })).ok).toBe(true);
+    expect((await updated).config).toEqual({ minutes: 3, rounds: 0 });
+    expect((await call(host.socket, 'room:setConfig', { config: { minutes: 999 } })).ok).toBe(false);
+    expect((await call(host.socket, 'room:setConfig', { config: { rounds: 'beaucoup' } })).ok).toBe(false);
+  });
+
+  it('refuse les bots dans un jeu de parole', async () => {
+    const host = await connect();
+    await call(host.socket, 'room:create', { name: 'Hôte', gameId: 'interrogation' });
+    expect((await call(host.socket, 'room:addBot')).error).toMatch(/sans bots/);
+  });
+
   it('refuse de lancer sans assez de joueurs', async () => {
     const { host } = await roomWithPlayers(1, 2);
     expect((await call(host.socket, 'room:start')).error).toMatch(/4 à 8/);
@@ -103,6 +119,28 @@ describe('lobby', () => {
 });
 
 describe('partie en ligne', () => {
+  it('Garde à vue : la partie démarre avec la durée choisie, rôles masqués', async () => {
+    const host = await connect();
+    const { code } = await call(host.socket, 'room:create', { name: 'Hôte', gameId: 'interrogation' });
+    await call(host.socket, 'room:setConfig', { config: { minutes: 7, rounds: 3 } });
+    const guests = [];
+    for (let i = 0; i < 3; i++) {
+      const g = await connect();
+      await call(g.socket, 'room:join', { name: `S${i}`, code });
+      guests.push(g);
+    }
+    const snap = waitFor<GameSnapshot<{ totalRounds: number; minutes: number; culprit: unknown; me: { role: string } }>>(
+      guests[0]!.socket,
+      'game:snapshot',
+    );
+    expect((await call(host.socket, 'room:start')).ok).toBe(true);
+    const { view } = await snap;
+    expect(view.totalRounds).toBe(3);
+    expect(view.minutes).toBe(7);
+    expect(view.culprit).toBeNull();
+    expect(['inspector', 'culprit', 'innocent']).toContain(view.me.role);
+  });
+
   it('chaque joueur ne reçoit que SA vue (rôles des autres masqués)', async () => {
     const { host, others } = await roomWithPlayers(2, 2);
     const guest = others[0]!;

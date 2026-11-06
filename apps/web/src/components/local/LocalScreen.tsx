@@ -7,6 +7,7 @@ import { NAME_MAX } from '@arcade/protocol';
 import { getClientGame, type ClientGame } from '@/games/registry';
 import { KEYS, storage } from '@/lib/storage';
 import { Button, ErrorNote, Panel, Rules } from '../ui/kit';
+import { SettingsForm } from '../ui/Settings';
 import { LocalGame } from './LocalGame';
 
 interface RosterEntry {
@@ -17,6 +18,9 @@ interface RosterEntry {
 export function LocalScreen({ gameId }: { gameId: string }) {
   const game = getClientGame(gameId);
   const [players, setPlayers] = useState<PlayerInfo[] | null>(null);
+  const [config, setConfig] = useState<Record<string, unknown>>(() => ({
+    ...((game?.module.defaultConfig as Record<string, unknown> | undefined) ?? {}),
+  }));
   const [gameKey, setGameKey] = useState(0);
 
   if (!game || !game.module.meta.supportsHotseat) {
@@ -53,15 +57,22 @@ export function LocalScreen({ gameId }: { gameId: string }) {
           key={gameKey}
           game={game}
           players={players}
+          config={config}
           onReplay={() => setGameKey((k) => k + 1)}
           onExit={() => setPlayers(null)}
         />
       ) : (
         <LocalSetup
           game={game}
+          config={config}
+          onConfig={(patch) => setConfig((c) => ({ ...c, ...patch }))}
           onStart={(roster) =>
             setPlayers(
-              roster.map((p, i) => ({ id: `local_${i}`, name: p.name.trim(), isBot: p.isBot })),
+              roster.map((p, i) => ({
+                id: `local_${i}`,
+                name: p.name.trim(),
+                isBot: game.module.meta.supportsBots && p.isBot,
+              })),
             )
           }
         />
@@ -78,7 +89,17 @@ function defaultRoster(min: number): RosterEntry[] {
   }));
 }
 
-function LocalSetup({ game, onStart }: { game: ClientGame; onStart: (r: RosterEntry[]) => void }) {
+function LocalSetup({
+  game,
+  config,
+  onConfig,
+  onStart,
+}: {
+  game: ClientGame;
+  config: Record<string, unknown>;
+  onConfig: (patch: Record<string, unknown>) => void;
+  onStart: (r: RosterEntry[]) => void;
+}) {
   const { meta } = game.module;
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -118,8 +139,14 @@ function LocalSetup({ game, onStart }: { game: ClientGame; onStart: (r: RosterEn
         <p className="text-sm text-muted">
           Un seul appareil pour toute la table. Quand le jeu a besoin d’une info secrète, il demande
           de passer le téléphone au bon joueur, qui confirme avant que l’écran ne s’affiche. Les
-          bots jouent tout seuls. Aucune connexion nécessaire une fois la page chargée.
+          {meta.supportsBots ? 'bots jouent tout seuls. ' : 'discussions se font de vive voix. '}
+          Aucune connexion nécessaire une fois la page chargée.
         </p>
+        {meta.settings && (
+          <div className="mt-4">
+            <SettingsForm settings={meta.settings} config={config} onChange={onConfig} />
+          </div>
+        )}
         <div className="mt-3">
           <Rules rules={meta.rules} />
         </div>
@@ -142,16 +169,18 @@ function LocalSetup({ game, onStart }: { game: ClientGame; onStart: (r: RosterEn
                 aria-label={`Nom du joueur ${i + 1}`}
                 className="min-w-0 flex-1 rounded-xl border border-line bg-bg px-3 py-2.5 outline-none focus:border-accent"
               />
-              <button
-                type="button"
-                onClick={() => update(i, { isBot: !p.isBot })}
-                aria-pressed={p.isBot}
-                className={`w-20 shrink-0 rounded-xl border px-2 py-2.5 text-xs font-semibold ${
-                  p.isBot ? 'border-accent/60 text-accent' : 'border-line text-muted'
-                }`}
-              >
-                {p.isBot ? 'Bot' : 'Humain'}
-              </button>
+              {meta.supportsBots && (
+                <button
+                  type="button"
+                  onClick={() => update(i, { isBot: !p.isBot })}
+                  aria-pressed={p.isBot}
+                  className={`w-20 shrink-0 rounded-xl border px-2 py-2.5 text-xs font-semibold ${
+                    p.isBot ? 'border-accent/60 text-accent' : 'border-line text-muted'
+                  }`}
+                >
+                  {p.isBot ? 'Bot' : 'Humain'}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setRoster((r) => r.filter((_, j) => j !== i))}

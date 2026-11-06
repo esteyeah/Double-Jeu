@@ -2,7 +2,12 @@
 
 Arcade de jeux à rôles cachés et de bluff : en ligne entre amis, ou sur un seul téléphone qu'on se passe.
 
-Nom de travail, à changer librement. Jeu disponible : **Réacteur** (4 à 8 joueurs). Cinq autres jeux sont prévus dans le catalogue.
+Nom de travail, à changer librement. Jeux disponibles :
+
+- **Réacteur** (4 à 8 joueurs) : bluff et cartes coupées à l'aveugle, bots possibles.
+- **Garde à vue** (4 à 8 joueurs) : jeu de parole. Un Enquêteur interroge des suspects qui glissent des mots secrets dans leurs réponses. Il se joue autour d'une table ou en appel vocal.
+
+Quatre autres jeux sont prévus dans le catalogue.
 
 ## Obtenir un lien à partager
 
@@ -63,7 +68,8 @@ packages/
   game-sdk/   Contrat GameModule, hasard (crypto / graine), runtime commun, simulateur
   protocol/   Événements Socket.io typés + schémas Zod
   games/
-    reactor/  Moteur pur, bot, plateau React, tests
+    reactor/        Moteur pur, bot, plateau React, tests
+    interrogation/  Garde à vue : moteur, contenu (affaires, mots), plateau, tests
 ```
 
 ## Comment ça marche
@@ -95,7 +101,9 @@ packages/
    - `bot.ts` ;
    - `client/Board.tsx` : reçoit `BoardProps`.
 2. L'enregistrer dans `apps/server/src/games.ts` et dans `apps/web/src/games/registry.ts` (et passer `ready: true` dans le catalogue).
-3. L'ajouter à `transpilePackages` dans `apps/web/next.config.ts`.
+3. L'ajouter à `transpilePackages` dans `apps/web/next.config.ts`, et en dépendance de `apps/web` et `apps/server`.
+
+Dans `meta` : `supportsBots: false` pour un jeu de parole (le lobby masque alors les bots), et `settings` pour proposer des options à l'hôte (durée, manches…). Les valeurs sont validées par le `configSchema` du jeu.
 4. Écrire les tests, dont une simulation de milliers de parties avec `simulate()`.
 
 Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `text-muted`, `text-tech`…) définis dans `apps/web/src/app/globals.css`.
@@ -111,4 +119,5 @@ Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `te
 - Parties et sessions en mémoire : un redémarrage du serveur coupe les parties en cours (Redis prévu).
 - Pas encore de comptes, de points ni de déblocages (prévus).
 - Mode local : il fonctionne sans réseau une fois la page chargée, mais l'application n'est pas encore installable hors ligne (PWA prévue).
+- Garde à vue : le chrono est indicatif (l'Enquêteur décide quand accuser), et les mots placés sont déclarés par les joueurs. C'est la table qui vérifie.
 - Bots de Réacteur volontairement simples : entre bots seulement, les Saboteurs gagnent environ 85 % des parties. Avec des humains, c'est la discussion qui équilibre.

@@ -75,6 +75,7 @@ export function registerHandlers(socket: ArcadeSocket, rooms: RoomManager): void
   });
 
   on('room:setGame', ({ gameId }) => currentRoom()?.setGame(session.playerId, gameId) ?? noRoom);
+  on('room:setConfig', ({ config }) => currentRoom()?.setConfig(session.playerId, config) ?? noRoom);
   on('room:addBot', () => currentRoom()?.addBot(session.playerId) ?? noRoom);
   on('room:removeSeat', ({ playerId }) => currentRoom()?.removeSeat(session.playerId, playerId) ?? noRoom);
   on('room:start', () => currentRoom()?.start(session.playerId) ?? noRoom);

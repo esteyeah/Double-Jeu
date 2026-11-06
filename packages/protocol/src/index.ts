@@ -30,6 +30,8 @@ export const schemas = {
   'room:join': z.object({ name: nameSchema, code: roomCodeSchema }),
   'room:leave': z.object({}),
   'room:setGame': z.object({ gameId: gameIdSchema }),
+  /** Validé ensuite par le `configSchema` du jeu. */
+  'room:setConfig': z.object({ config: z.record(z.string().max(32), z.unknown()) }),
   'room:addBot': z.object({}),
   'room:removeSeat': z.object({ playerId: z.string().min(1).max(64) }),
   'room:start': z.object({}),
@@ -48,6 +50,7 @@ export interface AckData {
   'room:join': { code: string };
   'room:leave': object;
   'room:setGame': object;
+  'room:setConfig': object;
   'room:addBot': object;
   'room:removeSeat': object;
   'room:start': object;
@@ -73,6 +76,8 @@ export interface RoomState {
   code: string;
   hostId: PlayerId;
   gameId: string;
+  /** Options choisies par l'hôte pour le jeu en cours. */
+  config: Record<string, unknown>;
   status: RoomStatus;
   seats: Seat[];
   spectators: { id: PlayerId; name: string }[];

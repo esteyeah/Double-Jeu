@@ -18,11 +18,16 @@ interface SeatEntry {
 }
 
 const ok = { ok: true } as const;
+
+function defaultConfigOf(gameId: string): Record<string, unknown> {
+  return { ...((getGame(gameId)?.defaultConfig as Record<string, unknown> | undefined) ?? {}) };
+}
 const fail = (error: string) => ({ ok: false, error }) as const;
 
 export class Room {
   hostId: PlayerId;
   gameId: string;
+  config: Record<string, unknown>;
   status: RoomStatus = 'lobby';
   private seats: SeatEntry[] = [];
   private spectators = new Map<PlayerId, string>();
@@ -45,6 +50,7 @@ export class Room {
   ) {
     this.hostId = hostId;
     this.gameId = gameId;
+    this.config = defaultConfigOf(gameId);
   }
 
   private get channel(): string {
@@ -198,6 +204,19 @@ export class Room {
     if (this.status !== 'lobby') return fail('Impossible pendant une partie.');
     if (!getGame(gameId)) return fail('Ce jeu n’est pas encore disponible.');
     this.gameId = gameId;
+    this.config = defaultConfigOf(gameId);
+    this.broadcastState();
+    return ok;
+  }
+
+  setConfig(playerId: PlayerId, config: Record<string, unknown>): Ack {
+    const denied = this.requireHost(playerId);
+    if (denied) return denied;
+    if (this.status !== 'lobby') return fail('Impossible pendant une partie.');
+    const mod = getGame(this.gameId);
+    const parsed = mod?.configSchema.safeParse({ ...this.config, ...config });
+    if (!parsed?.success) return fail('Option invalide.');
+    this.config = parsed.data as Record<string, unknown>;
     this.broadcastState();
     return ok;
   }
@@ -206,6 +225,7 @@ export class Room {
     const denied = this.requireHost(playerId);
     if (denied) return denied;
     if (this.status !== 'lobby') return fail('Impossible pendant une partie.');
+    if (!getGame(this.gameId)?.meta.supportsBots) return fail('Ce jeu se joue sans bots.');
     if (this.seats.length >= this.maxSeats) return fail('Le salon est complet.');
     const used = new Set(this.seats.map((s) => s.name));
     const name =
@@ -241,6 +261,9 @@ export class Room {
     if (n < mod.meta.minPlayers || n > mod.meta.maxPlayers) {
       return fail(`${mod.meta.name} se joue de ${mod.meta.minPlayers} à ${mod.meta.maxPlayers} joueurs.`);
     }
+    if (!mod.meta.supportsBots && this.seats.some((s) => s.isBot)) {
+      return fail(`${mod.meta.name} se joue sans bots : retire-les d'abord.`);
+    }
 
     this.game?.dispose();
     this.autopilot.clear();
@@ -248,6 +271,7 @@ export class Room {
     this.game = new GameSession(
       mod,
       this.seats.map((s) => ({ id: s.id, name: s.name, isBot: s.isBot })),
+      this.config,
       {
         isAutomated: (id) => this.seats.find((s) => s.id === id)?.isBot === true || this.autopilot.has(id),
         onChange: () => this.broadcastSnapshots(),
@@ -358,6 +382,7 @@ export class Room {
       code: this.code,
       hostId: this.hostId,
       gameId: this.gameId,
+      config: this.config,
       status: this.status,
       seats: this.seats.map((s) => ({
         id: s.id,
