@@ -1,0 +1,17 @@
+# Déploiement en un clic sur Render (https://render.com).
+# Un seul service web : le site et le serveur de jeu partagent la même adresse.
+services:
+  - type: web
+    name: faux-semblants
+    runtime: node
+    plan: free
+    buildCommand: npm install -g pnpm@10.28.0 && NODE_ENV=development pnpm install --frozen-lockfile && pnpm build
+    startCommand: node scripts/play.mjs --no-build
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_SERVER_URL
+        value: same-origin
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"

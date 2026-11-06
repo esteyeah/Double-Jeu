@@ -11,6 +11,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
 import net from 'node:net';
 import os from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -38,12 +39,12 @@ const children = [
     stdio: 'inherit',
     env: { ...env, PORT: String(GAME_PORT) },
   }),
-  spawn(pnpm, ['--filter', '@arcade/web', 'exec', 'next', 'start', '-H', '127.0.0.1', '-p', String(WEB_PORT)], {
-    cwd: root,
-    stdio: 'inherit',
-    env,
-    shell: isWindows,
-  }),
+  // Next.js lancé directement avec Node : pas besoin de pnpm au démarrage (hébergeurs, Windows).
+  spawn(
+    process.execPath,
+    ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(WEB_PORT)],
+    { cwd: join(root, 'apps', 'web'), stdio: 'inherit', env },
+  ),
 ];
 
 /** /socket.io → serveur de jeu, tout le reste → site Next.js. */
