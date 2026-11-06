@@ -4,6 +4,16 @@ Arcade de jeux à rôles cachés et de bluff : en ligne entre amis, ou sur un se
 
 Nom de travail, à changer librement. Jeu disponible : **Réacteur** (4 à 8 joueurs). Cinq autres jeux sont prévus dans le catalogue.
 
+## Obtenir un lien à partager
+
+[![Déployer sur Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/esteyeah/Plateforme)
+
+1. Clique sur le bouton et connecte-toi à Render avec ton compte GitHub.
+2. Valide (« Apply » ou « Deploy Blueprint »). Le premier build prend quelques minutes.
+3. Render affiche l'adresse du jeu, du type `https://faux-semblants-xxxx.onrender.com`, à partager à tes amis.
+
+La configuration vient de `render.yaml`. Avec la formule gratuite, le service s'endort après environ 15 minutes sans visite : la première visite suivante prend une minute environ. Un réveil ou un redéploiement efface les salons en cours.
+
 ## Jouer tout de suite
 
 Prérequis :
@@ -92,6 +102,7 @@ Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `te
 
 ## Déploiement
 
+- **Tout-en-un (Render ou tout hébergeur Node)** : build avec `NEXT_PUBLIC_SERVER_URL=same-origin pnpm build`, puis `node scripts/play.mjs --no-build`. Le service écoute sur `PORT`. Voir `render.yaml`.
 - **Serveur** : `pnpm --filter @arcade/server build` puis `node apps/server/dist/index.js`. Variables : `PORT`, `CORS_ORIGIN` (origines autorisées, séparées par des virgules ; obligatoire en production). Il faut un hébergeur qui garde les WebSockets ouverts : Fly.io, Railway, Render, VPS…
 - **Front** : Vercel ou `next start`. Variable : `NEXT_PUBLIC_SERVER_URL`, l'URL publique du serveur de jeu.
 
