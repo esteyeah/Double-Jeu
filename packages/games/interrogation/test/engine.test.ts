@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyMove, seededRng, simulate, type PlayerInfo } from '@arcade/game-sdk';
+import { applyDeadline, applyMove, seededRng, simulate, type PlayerInfo } from '@arcade/game-sdk';
 import {
   CASES,
   WORDS,
@@ -144,6 +144,8 @@ describe('Garde à vue — points', () => {
       const usable = s.words[id]!.filter((w) => !(s.burned[id] ?? []).includes(w));
       s = play(s, id, { type: 'declare', placed: usable });
     }
+    expect(s.phase).toBe('verify');
+    for (const p of s.players) s = play(s, p.id, { type: 'verify', doubts: [] });
     return { s, innocent };
   }
 
@@ -199,5 +201,93 @@ describe('Garde à vue — déroulé', () => {
       expect(state.phase).toBe('over');
       expect(state.round).toBe(config.rounds === 0 ? n : config.rounds);
     }
+  });
+});
+
+describe('Garde à vue — chrono imposé', () => {
+  it('à la fin du chrono, plus de grillage : il reste une minute pour accuser', () => {
+    let s = ackAll(setup(5, 21));
+    const end = s.endsAt!;
+    expect(interrogation.deadline!(s)).toBe(end);
+    expect(applyDeadline(interrogation, s, seededRng(1), end - 1)).toBeNull();
+    s = applyDeadline(interrogation, s, seededRng(1), end)!;
+    expect(s.phase).toBe('accusation');
+    expect(s.endsAt).toBe(end + 60_000);
+    const target = innocentOf(s);
+    expect(interrogation.validate(s, s.inspector, { type: 'grill', target, word: 'x' })).toMatch(/écoulé/);
+    expect(interrogation.validate(s, s.inspector, { type: 'accuse', target })).toBeNull();
+  });
+
+  it('sans accusation à temps, le Coupable s’échappe', () => {
+    let s = ackAll(setup(5, 22));
+    s = applyDeadline(interrogation, s, seededRng(1), s.endsAt!)!;
+    s = applyDeadline(interrogation, s, seededRng(1), s.endsAt!)!;
+    expect(s.phase).toBe('review');
+    expect(s.accused).toBeNull();
+    for (const id of suspectsOf(s)) s = play(s, id, { type: 'declare', placed: [] });
+    expect(s.phase).toBe('scores');
+    expect(s.scores[s.culprit]).toBe(3);
+    expect(s.scores[s.inspector]).toBe(0);
+    expect(s.lastRound?.[0]?.reasons).toContain('Aucune accusation');
+  });
+});
+
+describe('Garde à vue — vérification par la table', () => {
+  /** 5 joueurs : chaque mot déclaré est jugé par les 4 autres. */
+  function toVerify(seed = 30) {
+    let s = ackAll(setup(5, seed));
+    s = play(s, s.inspector, { type: 'accuse', target: s.culprit });
+    for (const id of suspectsOf(s)) s = play(s, id, { type: 'declare', placed: s.words[id]!.slice(0, 1) });
+    return s;
+  }
+
+  it('un mot signalé par la majorité des autres joueurs est refusé, pas en cas d’égalité', () => {
+    let s = toVerify();
+    const [a, b] = suspectsOf(s).filter((id) => id !== s.culprit);
+    const wa = s.words[a!]![0]!;
+    const wb = s.words[b!]![0]!;
+    const others = (id: string) => s.players.map((p) => p.id).filter((x) => x !== id);
+    // 3 doutes sur 4 votants pour a, 2 sur 4 pour b.
+    const doubtersA = others(a!).slice(0, 3);
+    const doubtersB = others(b!).slice(0, 2);
+    for (const p of s.players) {
+      const doubts = [
+        ...(doubtersA.includes(p.id) ? [{ target: a!, word: wa }] : []),
+        ...(doubtersB.includes(p.id) ? [{ target: b!, word: wb }] : []),
+      ];
+      s = play(s, p.id, { type: 'verify', doubts });
+    }
+    expect(s.phase).toBe('scores');
+    expect(s.rejected[a!]).toEqual([wa]);
+    expect(s.rejected[b!]).toBeUndefined();
+    const v = interrogation.view(s, null);
+    expect(v.reveal![a!]!.find((w) => w.word === wa)).toMatchObject({ rejected: true, doubts: 3 });
+    expect(v.reveal![b!]!.find((w) => w.word === wb)).toMatchObject({ rejected: false, doubts: 2 });
+    expect(s.scores[a!]).toBe(0);
+    expect(s.scores[b!]).toBe(1);
+  });
+
+  it('on ne peut pas douter de ses propres mots ni d’un mot non déclaré', () => {
+    const s = toVerify(31);
+    const a = innocentOf(s);
+    expect(interrogation.validate(s, a, { type: 'verify', doubts: [{ target: a, word: s.words[a]![0]! }] })).not.toBeNull();
+    expect(
+      interrogation.validate(s, s.inspector, { type: 'verify', doubts: [{ target: a, word: s.words[a]![2]! }] }),
+    ).toMatch(/pas été déclaré/);
+  });
+
+  it('les signalements restent secrets jusqu’au verdict', () => {
+    let s = toVerify(32);
+    const a = innocentOf(s);
+    s = play(s, s.inspector, { type: 'verify', doubts: [{ target: a, word: s.words[a]![0]! }] });
+    const v = interrogation.view(s, a);
+    expect(v.reveal![a]!.every((w) => w.doubts === null && w.rejected === null)).toBe(true);
+  });
+
+  it('si personne ne déclare de mot, on passe directement aux points', () => {
+    let s = ackAll(setup(4, 33));
+    s = play(s, s.inspector, { type: 'accuse', target: s.culprit });
+    for (const id of suspectsOf(s)) s = play(s, id, { type: 'declare', placed: [] });
+    expect(s.phase).toBe('scores');
   });
 });

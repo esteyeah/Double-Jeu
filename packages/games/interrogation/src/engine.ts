@@ -8,6 +8,7 @@ import {
 import { interrogationBot } from './bot';
 import { CASES, WORDS } from './content';
 import {
+  ACCUSATION_SECONDS,
   GRILLS_PER_ROUND,
   WORDS_PER_SUSPECT,
   interrogationConfigSchema,
@@ -56,7 +57,8 @@ export const interrogationMeta: GameMeta = {
     'Chaque suspect reçoit en secret 3 mots à glisser dans ses réponses. Ceux du Coupable ont un lien avec l’affaire : bien placés, ils rapportent gros ; trop visibles, ils le trahissent.',
     'L’Enquêteur lit l’affaire à voix haute, puis interroge qui il veut, comme il veut, jusqu’à la fin du chrono. Les suspects doivent répondre, quitte à inventer. En ligne, jouez en appel vocal (ou par écrit dans le chat).',
     'S’il pense avoir entendu un mot secret, l’Enquêteur peut le griller (3 essais par manche) : si le mot appartient bien à ce suspect, il ne rapporte plus rien.',
-    'Pour finir, l’Enquêteur accuse un suspect. Tout est révélé, chaque suspect coche les mots qu’il a vraiment placés (la table vérifie !), puis on compte les points.',
+    'L’Enquêteur peut accuser à tout moment. Quand le chrono tombe, l’interrogatoire s’arrête : il lui reste une minute pour accuser, sinon le Coupable s’échappe.',
+    'Tout est révélé et chaque suspect déclare les mots qu’il a placés. Puis chaque joueur signale ceux qu’il n’a pas entendus : un mot signalé par la majorité des autres joueurs ne compte pas.',
     'Enquêteur : 3 points s’il arrête le Coupable, +1 par mot grillé. Coupable en fuite : 3 points +1 par mot placé (rien s’il est arrêté). Innocent : 1 point par mot placé, +1 s’il est accusé à tort. Le plus haut total gagne.',
   ],
 };
@@ -92,7 +94,7 @@ function log(s: InterrogationState, text: string): void {
 }
 
 const revealed = (s: InterrogationState) =>
-  s.phase === 'review' || s.phase === 'scores' || s.phase === 'over';
+  s.phase === 'review' || s.phase === 'verify' || s.phase === 'scores' || s.phase === 'over';
 
 /** Prépare une manche : Enquêteur suivant, nouvelle affaire, Coupable, mots secrets. */
 function startRound(s: InterrogationState, round: number, rng: Rng): void {
@@ -133,6 +135,9 @@ function startRound(s: InterrogationState, round: number, rng: Rng): void {
   s.burned = {};
   s.grills = [];
   s.declared = {};
+  s.doubts = {};
+  s.verified = [];
+  s.rejected = {};
   s.acked = [];
   s.accused = null;
   s.endsAt = null;
@@ -149,7 +154,8 @@ function scoreRound(s: InterrogationState): void {
   for (const id of suspects(s)) {
     const burned = burnedOf(s, id);
     burnedTotal += burned.length;
-    const placed = (s.declared[id] ?? []).filter((w) => !burned.includes(w)).length;
+    const refused = s.rejected[id] ?? [];
+    const placed = (s.declared[id] ?? []).filter((w) => !burned.includes(w) && !refused.includes(w)).length;
     const reasons: string[] = [];
     let points = 0;
     if (id === s.culprit) {
@@ -169,13 +175,14 @@ function scoreRound(s: InterrogationState): void {
       }
     }
     if (burned.length) reasons.push(`${burned.length} grillé${burned.length > 1 ? 's' : ''}`);
+    if (refused.length) reasons.push(`${refused.length} refusé${refused.length > 1 ? 's' : ''} par la table`);
     lines.push({ playerId: id, points, reasons });
   }
 
   const inspectorPoints = (caught ? 3 : 0) + burnedTotal;
   const inspectorReasons: string[] = [];
   if (caught) inspectorReasons.push('Coupable arrêté (+3)');
-  else inspectorReasons.push('Mauvaise piste');
+  else inspectorReasons.push(s.accused ? 'Mauvaise piste' : 'Aucune accusation');
   if (burnedTotal) inspectorReasons.push(`${burnedTotal} mot${burnedTotal > 1 ? 's' : ''} grillé${burnedTotal > 1 ? 's' : ''} (+${burnedTotal})`);
   lines.unshift({ playerId: s.inspector, points: inspectorPoints, reasons: inspectorReasons });
 
@@ -183,6 +190,22 @@ function scoreRound(s: InterrogationState): void {
   s.lastRound = lines;
   s.phase = 'scores';
   log(s, caught ? `Le Coupable ${nameOf(s, s.culprit)} est sous les verrous !` : `${nameOf(s, s.culprit)}, le vrai Coupable, s’en tire.`);
+}
+
+/** Un mot est refusé si plus de la moitié des AUTRES joueurs ne l'ont pas entendu. */
+function resolveVerification(s: InterrogationState): void {
+  const voters = s.players.length - 1;
+  for (const id of suspects(s)) {
+    const refused = (s.declared[id] ?? []).filter((word) => doubtCount(s, id, word) * 2 > voters);
+    if (refused.length) {
+      s.rejected[id] = refused;
+      log(s, `Refusé${refused.length > 1 ? 's' : ''} par la table chez ${nameOf(s, id)} : ${refused.map((w) => `« ${w} »`).join(', ')}.`);
+    }
+  }
+}
+
+function doubtCount(s: InterrogationState, target: PlayerId, word: string): number {
+  return Object.values(s.doubts).filter((list) => list.some((d) => d.target === target && d.word === word)).length;
 }
 
 // ───────── Module ─────────
@@ -221,6 +244,9 @@ export const interrogation = defineGame<
       endsAt: null,
       accused: null,
       declared: {},
+      doubts: {},
+      verified: [],
+      rejected: {},
       acked: [],
       phase: 'briefing',
       scores: Object.fromEntries(players.map((p) => [p.id, 0])),
@@ -236,10 +262,13 @@ export const interrogation = defineGame<
       case 'briefing':
         return s.players.map((p) => p.id).filter((id) => !s.acked.includes(id));
       case 'interrogation':
+      case 'accusation':
       case 'scores':
         return [s.inspector];
       case 'review':
         return suspects(s).filter((id) => !Object.hasOwn(s.declared, id));
+      case 'verify':
+        return s.players.map((p) => p.id).filter((id) => !s.verified.includes(id));
       default:
         return [];
     }
@@ -254,6 +283,7 @@ export const interrogation = defineGame<
         if (s.acked.includes(by)) return 'Déjà confirmé.';
         return null;
       case 'grill': {
+        if (s.phase === 'accusation') return 'Le temps est écoulé : il ne reste qu’à accuser.';
         if (s.phase !== 'interrogation') return "L'interrogatoire n'a pas lieu.";
         if (by !== s.inspector) return "Seul l'Enquêteur peut griller un mot.";
         if (!isSuspect(s, move.target)) return 'Choisis un suspect.';
@@ -265,7 +295,7 @@ export const interrogation = defineGame<
         return null;
       }
       case 'accuse':
-        if (s.phase !== 'interrogation') return "L'interrogatoire n'a pas lieu.";
+        if (s.phase !== 'interrogation' && s.phase !== 'accusation') return "L'interrogatoire n'a pas lieu.";
         if (by !== s.inspector) return "Seul l'Enquêteur peut accuser.";
         if (!isSuspect(s, move.target)) return 'Choisis un suspect.';
         return null;
@@ -279,6 +309,21 @@ export const interrogation = defineGame<
         for (const w of move.placed) {
           if (!own.includes(w)) return `« ${w} » n'est pas un de tes mots.`;
           if (burned.includes(w)) return `« ${w} » a été grillé.`;
+        }
+        return null;
+      }
+      case 'verify': {
+        if (s.phase !== 'verify') return "Ce n'est pas le moment.";
+        if (s.verified.includes(by)) return 'Déjà validé.';
+        const seen = new Set<string>();
+        for (const d of move.doubts) {
+          if (d.target === by) return 'Tu ne peux pas douter de tes propres mots.';
+          if (!isSuspect(s, d.target)) return 'Joueur inconnu.';
+          const declared = Object.hasOwn(s.declared, d.target) ? (s.declared[d.target] as string[]) : [];
+          if (!declared.includes(d.word)) return `« ${d.word} » n'a pas été déclaré.`;
+          const key = `${d.target}\u0000${d.word}`;
+          if (seen.has(key)) return 'Signalement en double.';
+          seen.add(key);
         }
         return null;
       }
@@ -316,13 +361,31 @@ export const interrogation = defineGame<
       }
       case 'accuse': {
         s.accused = move.target;
+        s.endsAt = null;
         s.phase = 'review';
         log(s, `${nameOf(s, by)} accuse ${nameOf(s, move.target)}. Le Coupable était… ${nameOf(s, s.culprit)} !`);
         return s;
       }
       case 'declare': {
         s.declared[by] = move.placed;
-        if (suspects(s).every((id) => Object.hasOwn(s.declared, id))) scoreRound(s);
+        if (suspects(s).every((id) => Object.hasOwn(s.declared, id))) {
+          const anyWord = suspects(s).some((id) => (s.declared[id] ?? []).length > 0);
+          if (anyWord) {
+            s.phase = 'verify';
+            log(s, 'Vérification : chacun signale les mots qu’il n’a pas entendus.');
+          } else {
+            scoreRound(s);
+          }
+        }
+        return s;
+      }
+      case 'verify': {
+        s.verified.push(by);
+        s.doubts[by] = move.doubts;
+        if (s.verified.length === s.players.length) {
+          resolveVerification(s);
+          scoreRound(s);
+        }
         return s;
       }
       case 'next': {
@@ -349,10 +412,13 @@ export const interrogation = defineGame<
       reveal = {};
       for (const id of suspects(s)) {
         const declared = Object.hasOwn(s.declared, id) ? (s.declared[id] as string[]) : null;
+        const settled = s.phase === 'scores' || s.phase === 'over';
         reveal[id] = wordsOf(s, id).map((word) => ({
           word,
           burned: burnedOf(s, id).includes(word),
           placed: declared ? declared.includes(word) : null,
+          doubts: settled && declared?.includes(word) ? doubtCount(s, id, word) : null,
+          rejected: settled && declared?.includes(word) ? (s.rejected[id] ?? []).includes(word) : null,
         }));
       }
     }
@@ -374,6 +440,7 @@ export const interrogation = defineGame<
         score: s.scores[p.id] ?? 0,
         acked: s.acked.includes(p.id),
         declared: Object.hasOwn(s.declared, p.id),
+        verified: s.verified.includes(p.id),
         role: p.id === s.inspector || open || p.id === me ? roleOf(p.id) : null,
       })),
       me: me
@@ -403,6 +470,26 @@ export const interrogation = defineGame<
           : `Égalité : ${winners.map((p) => p.name).join(', ')}`,
       detail: `${best} point${best > 1 ? 's' : ''}`,
     };
+  },
+
+  // Chrono imposé par le serveur : fin de l'interrogatoire, puis fin du délai d'accusation.
+  deadline(s) {
+    return s.phase === 'interrogation' || s.phase === 'accusation' ? s.endsAt : null;
+  },
+
+  onDeadline(state, _rng, now) {
+    const s = structuredClone(state);
+    if (s.phase === 'interrogation') {
+      s.phase = 'accusation';
+      s.endsAt = now + ACCUSATION_SECONDS * 1000;
+      log(s, `Temps écoulé ! ${nameOf(s, s.inspector)} a ${ACCUSATION_SECONDS} secondes pour accuser.`);
+    } else if (s.phase === 'accusation') {
+      s.accused = null;
+      s.endsAt = null;
+      s.phase = 'review';
+      log(s, `Personne n’a été accusé : ${nameOf(s, s.culprit)}, le Coupable, s’échappe !`);
+    }
+    return s;
   },
 
   // Pas de bots aux places (jeu de parole), mais un remplaçant minimal si quelqu'un se déconnecte.

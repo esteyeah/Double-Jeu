@@ -3,10 +3,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
 import {
+  ACCUSATION_SECONDS,
   ROLE_LABEL,
   type InterrogationMove,
   type InterrogationPlayerView,
   type InterrogationView,
+  type RevealedWord,
   type Role,
 } from '../shared';
 
@@ -53,7 +55,7 @@ export default function InterrogationBoard({ view, viewer, actingAs, mode, sendM
         />
       )}
 
-      {view.phase === 'interrogation' && inspectorActs && (
+      {(view.phase === 'interrogation' || view.phase === 'accusation') && inspectorActs && (
         <InspectorControls view={view} suspects={suspects} sendMove={sendMove} />
       )}
 
@@ -73,9 +75,7 @@ export default function InterrogationBoard({ view, viewer, actingAs, mode, sendM
         </section>
       )}
 
-      {view.phase === 'review' && (
-        <Review view={view} actingAs={actingAs} nameOf={nameOf} sendMove={sendMove} />
-      )}
+      {view.reveal && <Reveal view={view} actingAs={actingAs} nameOf={nameOf} sendMove={sendMove} />}
 
       {(view.phase === 'scores' || view.phase === 'over') && (
         <RoundScores view={view} nameOf={nameOf} />
@@ -109,19 +109,21 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function Timer({ view }: { view: InterrogationView }) {
   const [now, setNow] = useState(() => Date.now());
+  const timed = view.phase === 'interrogation' || view.phase === 'accusation';
   useEffect(() => {
-    if (view.phase !== 'interrogation') return;
+    if (!timed) return;
     const t = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(t);
-  }, [view.phase]);
+  }, [timed]);
 
   let label = `${view.minutes}:00`;
   let tone = 'text-fg';
-  if (view.phase === 'interrogation' && view.endsAt) {
+  let title = 'Chrono';
+  if (timed && view.endsAt) {
     const left = Math.max(0, Math.ceil((view.endsAt - now) / 1000));
     label = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
-    if (left === 0) {
-      label = 'Temps écoulé !';
+    if (view.phase === 'accusation') {
+      title = 'Temps pour accuser';
       tone = 'animate-pulse text-sabo';
     } else if (left <= 30) {
       tone = 'text-key';
@@ -131,8 +133,8 @@ function Timer({ view }: { view: InterrogationView }) {
     tone = 'text-muted';
   }
   return (
-    <div className="rounded-xl border border-line bg-surface px-3 py-2" aria-live="polite">
-      <div className="text-[11px] uppercase tracking-wide text-muted">Chrono</div>
+    <div className="rounded-xl border border-line bg-surface px-3 py-2">
+      <div className="text-[11px] uppercase tracking-wide text-muted">{title}</div>
       <div className={`text-base font-semibold tabular-nums ${tone}`}>{label}</div>
     </div>
   );
@@ -172,11 +174,26 @@ function Instruction({
         ? toInspector('lis l’affaire à voix haute, puis interroge les suspects. Grille les mots suspects, et accuse quand tu es prêt.')
         : `${inspector} interroge les suspects. Réponds à ses questions… et place tes mots.`;
       break;
+    case 'accusation':
+      text = isInspector
+        ? toInspector(`le temps est écoulé ! Accuse un suspect dans les ${ACCUSATION_SECONDS} secondes, sinon le Coupable s’échappe.`)
+        : `Temps écoulé, silence ! ${inspector} doit accuser un suspect.`;
+      break;
     case 'review': {
       const waiting = view.players.filter((p) => p.id !== view.inspector && !p.declared);
-      text = `${inspector} a accusé ${nameOf(view.accused)}. Le Coupable était ${nameOf(view.culprit)} ! ${
-        waiting.length ? `Mots placés à cocher : ${waiting.map((p) => p.name).join(', ')}.` : ''
-      }`;
+      const verdict = view.accused
+        ? `${inspector} a accusé ${nameOf(view.accused)}.`
+        : 'Personne n’a été accusé.';
+      text = `${verdict} Le Coupable était ${nameOf(view.culprit)} ! Mots placés à déclarer : ${waiting
+        .map((p) => p.name)
+        .join(', ')}.`;
+      break;
+    }
+    case 'verify': {
+      const waiting = view.players.filter((p) => !p.verified);
+      text = `Vérification : chacun signale les mots qu’il n’a pas entendus. En attente : ${waiting
+        .map((p) => p.name)
+        .join(', ')}.`;
       break;
     }
     case 'scores':
@@ -287,37 +304,40 @@ function InspectorControls({
     setWord('');
   }
 
+  const canGrill = view.phase === 'interrogation';
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-key/40 bg-surface-2 p-4">
-      <form onSubmit={grill}>
-        <div className="flex items-baseline justify-between">
-          <h4 className="font-semibold">Griller un mot</h4>
-          <span className="text-xs text-muted">
-            {view.grillsLeft} essai{view.grillsLeft > 1 ? 's' : ''} restant{view.grillsLeft > 1 ? 's' : ''}
-          </span>
-        </div>
-        <SuspectPicker suspects={suspects} value={grillTarget} onChange={setGrillTarget} label="Chez qui ?" />
-        <div className="mt-2 flex gap-2">
-          <input
-            value={word}
-            onChange={(e) => setWord(e.target.value)}
-            maxLength={40}
-            placeholder="Le mot entendu"
-            aria-label="Mot à griller"
-            disabled={view.grillsLeft === 0}
-            className="min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 py-2 outline-none focus:border-key disabled:opacity-40"
-          />
-          <button
-            type="submit"
-            disabled={!grillTarget || !word.trim() || view.grillsLeft === 0}
-            className="rounded-lg border border-key/60 px-4 py-2 text-sm font-semibold text-key hover:bg-key/10 disabled:opacity-40"
-          >
-            Griller
-          </button>
-        </div>
-      </form>
+      {canGrill && (
+        <form onSubmit={grill}>
+          <div className="flex items-baseline justify-between">
+            <h4 className="font-semibold">Griller un mot</h4>
+            <span className="text-xs text-muted">
+              {view.grillsLeft} essai{view.grillsLeft > 1 ? 's' : ''} restant{view.grillsLeft > 1 ? 's' : ''}
+            </span>
+          </div>
+          <SuspectPicker suspects={suspects} value={grillTarget} onChange={setGrillTarget} label="Chez qui ?" />
+          <div className="mt-2 flex gap-2">
+            <input
+              value={word}
+              onChange={(e) => setWord(e.target.value)}
+              maxLength={40}
+              placeholder="Le mot entendu"
+              aria-label="Mot à griller"
+              disabled={view.grillsLeft === 0}
+              className="min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 py-2 outline-none focus:border-key disabled:opacity-40"
+            />
+            <button
+              type="submit"
+              disabled={!grillTarget || !word.trim() || view.grillsLeft === 0}
+              className="rounded-lg border border-key/60 px-4 py-2 text-sm font-semibold text-key hover:bg-key/10 disabled:opacity-40"
+            >
+              Griller
+            </button>
+          </div>
+        </form>
+      )}
 
-      <div className="border-t border-line pt-4">
+      <div className={canGrill ? 'border-t border-line pt-4' : ''}>
         <h4 className="font-semibold">Accuser</h4>
         <p className="text-xs text-muted">Termine l’interrogatoire et révèle tout.</p>
         <SuspectPicker suspects={suspects} value={accused} onChange={setAccused} label="Qui est le Coupable ?" />
@@ -370,7 +390,13 @@ function SuspectPicker({
 
 // ───────── Révélation et points ─────────
 
-function Review({
+/**
+ * Révélation des mots, en trois temps :
+ * - review : chaque suspect déclare ses mots placés ;
+ * - verify : chaque joueur signale les mots déclarés qu'il n'a pas entendus ;
+ * - scores : verdict final (placé, grillé, refusé par la table).
+ */
+function Reveal({
   view,
   actingAs,
   nameOf,
@@ -381,106 +407,150 @@ function Review({
   nameOf: (id: PlayerId | null) => string;
   sendMove: (m: InterrogationMove) => void;
 }) {
+  const [checked, setChecked] = useState<string[]>([]);
+  const [doubts, setDoubts] = useState<{ target: PlayerId; word: string }[]>([]);
   const reveal = view.reveal ?? {};
+  const actor = view.players.find((p) => p.id === actingAs);
+  const declaring = view.phase === 'review' && !!actor && actor.id !== view.inspector && !actor.declared;
+  const verifying = view.phase === 'verify' && !!actor && !actor.verified;
+
+  // Sur l'écran partagé, chaque joueur repart d'une sélection vide.
+  useEffect(() => {
+    setChecked([]);
+    setDoubts([]);
+  }, [actingAs, view.phase]);
+
+  const toggleWord = (w: string) =>
+    setChecked((c) => (c.includes(w) ? c.filter((x) => x !== w) : [...c, w]));
+  const isDoubted = (target: PlayerId, word: string) =>
+    doubts.some((d) => d.target === target && d.word === word);
+  const toggleDoubt = (target: PlayerId, word: string) =>
+    setDoubts((list) =>
+      isDoubted(target, word)
+        ? list.filter((d) => !(d.target === target && d.word === word))
+        : [...list, { target, word }],
+    );
+
   return (
     <section className="flex flex-col gap-3">
-      {Object.entries(reveal).map(([id, words]) => (
-        <ReviewRow
-          key={id}
-          name={nameOf(id)}
-          isCulprit={id === view.culprit}
-          isAccused={id === view.accused}
-          words={words}
-          canDeclare={actingAs === id && !view.players.find((p) => p.id === id)?.declared}
-          onDeclare={(placed) => sendMove({ type: 'declare', placed })}
-        />
-      ))}
-    </section>
-  );
-}
-
-function ReviewRow({
-  name,
-  isCulprit,
-  isAccused,
-  words,
-  canDeclare,
-  onDeclare,
-}: {
-  name: string;
-  isCulprit: boolean;
-  isAccused: boolean;
-  words: { word: string; burned: boolean; placed: boolean | null }[];
-  canDeclare: boolean;
-  onDeclare: (placed: string[]) => void;
-}) {
-  const [checked, setChecked] = useState<string[]>([]);
-  const toggle = (w: string) =>
-    setChecked((c) => (c.includes(w) ? c.filter((x) => x !== w) : [...c, w]));
-
-  return (
-    <div
-      className={`rounded-xl border p-3 ${
-        canDeclare ? 'border-accent/60 bg-accent/5' : 'border-line bg-surface'
-      }`}
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold">{name}</span>
-        <span
-          className={`rounded-md border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide ${
-            isCulprit ? ROLE_STYLE.culprit : ROLE_STYLE.innocent
-          }`}
-        >
-          {isCulprit ? 'Coupable' : 'Innocent'}
-        </span>
-        {isAccused && <span className="text-xs font-semibold text-key">accusé</span>}
-      </div>
-      {canDeclare && (
-        <p className="mt-1 text-xs text-accent">
-          Coche les mots que tu as vraiment prononcés. La table peut contester !
+      {declaring && (
+        <p className="rounded-xl border border-accent/50 bg-accent/10 px-4 py-3 text-sm">
+          {actor.name}, coche les mots que tu as vraiment prononcés. Les autres joueurs pourront les
+          contester.
         </p>
       )}
-      <ul className="mt-2 flex flex-wrap gap-2">
-        {words.map((w) =>
-          canDeclare && !w.burned ? (
-            <li key={w.word}>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-good has-[:checked]:text-good">
-                <input
-                  type="checkbox"
-                  checked={checked.includes(w.word)}
-                  onChange={() => toggle(w.word)}
-                  className="h-4 w-4 accent-[var(--color-good)]"
-                />
-                {w.word}
-              </label>
-            </li>
-          ) : (
-            <li
-              key={w.word}
-              className={`rounded-lg border px-3 py-1.5 text-sm ${
-                w.burned
-                  ? 'border-line text-muted line-through'
-                  : w.placed
-                    ? 'border-good/60 text-good'
-                    : 'border-line text-fg/80'
-              }`}
-            >
-              {w.word}
-              {w.burned ? ' · grillé' : w.placed ? ' ✓' : w.placed === false ? ' · non placé' : ''}
-            </li>
-          ),
-        )}
-      </ul>
-      {canDeclare && (
+      {verifying && (
+        <p className="rounded-xl border border-accent/50 bg-accent/10 px-4 py-3 text-sm">
+          {actor.name}, touche les mots que tu n’as <strong>pas</strong> entendus. Un mot signalé par la
+          majorité des autres joueurs ne compte pas.
+        </p>
+      )}
+
+      {Object.entries(reveal).map(([id, words]) => {
+        const mine = id === actingAs;
+        return (
+          <div
+            key={id}
+            className={`rounded-xl border p-3 ${
+              (declaring && mine) || (verifying && !mine) ? 'border-accent/60 bg-accent/5' : 'border-line bg-surface'
+            }`}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold">{nameOf(id)}</span>
+              <span
+                className={`rounded-md border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide ${
+                  id === view.culprit ? ROLE_STYLE.culprit : ROLE_STYLE.innocent
+                }`}
+              >
+                {id === view.culprit ? 'Coupable' : 'Innocent'}
+              </span>
+              {id === view.accused && <span className="text-xs font-semibold text-key">accusé</span>}
+            </div>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {words.map((w) => {
+                if (declaring && mine && !w.burned) {
+                  return (
+                    <li key={w.word}>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-good has-[:checked]:text-good">
+                        <input
+                          type="checkbox"
+                          checked={checked.includes(w.word)}
+                          onChange={() => toggleWord(w.word)}
+                          className="h-4 w-4 accent-[var(--color-good)]"
+                        />
+                        {w.word}
+                      </label>
+                    </li>
+                  );
+                }
+                if (verifying && !mine && w.placed) {
+                  const doubted = isDoubted(id, w.word);
+                  return (
+                    <li key={w.word}>
+                      <button
+                        type="button"
+                        aria-pressed={doubted}
+                        onClick={() => toggleDoubt(id, w.word)}
+                        className={`rounded-lg border px-3 py-1.5 text-sm ${
+                          doubted ? 'border-sabo bg-sabo/15 text-sabo line-through' : 'border-good/60 text-good'
+                        }`}
+                      >
+                        {w.word} {doubted ? '· pas entendu' : '✓'}
+                      </button>
+                    </li>
+                  );
+                }
+                return <WordChip key={w.word} w={w} />;
+              })}
+            </ul>
+          </div>
+        );
+      })}
+
+      {declaring && (
         <button
           type="button"
-          onClick={() => onDeclare(checked)}
-          className="mt-3 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-bg hover:brightness-110"
+          onClick={() => sendMove({ type: 'declare', placed: checked })}
+          className="rounded-xl bg-accent px-4 py-3 font-semibold text-bg hover:brightness-110"
         >
           Valider ({checked.length} placé{checked.length > 1 ? 's' : ''})
         </button>
       )}
-    </div>
+      {verifying && (
+        <button
+          type="button"
+          onClick={() => sendMove({ type: 'verify', doubts })}
+          className="rounded-xl bg-accent px-4 py-3 font-semibold text-bg hover:brightness-110"
+        >
+          {doubts.length === 0
+            ? 'Valider : j’ai tout entendu'
+            : `Valider (${doubts.length} signalé${doubts.length > 1 ? 's' : ''})`}
+        </button>
+      )}
+    </section>
+  );
+}
+
+function WordChip({ w }: { w: RevealedWord }) {
+  let style = 'border-line text-fg/80';
+  let suffix = '';
+  if (w.burned) {
+    style = 'border-line text-muted line-through';
+    suffix = ' · grillé';
+  } else if (w.rejected) {
+    style = 'border-sabo/60 text-sabo line-through';
+    suffix = ` · refusé (${w.doubts} doute${(w.doubts ?? 0) > 1 ? 's' : ''})`;
+  } else if (w.placed) {
+    style = 'border-good/60 text-good';
+    suffix = ' ✓';
+  } else if (w.placed === false) {
+    suffix = ' · non placé';
+  }
+  return (
+    <li className={`rounded-lg border px-3 py-1.5 text-sm ${style}`}>
+      {w.word}
+      {suffix}
+    </li>
   );
 }
 

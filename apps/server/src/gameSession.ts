@@ -1,4 +1,5 @@
 import {
+  applyDeadline,
   applyMove,
   cryptoRng,
   nextBotMove,
@@ -24,6 +25,7 @@ export class GameSession {
   private seq = 0;
   private readonly rng = cryptoRng();
   private botTimer: NodeJS.Timeout | null = null;
+  private deadlineTimer: NodeJS.Timeout | null = null;
   private disposed = false;
 
   constructor(
@@ -33,6 +35,7 @@ export class GameSession {
     private readonly hooks: GameSessionHooks,
   ) {
     this.state = mod.setup(players, config, this.rng);
+    this.scheduleDeadline();
   }
 
   get result(): GameResult | null {
@@ -75,7 +78,27 @@ export class GameSession {
   dispose(): void {
     this.disposed = true;
     if (this.botTimer) clearTimeout(this.botTimer);
+    if (this.deadlineTimer) clearTimeout(this.deadlineTimer);
     this.botTimer = null;
+    this.deadlineTimer = null;
+  }
+
+  /** Chrono imposé par le serveur : à l'échéance, le moteur décide de la suite. */
+  private scheduleDeadline(): void {
+    if (this.deadlineTimer) clearTimeout(this.deadlineTimer);
+    this.deadlineTimer = null;
+    const at = this.mod.deadline?.(this.state) ?? null;
+    if (this.disposed || at === null || this.result) return;
+    this.deadlineTimer = setTimeout(
+      () => {
+        this.deadlineTimer = null;
+        if (this.disposed) return;
+        const next = applyDeadline(this.mod, this.state, this.rng);
+        if (next) this.commit(next);
+        else this.scheduleDeadline();
+      },
+      Math.max(0, at - Date.now()) + 50,
+    );
   }
 
   private commit(state: unknown): void {
@@ -84,6 +107,7 @@ export class GameSession {
     this.hooks.onChange();
     const result = this.result;
     if (result) this.hooks.onEnd(result);
+    this.scheduleDeadline();
     this.scheduleBots();
   }
 }

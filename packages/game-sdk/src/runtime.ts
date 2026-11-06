@@ -23,6 +23,19 @@ export function applyMove<State>(
   return { ok: true, state: mod.apply(state, by, parsed.data, rng, now) };
 }
 
+/** Applique l'échéance si elle est passée ; sinon renvoie `null`. */
+export function applyDeadline<State>(
+  mod: AnyGameModule,
+  state: State,
+  rng: Rng,
+  now: number = Date.now(),
+): State | null {
+  if (!mod.deadline || !mod.onDeadline || mod.result(state)) return null;
+  const at = mod.deadline(state);
+  if (at === null || now < at) return null;
+  return mod.onDeadline(state, rng, now) as State;
+}
+
 export function snapshotFor<State>(
   mod: AnyGameModule,
   state: State,
@@ -84,7 +97,15 @@ export function simulate<State>(
   for (let steps = 0; steps < maxSteps; steps++) {
     if (mod.result(state)) return { state, steps };
     const next = nextBotMove(mod, state, ids, rng);
-    if (!next) throw new Error(`Partie bloquée après ${steps} coups`);
+    if (!next) {
+      // Personne n'a de coup à jouer : on avance l'horloge jusqu'à l'échéance, s'il y en a une.
+      const at = mod.deadline?.(state) ?? null;
+      if (at === null) throw new Error(`Partie bloquée après ${steps} coups`);
+      clock = Math.max(clock, at);
+      state = applyDeadline(mod, state, rng, clock) as State;
+      options.onStep?.(state);
+      continue;
+    }
     clock += 60_000;
     const out = applyMove(mod, state, next.by, next.move, rng, clock);
     if (!out.ok) throw new Error(`Le bot ${next.by} a joué un coup refusé : ${out.error}`);

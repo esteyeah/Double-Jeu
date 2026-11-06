@@ -83,6 +83,14 @@ export interface GameModule<State, Move, View, Config> {
   view(state: State, viewer: PlayerId | null): View;
   result(state: State): GameResult | null;
 
+  /**
+   * Échéance (horodatage en ms) à laquelle le runtime doit appeler `onDeadline`,
+   * ou `null`. Sert aux chronos imposés par le serveur.
+   */
+  deadline?(state: State): number | null;
+  /** Appelé par le runtime une fois l'échéance passée ; renvoie un NOUVEL état. */
+  onDeadline?(state: State, rng: Rng, now: number): State;
+
   /** Bot : ne reçoit que la vue filtrée, comme un humain. `null` = rien à faire. */
   bot?(view: View, me: PlayerId, rng: Rng): Move | null;
 

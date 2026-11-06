@@ -17,13 +17,16 @@ export function interrogationBot(
   switch (view.phase) {
     case 'briefing':
       return self.acked ? null : { type: 'ack' };
-    case 'interrogation': {
+    case 'interrogation':
+    case 'accusation': {
       if (!inspector) return null;
       const suspects = view.players.filter((p) => p.id !== me).map((p) => p.id);
       return { type: 'accuse', target: rng.pick(suspects) };
     }
     case 'review':
       return !inspector && !self.declared ? { type: 'declare', placed: [] } : null;
+    case 'verify':
+      return self.verified ? null : { type: 'verify', doubts: [] };
     case 'scores':
       return inspector ? { type: 'next' } : null;
     default:

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  applyDeadline,
   applyMove,
   cryptoRng,
   nextBotMove,
@@ -68,6 +69,20 @@ export function LocalGame({
     }, 650);
     return () => clearTimeout(t);
   }, [state, result, bots, mod, rng]);
+
+  // Chrono imposé : à l'échéance, le moteur fait avancer la partie (même sans action).
+  useEffect(() => {
+    const at = mod.deadline?.(state) ?? null;
+    if (at === null || result) return;
+    const t = setTimeout(
+      () => {
+        const next = applyDeadline(mod, state, rng);
+        if (next) setState(next);
+      },
+      Math.max(0, at - Date.now()) + 50,
+    );
+    return () => clearTimeout(t);
+  }, [state, result, mod, rng]);
 
   const play = (by: PlayerId) => (move: unknown) => {
     const out = applyMove(mod, state, by, move, rng);

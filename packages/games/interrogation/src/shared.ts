@@ -2,10 +2,19 @@ import { z } from 'zod';
 import type { LogEntry, PlayerId, PlayerInfo } from '@arcade/game-sdk';
 
 export type Role = 'inspector' | 'culprit' | 'innocent';
-export type Phase = 'briefing' | 'interrogation' | 'review' | 'scores' | 'over';
+export type Phase =
+  | 'briefing'
+  | 'interrogation'
+  | 'accusation'
+  | 'review'
+  | 'verify'
+  | 'scores'
+  | 'over';
 
 export const WORDS_PER_SUSPECT = 3;
 export const GRILLS_PER_ROUND = 3;
+/** Temps laissé à l'Enquêteur pour accuser une fois le chrono écoulé. */
+export const ACCUSATION_SECONDS = 60;
 
 export const interrogationConfigSchema = z.object({
   /** Durée indicative de l'interrogatoire. */
@@ -27,6 +36,11 @@ export const interrogationMoveSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('accuse'), target: playerRef }),
   /** Un suspect indique les mots qu'il a vraiment placés (après révélation). */
   z.object({ type: z.literal('declare'), placed: z.array(wordInput).max(WORDS_PER_SUSPECT) }),
+  /** Chaque joueur signale les mots déclarés qu'il n'a PAS entendus. */
+  z.object({
+    type: z.literal('verify'),
+    doubts: z.array(z.object({ target: playerRef, word: wordInput })).max(32),
+  }),
   /** L'Enquêteur passe à la manche suivante. */
   z.object({ type: z.literal('next') }),
 ]);
@@ -81,6 +95,11 @@ export interface InterrogationState {
   endsAt: number | null;
   accused: PlayerId | null;
   declared: Record<PlayerId, string[]>;
+  /** Signalements « pas entendu » de chaque votant. */
+  doubts: Record<PlayerId, { target: PlayerId; word: string }[]>;
+  verified: PlayerId[];
+  /** Mots refusés par la majorité de la table. */
+  rejected: Record<PlayerId, string[]>;
   acked: PlayerId[];
   phase: Phase;
   scores: Record<PlayerId, number>;
@@ -97,6 +116,7 @@ export interface InterrogationPlayerView {
   score: number;
   acked: boolean;
   declared: boolean;
+  verified: boolean;
   /** L'Enquêteur est public ; Coupable/Innocent seulement pour soi, ou après révélation. */
   role: Role | null;
 }
@@ -106,6 +126,9 @@ export interface RevealedWord {
   burned: boolean;
   /** null tant que le suspect n'a pas déclaré. */
   placed: boolean | null;
+  /** Après vérification : nombre de joueurs qui ne l'ont pas entendu, et verdict. */
+  doubts: number | null;
+  rejected: boolean | null;
 }
 
 export interface InterrogationView {
