@@ -1,0 +1,82 @@
+import type { ComponentType } from 'react';
+import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
+import { reactor } from '@arcade/reactor';
+import ReactorBoard from '@arcade/reactor/client';
+
+export interface ClientGame {
+  /** Le moteur sert au mode local (un seul téléphone) : en ligne, c'est le serveur qui l'exécute. */
+  module: AnyGameModule;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Board: ComponentType<BoardProps<any, any>>;
+}
+
+/** Jeux jouables. Ajouter un jeu = une entrée ici + une dans le registre du serveur. */
+const games: Record<string, ClientGame> = {
+  reactor: { module: reactor, Board: ReactorBoard },
+};
+
+export function getClientGame(id: string): ClientGame | undefined {
+  return Object.hasOwn(games, id) ? games[id] : undefined;
+}
+
+export interface CatalogEntry {
+  id: string;
+  name: string;
+  tagline: string;
+  players: string;
+  ready: boolean;
+  /** Classe Tailwind de la couleur d'accent du jeu. */
+  accent: string;
+}
+
+/** Vitrine du hub : les jeux disponibles et ceux à venir. */
+export const catalog: CatalogEntry[] = [
+  {
+    id: 'reactor',
+    name: 'Réacteur',
+    tagline: 'Ouvrez les bonnes trappes avant la fusion du cœur. Bluff et coupes à l’aveugle.',
+    players: '4–8',
+    ready: true,
+    accent: 'from-tech/30',
+  },
+  {
+    id: 'throne',
+    name: 'Le Trône Vide',
+    tagline: 'Le roi est mort. Élections, décrets votés en secret et un usurpateur caché qui convoite le trône.',
+    players: '5–10',
+    ready: false,
+    accent: 'from-sabo/30',
+  },
+  {
+    id: 'expedition',
+    name: 'Expédition',
+    tagline: 'Des traîtres sabotent les missions polaires. Composez la bonne équipe.',
+    players: '5–10',
+    ready: false,
+    accent: 'from-accent/30',
+  },
+  {
+    id: 'intrigue',
+    name: 'Intrigues',
+    tagline: 'Deux influences cachées, des actions bluffées et des contestations à la cour.',
+    players: '2–6',
+    ready: false,
+    accent: 'from-key/30',
+  },
+  {
+    id: 'plunder',
+    name: 'Butin',
+    tagline: 'Pistolets chargés ou poudre mouillée : les pirates se partagent le trésor.',
+    players: '4–8',
+    ready: false,
+    accent: 'from-good/30',
+  },
+  {
+    id: 'interrogation',
+    name: 'Garde à vue',
+    tagline: 'Glissez vos mots secrets dans vos réponses sous le nez de l’enquêteur.',
+    players: '4–7',
+    ready: false,
+    accent: 'from-muted/30',
+  },
+];

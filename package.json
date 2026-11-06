@@ -1,0 +1,18 @@
+{
+  "name": "arcade",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @arcade/server --filter @arcade/web dev",
+    "play": "node scripts/play.mjs",
+    "dev:server": "pnpm --filter @arcade/server dev",
+    "dev:web": "pnpm --filter @arcade/web dev",
+    "build": "pnpm -r build",
+    "start": "pnpm --parallel --filter @arcade/server --filter @arcade/web start",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

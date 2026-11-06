@@ -1,0 +1,103 @@
+# Faux-Semblants
+
+Arcade de jeux à rôles cachés et de bluff : en ligne entre amis, ou sur un seul téléphone qu'on se passe.
+
+Nom de travail, à changer librement. Jeu disponible : **Réacteur** (4 à 8 joueurs). Cinq autres jeux sont prévus dans le catalogue.
+
+## Jouer tout de suite
+
+Prérequis :
+- Node.js 22 (version « LTS » sur nodejs.org) ;
+- pnpm, à installer une fois avec `npm install -g pnpm`.
+
+```bash
+pnpm install
+```
+
+```bash
+pnpm play
+```
+
+Le terminal affiche deux adresses :
+
+- `http://localhost:8080`, à ouvrir sur ton ordinateur ;
+- `http://192.168.x.x:8080`, à donner à tes amis connectés au même Wi-Fi, sur leur téléphone.
+
+Si un téléphone n'arrive pas à se connecter, autorise Node.js dans le pare-feu de l'ordinateur (Windows le demande au premier lancement). Pour relancer sans recompiler : `pnpm play --no-build`.
+
+## Développement
+
+```bash
+pnpm dev
+```
+
+- Front : http://localhost:3000
+- Serveur de jeu : http://localhost:4000 (état : `/health`)
+
+**Tester depuis un téléphone** sur le même Wi-Fi : ouvre `http://<IP-de-ton-ordinateur>:3000`. Le front contacte automatiquement le serveur sur le même hôte, port 4000.
+
+| Commande | Rôle |
+| --- | --- |
+| `pnpm dev` | Front + serveur en mode développement |
+| `pnpm test` | Tests des moteurs et tests d'intégration du serveur |
+| `pnpm typecheck` | Vérification TypeScript de tout le monorepo |
+| `pnpm build` puis `pnpm start` | Build et lancement en production |
+
+## Structure
+
+```
+apps/
+  web/        Next.js : accueil, salons en ligne, mode local, chat
+  server/     Node + Socket.io : seule source de vérité des parties en ligne
+packages/
+  game-sdk/   Contrat GameModule, hasard (crypto / graine), runtime commun, simulateur
+  protocol/   Événements Socket.io typés + schémas Zod
+  games/
+    reactor/  Moteur pur, bot, plateau React, tests
+```
+
+## Comment ça marche
+
+**Un jeu est une suite de fonctions pures** (`packages/game-sdk/src/types.ts`) :
+`setup → expectedActors → validate → apply → view → result`, plus un `bot` facultatif et
+`hotseat.needsPrivacy`. Le même module tourne :
+
+- **en ligne** sur le serveur (`apps/server/src/gameSession.ts`) ;
+- **en local** dans le navigateur (`apps/web/src/components/local/LocalGame.tsx`), sans connexion.
+
+**Anti-triche (mode en ligne)**
+
+1. L'état complet ne quitte jamais le serveur. Chaque socket reçoit `view(state, sonJoueur)` par un envoi individuel (`Room.broadcastSnapshots`).
+2. L'identité vient d'un jeton secret (`sessions.ts`), jamais d'un identifiant envoyé par le client.
+3. Chaque message passe par une limite de débit, une validation Zod, puis `validate` côté règles.
+4. Le hasard est cryptographique (`cryptoRng`). Les positions des cartes cachées ne sont jamais envoyées.
+5. Les bots reçoivent la même vue filtrée que les humains.
+
+**Mode un seul téléphone** : quand `needsPrivacy` est vrai, l'écran demande de passer le téléphone au joueur attendu. Ce joueur confirme, puis l'écran privé s'affiche, et il se reverrouille après chaque action. Sinon, un écran public partagé n'affiche que la vue spectateur. Un bouton permet de « revoir ses informations secrètes ».
+
+**Robustesse** : déconnexion → 30 s de grâce, puis un bot joue à la place du joueur jusqu'à son retour. Le jeton dans `localStorage` permet de reprendre sa place après un rafraîchissement.
+
+## Ajouter un jeu
+
+1. Créer `packages/games/<id>/` sur le modèle de `reactor/` :
+   - `shared.ts` : types, schémas de coups ;
+   - `engine.ts` : le module ;
+   - `bot.ts` ;
+   - `client/Board.tsx` : reçoit `BoardProps`.
+2. L'enregistrer dans `apps/server/src/games.ts` et dans `apps/web/src/games/registry.ts` (et passer `ready: true` dans le catalogue).
+3. L'ajouter à `transpilePackages` dans `apps/web/next.config.ts`.
+4. Écrire les tests, dont une simulation de milliers de parties avec `simulate()`.
+
+Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `text-muted`, `text-tech`…) définis dans `apps/web/src/app/globals.css`.
+
+## Déploiement
+
+- **Serveur** : `pnpm --filter @arcade/server build` puis `node apps/server/dist/index.js`. Variables : `PORT`, `CORS_ORIGIN` (origines autorisées, séparées par des virgules ; obligatoire en production). Il faut un hébergeur qui garde les WebSockets ouverts : Fly.io, Railway, Render, VPS…
+- **Front** : Vercel ou `next start`. Variable : `NEXT_PUBLIC_SERVER_URL`, l'URL publique du serveur de jeu.
+
+## Limites actuelles
+
+- Parties et sessions en mémoire : un redémarrage du serveur coupe les parties en cours (Redis prévu).
+- Pas encore de comptes, de points ni de déblocages (prévus).
+- Mode local : il fonctionne sans réseau une fois la page chargée, mais l'application n'est pas encore installable hors ligne (PWA prévue).
+- Bots de Réacteur volontairement simples : entre bots seulement, les Saboteurs gagnent environ 85 % des parties. Avec des humains, c'est la discussion qui équilibre.
