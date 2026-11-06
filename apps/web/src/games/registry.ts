@@ -4,6 +4,8 @@ import { interrogation } from '@arcade/interrogation';
 import InterrogationBoard from '@arcade/interrogation/client';
 import { reactor } from '@arcade/reactor';
 import ReactorBoard from '@arcade/reactor/client';
+import { throne } from '@arcade/throne';
+import ThroneBoard from '@arcade/throne/client';
 
 export interface ClientGame {
   /** Le moteur sert au mode local (un seul téléphone) : en ligne, c'est le serveur qui l'exécute. */
@@ -16,6 +18,7 @@ export interface ClientGame {
 const games: Record<string, ClientGame> = {
   reactor: { module: reactor, Board: ReactorBoard },
   interrogation: { module: interrogation, Board: InterrogationBoard },
+  throne: { module: throne, Board: ThroneBoard },
 };
 
 export function getClientGame(id: string): ClientGame | undefined {
@@ -45,9 +48,9 @@ export const catalog: CatalogEntry[] = [
   {
     id: 'throne',
     name: 'Le Trône Vide',
-    tagline: 'Le roi est mort. Élections, décrets votés en secret et un usurpateur caché qui convoite le trône.',
+    tagline: 'Le roi est mort. Élections, édits votés en secret et un usurpateur caché qui convoite le trône.',
     players: '5–10',
-    ready: false,
+    ready: true,
     accent: 'from-sabo/30',
   },
   {

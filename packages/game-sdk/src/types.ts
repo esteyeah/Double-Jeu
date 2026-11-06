@@ -53,6 +53,8 @@ export interface GameMeta {
   supportsBots: boolean;
   /** Options proposées à l'hôte. Les valeurs sont validées par `configSchema`. */
   settings?: GameSetting[];
+  /** Valeurs d'options suggérées pour le mode « un seul téléphone ». */
+  hotseatDefaults?: Record<string, unknown>;
   /** Règles affichées dans le lobby, un paragraphe par entrée. */
   rules: string[];
 }

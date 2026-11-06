@@ -20,6 +20,7 @@ export function LocalScreen({ gameId }: { gameId: string }) {
   const [players, setPlayers] = useState<PlayerInfo[] | null>(null);
   const [config, setConfig] = useState<Record<string, unknown>>(() => ({
     ...((game?.module.defaultConfig as Record<string, unknown> | undefined) ?? {}),
+    ...(game?.module.meta.hotseatDefaults ?? {}),
   }));
   const [gameKey, setGameKey] = useState(0);
 

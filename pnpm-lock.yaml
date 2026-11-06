@@ -22,6 +22,9 @@ importers:
       '@arcade/reactor':
         specifier: workspace:*
         version: link:../../packages/games/reactor
+      '@arcade/throne':
+        specifier: workspace:*
+        version: link:../../packages/games/throne
       socket.io:
         specifier: ^4.8.4
         version: 4.8.4
@@ -62,6 +65,9 @@ importers:
       '@arcade/reactor':
         specifier: workspace:*
         version: link:../../packages/games/reactor
+      '@arcade/throne':
+        specifier: workspace:*
+        version: link:../../packages/games/throne
       next:
         specifier: ^16.4.5
         version: 16.4.5(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -133,6 +139,28 @@ importers:
         version: 5.1.0(@types/node@22.20.5)(vite@8.3.6(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
   packages/games/reactor:
+    dependencies:
+      '@arcade/game-sdk':
+        specifier: workspace:*
+        version: link:../../game-sdk
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^5.1.0
+        version: 5.1.0(@types/node@22.20.5)(vite@8.3.6(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/games/throne:
     dependencies:
       '@arcade/game-sdk':
         specifier: workspace:*

@@ -6,8 +6,9 @@ Nom de travail, à changer librement. Jeux disponibles :
 
 - **Réacteur** (4 à 8 joueurs) : bluff et cartes coupées à l'aveugle, bots possibles.
 - **Garde à vue** (4 à 8 joueurs) : jeu de parole. Un Enquêteur interroge des suspects qui glissent des mots secrets dans leurs réponses. Il se joue autour d'une table ou en appel vocal.
+- **Le Trône Vide** (5 à 10 joueurs) : élections, édits votés en secret, pouvoirs du Régent et un Usurpateur caché. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 
-Quatre autres jeux sont prévus dans le catalogue.
+Trois autres jeux sont prévus dans le catalogue.
 
 ## Obtenir un lien à partager
 
@@ -70,6 +71,7 @@ packages/
   games/
     reactor/        Moteur pur, bot, plateau React, tests
     interrogation/  Garde à vue : moteur, contenu (affaires, mots), plateau, tests
+    throne/         Le Trône Vide : moteur, bots, plateau, tests
 ```
 
 ## Comment ça marche
@@ -105,7 +107,7 @@ packages/
 
 Pour un chrono imposé, implémenter `deadline(state)` et `onDeadline(state, rng, now)` : le serveur (ou le navigateur, en mode local) applique l'échéance même si personne ne joue. Garde à vue s'en sert pour la fin de l'interrogatoire et le délai d'accusation.
 
-Dans `meta` : `supportsBots: false` pour un jeu de parole (le lobby masque alors les bots), et `settings` pour proposer des options à l'hôte (durée, manches…). Les valeurs sont validées par le `configSchema` du jeu.
+Dans `meta` : `supportsBots: false` pour un jeu de parole (le lobby masque alors les bots), et `settings` pour proposer des options à l'hôte (durée, manches…), avec `hotseatDefaults` pour les valeurs suggérées en mode un seul téléphone. Les valeurs sont validées par le `configSchema` du jeu.
 4. Écrire les tests, dont une simulation de milliers de parties avec `simulate()`.
 
 Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `text-muted`, `text-tech`…) définis dans `apps/web/src/app/globals.css`.
@@ -121,4 +123,5 @@ Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `te
 - Parties et sessions en mémoire : un redémarrage du serveur coupe les parties en cours (Redis prévu).
 - Pas encore de comptes, de points ni de déblocages (prévus).
 - Mode local : il fonctionne sans réseau une fois la page chargée, mais l'application n'est pas encore installable hors ligne (PWA prévue).
+- Bots du Trône Vide : entre bots seulement, la Couronne gagne 55 à 85 % des parties selon la table.
 - Bots de Réacteur volontairement simples : entre bots seulement, les Saboteurs gagnent environ 85 % des parties. Avec des humains, c'est la discussion qui équilibre.

@@ -15,6 +15,7 @@
     "@arcade/interrogation": "workspace:*",
     "@arcade/protocol": "workspace:*",
     "@arcade/reactor": "workspace:*",
+    "@arcade/throne": "workspace:*",
     "socket.io": "^4.8.4",
     "zod": "^4.6.7"
   },
