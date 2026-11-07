@@ -1,5 +1,7 @@
 import type { ComponentType } from 'react';
 import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
+import { cauldron } from '@arcade/cauldron';
+import CauldronBoard from '@arcade/cauldron/client';
 import { court } from '@arcade/court';
 import CourtBoard from '@arcade/court/client';
 import { expedition } from '@arcade/expedition';
@@ -28,6 +30,7 @@ const games: Record<string, ClientGame> = {
   plunder: { module: plunder, Board: PlunderBoard },
   expedition: { module: expedition, Board: ExpeditionBoard },
   court: { module: court, Board: CourtBoard },
+  cauldron: { module: cauldron, Board: CauldronBoard },
 };
 
 export function getClientGame(id: string): ClientGame | undefined {
@@ -77,6 +80,14 @@ export const catalog: CatalogEntry[] = [
     players: '2–6',
     ready: true,
     accent: 'from-key/30',
+  },
+  {
+    id: 'cauldron',
+    name: 'Le Chaudron',
+    tagline: 'La guilde prépare une potion… et des Empoisonneurs y versent de la ciguë en mentant.',
+    players: '3–8',
+    ready: true,
+    accent: 'from-good/20 via-sabo/10',
   },
   {
     id: 'plunder',

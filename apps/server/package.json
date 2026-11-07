@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@arcade/cauldron": "workspace:*",
     "@arcade/court": "workspace:*",
     "@arcade/expedition": "workspace:*",
     "@arcade/game-sdk": "workspace:*",

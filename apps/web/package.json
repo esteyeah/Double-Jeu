@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@arcade/cauldron": "workspace:*",
     "@arcade/court": "workspace:*",
     "@arcade/expedition": "workspace:*",
     "@arcade/game-sdk": "workspace:*",

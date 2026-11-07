@@ -12,6 +12,7 @@ const config: NextConfig = {
     '@arcade/plunder',
     '@arcade/expedition',
     '@arcade/court',
+    '@arcade/cauldron',
   ],
 };
 

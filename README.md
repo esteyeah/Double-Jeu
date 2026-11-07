@@ -10,6 +10,7 @@ Nom de travail, à changer librement. Jeux disponibles :
 - **Butin** (3 à 8 joueurs) : des pirates se partagent un trésor, pistolet au poing. Charge sèche ou mouillée, visées, plongeon dans la cale, partage. Bots possibles ; plongeon annoncé à voix haute en mode un seul téléphone.
 - **Expédition** (5 à 10 joueurs) : des Mutins sabotent une expédition polaire. Cordées votées, cartes Réussite/Sabotage secrètes, rôles spéciaux au choix (Cartographe, avec ou sans Espion). Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 - **La Cité** (2 à 6 joueurs) : bluff à la cour d'une cité marchande. Deux influences cachées, des écus, des actions de personnage qu'on peut annoncer sans les avoir (Banquier, Bourreau, Brigand, Émissaire, Garde, Mouchard, Mercenaire), des contres et des contestations dans un délai imposé. Avant la partie, l'hôte coche les personnages en jeu ; le lancement vérifie qu'il y a assez de cartes pour la table. Bots possibles.
+- **Le Chaudron** (3 à 8 joueurs) : une guilde d'alchimistes remplit un chaudron, ingrédient par ingrédient, en annonçant à voix haute ce qu'elle verse. Les Empoisonneurs y glissent de la Ciguë en mentant. Goûter (en secret), Écumer, Soupçonner (3 jetons : chassé de la guilde) et voter pour servir la potion quand on pense qu'elle atteint sa force. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 
 ## Obtenir un lien à partager
 
@@ -76,6 +77,7 @@ packages/
     plunder/        Butin : moteur, bots, plateau, tests
     expedition/     Expédition : moteur, bots (raisonnement probabiliste), plateau, tests
     court/          La Cité : moteur (annonces, contres, contestations), bots, plateau, tests
+    cauldron/       Le Chaudron : moteur, bots (indices tirés des dégustations), plateau, tests
 ```
 
 ## Comment ça marche
@@ -129,4 +131,5 @@ Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `te
 - Mode local : il fonctionne sans réseau une fois la page chargée, mais l'application n'est pas encore installable hors ligne (PWA prévue).
 - Bots du Trône Vide : entre bots seulement, la Couronne gagne 55 à 85 % des parties selon la table.
 - Bots d'Expédition : les loyaux déduisent les Mutins des sabotages, mais sans discussion les Mutins gagnent encore 46 à 93 % des parties entre bots (plus à 8 joueurs et au-delà).
+- Bots du Chaudron : la force visée a été réglée par simulation ; entre bots, les Alchimistes gagnent 53 à 64 % des parties de 5 à 8 joueurs, mais 75 % à 3 ou 4 joueurs (un seul Empoisonneur, vite démasqué par les dégustations).
 - Bots de Réacteur volontairement simples : entre bots seulement, les Saboteurs gagnent environ 85 % des parties. Avec des humains, c'est la discussion qui équilibre.
