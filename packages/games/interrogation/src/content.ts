@@ -121,6 +121,16 @@ export const CASES: Case[] = [
     text: 'Le jour de l’Épiphanie, toutes les fèves de la boulangerie ont été remplacées par des boutons de chemise.',
     clues: ['galette', 'fève', 'couronne', 'bouton', 'pâte', 'fournée'],
   },
+  {
+    title: 'L’imposteur à plumes',
+    text: 'Le coq qui chante l’heure sur le toit de la mairie a été remplacé par un réveil déguisé en poule. Le vrai coq a été aperçu ce matin à l’arrêt de car, une valise sous l’aile, direction la mer.',
+    clues: ['réveil', 'poulailler', 'valise', 'déguisement', 'cocorico', 'crête'],
+  },
+  {
+    title: 'La course des mamies',
+    text: 'À la grande course des seniors, la favorite, 92 ans, a franchi la ligne d’arrivée avec dix minutes d’avance… sur un déambulateur équipé d’un moteur à réaction. Les juges soupçonnent un complice très bricoleur.',
+    clues: ['déambulateur', 'dossard', 'médaille', 'tricot', 'turbo', 'dentier'],
+  },
 ];
 
 /** Mots des innocents : du quotidien un peu décalé, à caser l'air de rien. */
