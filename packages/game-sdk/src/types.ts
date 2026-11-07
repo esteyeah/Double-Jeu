@@ -35,6 +35,11 @@ export interface GameSetting {
   key: string;
   label: string;
   choices: { value: string | number | boolean; label: string }[];
+  /** `multi` : plusieurs choix cochables (la valeur est alors un tableau). */
+  kind?: 'single' | 'multi';
+  /** Bornes du nombre de choix cochés (options `multi`). */
+  min?: number;
+  max?: number;
 }
 
 export interface GameMeta {

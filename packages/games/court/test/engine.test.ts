@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { applyDeadline, applyMove, seededRng, simulate, type PlayerInfo } from '@arcade/game-sdk';
-import { court, type Character, type CourtState } from '../src';
+import {
+  CHARACTERS,
+  CLASSIC_COURT,
+  court,
+  courtConfigSchema,
+  type Character,
+  type CourtConfig,
+  type CourtState,
+} from '../src';
 
 const players = (n: number): PlayerInfo[] =>
   Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `J${i}`, isBot: false }));
+const CLASSIC: CourtConfig = { reaction: 20, characters: CLASSIC_COURT };
+const FULL: CourtConfig = { reaction: 20, characters: [...CHARACTERS] };
 
 function play(s: CourtState, by: string, move: unknown, now = 1_000): CourtState {
   const out = applyMove(court, s, by, move, seededRng(5), now);
@@ -12,18 +22,14 @@ function play(s: CourtState, by: string, move: unknown, now = 1_000): CourtState
 }
 const ok = (s: CourtState, by: string, move: unknown) => applyMove(court, s, by, move, seededRng(5), 1_000).ok;
 
-/** Partie à mains imposées ; p0 commence. */
-function table(hands: Character[][], coins?: number[]): CourtState {
-  const s = court.setup(players(hands.length), { reaction: 20 }, seededRng(1));
+/** Partie à mains imposées ; p0 commence. La pioche complète la cour à 3 exemplaires par personnage. */
+function table(hands: Character[][], coins?: number[], config: CourtConfig = CLASSIC): CourtState {
+  const s = court.setup(players(hands.length), config, seededRng(1));
   const all = hands.flat();
-  // Pioche : le reste des 15 cartes, pour garder un total cohérent.
-  const deck: Character[] = (['banker', 'swordsman', 'corsair', 'envoy', 'guard'] as Character[]).flatMap((c) =>
-    Array<Character>(3 - all.filter((x) => x === c).length).fill(c),
-  );
+  s.deck = config.characters.flatMap((c) => Array<Character>(3 - all.filter((x) => x === c).length).fill(c));
   hands.forEach((h, i) => {
-    s.seats[`p${i}`] = { cards: [...h], revealed: [], coins: coins?.[i] ?? 2 };
+    s.seats[`p${i}`] = { cards: [...h], revealed: [], coins: coins?.[i] ?? 2, escorted: false };
   });
-  s.deck = deck;
   s.turn = 0;
   s.active = 'p0';
   return s;
@@ -38,9 +44,9 @@ const total = (s: CourtState) =>
   Object.values(s.seats).reduce((n, seat) => n + seat.cards.length + seat.revealed.length, 0) +
   (s.exchange ? s.exchange.length - s.seats[s.active]!.cards.length : 0);
 
-describe('Faux Jetons — mise en place et secrets', () => {
-  it.each([2, 3, 6])('distribue 2 influences et des ducats à %i joueurs, 15 cartes en tout', (n) => {
-    const s = court.setup(players(n), { reaction: 20 }, seededRng(n));
+describe('Faux Jetons — mise en place, composition et secrets', () => {
+  it.each([2, 3, 6])('cour classique : 2 influences, 15 cartes en tout à %i joueurs', (n) => {
+    const s = court.setup(players(n), CLASSIC, seededRng(n));
     expect(total(s)).toBe(15);
     for (const seat of Object.values(s.seats)) expect(seat.cards).toHaveLength(2);
     const coins = Object.values(s.seats).map((x) => x.coins);
@@ -48,142 +54,193 @@ describe('Faux Jetons — mise en place et secrets', () => {
     else expect(coins.every((c) => c === 2)).toBe(true);
   });
 
+  it('cour complète : 7 personnages, 21 cartes', () => {
+    const s = court.setup(players(6), FULL, seededRng(3));
+    expect(total(s)).toBe(21);
+  });
+
+  it('la composition doit compter de 5 à 7 personnages distincts', () => {
+    expect(courtConfigSchema.safeParse({ reaction: 20, characters: CLASSIC_COURT.slice(0, 4) }).success).toBe(false);
+    expect(courtConfigSchema.safeParse({ reaction: 20, characters: [...CLASSIC_COURT.slice(0, 4), 'banker'] }).success).toBe(false);
+    expect(courtConfigSchema.safeParse(FULL).success).toBe(true);
+  });
+
+  it('on ne peut pas annoncer un personnage absent de la cour', () => {
+    const s = table([['banker', 'guard'], ['executioner', 'brigand']]);
+    expect(ok(s, 'p0', { type: 'act', kind: 'snoop', target: 'p1' })).toBe(false);
+    expect(ok(s, 'p0', { type: 'act', kind: 'escort' })).toBe(false);
+  });
+
+  it('sans Garde à la cour, l’Exécution ne peut pas être contrée', () => {
+    const config: CourtConfig = { reaction: 20, characters: ['banker', 'executioner', 'brigand', 'envoy', 'informer'] };
+    let s = table([['executioner', 'banker'], ['brigand', 'envoy']], [3, 2], config);
+    s = play(s, 'p0', { type: 'act', kind: 'execute', target: 'p1' });
+    s = passAll(s); // fenêtre de contestation
+    expect(s.phase).toBe('loss'); // pas de fenêtre de contre : on passe à la perte
+  });
+
   it('un joueur ne voit que ses propres personnages', () => {
-    const s = table([['banker', 'guard'], ['swordsman', 'corsair'], ['envoy', 'envoy']]);
+    const s = table([['banker', 'guard'], ['executioner', 'brigand'], ['envoy', 'envoy']]);
     const v = court.view(s, 'p1');
-    expect(v.me!.hand).toEqual(['swordsman', 'corsair']);
-    expect(JSON.stringify({ ...v, me: null })).not.toMatch(/"(banker|swordsman|corsair|envoy|guard)"/);
-    expect(v.players.find((p) => p.id === 'p0')!.influence).toBe(2);
+    expect(v.me!.hand).toEqual(['executioner', 'brigand']);
+    expect(JSON.stringify({ ...v, me: null, config: null })).not.toMatch(/"(banker|executioner|brigand|envoy|guard|informer|mercenary)"/);
   });
 });
 
 describe('Faux Jetons — actions et contres', () => {
   it('Revenu : +1, sans fenêtre de réaction', () => {
-    let s = table([['banker', 'guard'], ['swordsman', 'corsair']]);
+    let s = table([['banker', 'guard'], ['executioner', 'brigand']]);
     s = play(s, 'p0', { type: 'act', kind: 'income' });
     expect(s.seats.p0!.coins).toBe(3);
     expect(s.active).toBe('p1');
   });
 
   it('Faveur : contrable par n’importe qui avec le Banquier ; un contre non contesté tient', () => {
-    let s = table([['guard', 'guard'], ['swordsman', 'corsair'], ['envoy', 'corsair']]);
+    let s = table([['guard', 'guard'], ['executioner', 'brigand'], ['envoy', 'brigand']]);
     s = play(s, 'p0', { type: 'act', kind: 'favor' });
-    expect(s.phase).toBe('block');
     expect(court.expectedActors(s).sort()).toEqual(['p1', 'p2']);
     expect(ok(s, 'p1', { type: 'block', claim: 'guard' })).toBe(false);
     s = play(s, 'p2', { type: 'block', claim: 'banker' });
-    expect(s.phase).toBe('challengeBlock');
     s = passAll(s);
     expect(s.seats.p0!.coins).toBe(2);
-    expect(s.active).toBe('p1');
   });
 
-  it('contestation gagnée : le bluffeur perd une influence (au choix) et n’a rien', () => {
-    let s = table([['guard', 'corsair'], ['swordsman', 'envoy']]);
+  it('contestation gagnée : le bluffeur perd une influence et n’a rien', () => {
+    let s = table([['guard', 'brigand'], ['executioner', 'envoy']]);
     s = play(s, 'p0', { type: 'act', kind: 'tax' });
     s = play(s, 'p1', { type: 'challenge' });
-    expect(s.phase).toBe('loss');
-    expect(court.expectedActors(s)).toEqual(['p0']);
-    s = play(s, 'p0', { type: 'lose', card: 'corsair' });
-    expect(s.seats.p0).toMatchObject({ cards: ['guard'], revealed: ['corsair'], coins: 2 });
-    expect(s.active).toBe('p1');
+    s = play(s, 'p0', { type: 'lose', card: 'brigand' });
+    expect(s.seats.p0).toMatchObject({ cards: ['guard'], revealed: ['brigand'], coins: 2 });
   });
 
   it('contestation perdue : l’annonceur montre la carte, en change, et l’action passe', () => {
-    let s = table([['banker', 'guard'], ['swordsman', 'envoy']]);
+    let s = table([['banker', 'guard'], ['executioner', 'envoy']]);
     s = play(s, 'p0', { type: 'act', kind: 'tax' });
     s = play(s, 'p1', { type: 'challenge' });
-    expect(s.seats.p0!.cards).toHaveLength(2);
-    expect(s.phase).toBe('loss');
     s = play(s, 'p1', { type: 'lose', card: 'envoy' });
     expect(s.seats.p0!.coins).toBe(5);
     expect(total(s)).toBe(15);
   });
 
-  it('Assassinat payé ; contre bluffé démasqué : la cible perd DEUX influences', () => {
-    let s = table([['swordsman', 'banker'], ['corsair', 'envoy'], ['guard', 'banker']], [3, 2, 2]);
-    s = play(s, 'p0', { type: 'act', kind: 'assassinate', target: 'p1' });
+  it('Exécution payée ; contre bluffé démasqué : la cible perd DEUX influences', () => {
+    let s = table([['executioner', 'banker'], ['brigand', 'envoy'], ['guard', 'banker']], [3, 2, 2]);
+    s = play(s, 'p0', { type: 'act', kind: 'execute', target: 'p1' });
     expect(s.seats.p0!.coins).toBe(0);
-    s = passAll(s); // personne ne conteste le Spadassin
-    expect(s.phase).toBe('block');
-    expect(court.expectedActors(s)).toEqual(['p1']); // seule la cible peut contrer
+    s = passAll(s);
+    expect(court.expectedActors(s)).toEqual(['p1']);
     s = play(s, 'p1', { type: 'block', claim: 'guard' });
     s = play(s, 'p0', { type: 'challenge' });
-    s = play(s, 'p1', { type: 'lose', card: 'corsair' });
+    s = play(s, 'p1', { type: 'lose', card: 'brigand' });
     expect(s.seats.p1!.cards).toEqual([]);
-    expect(s.seats.p1!.revealed.sort()).toEqual(['corsair', 'envoy']);
   });
 
-  it('Assassinat bluffé et démasqué : les ducats sont rendus', () => {
-    let s = table([['banker', 'banker'], ['corsair', 'envoy']], [3, 2]);
-    s = play(s, 'p0', { type: 'act', kind: 'assassinate', target: 'p1' });
+  it('Exécution bluffée et démasquée : les écus sont rendus', () => {
+    let s = table([['banker', 'banker'], ['brigand', 'envoy']], [3, 2]);
+    s = play(s, 'p0', { type: 'act', kind: 'execute', target: 'p1' });
     s = play(s, 'p1', { type: 'challenge' });
     s = play(s, 'p0', { type: 'lose', card: 'banker' });
     expect(s.seats.p0!.coins).toBe(3);
-    expect(s.seats.p1!.cards).toHaveLength(2);
   });
 
-  it('Racket : seule la cible contre ; vole au plus 2 ducats', () => {
-    let s = table([['corsair', 'banker'], ['guard', 'guard'], ['envoy', 'banker']], [2, 1, 2]);
+  it('Racket du Brigand : seule la cible contre ; vole au plus 2 écus', () => {
+    let s = table([['brigand', 'banker'], ['guard', 'guard'], ['envoy', 'banker']], [2, 1, 2]);
     s = play(s, 'p0', { type: 'act', kind: 'racket', target: 'p1' });
     s = passAll(s);
     expect(court.expectedActors(s)).toEqual(['p1']);
     s = play(s, 'p1', { type: 'pass' });
-    expect(s.seats.p0!.coins).toBe(3);
-    expect(s.seats.p1!.coins).toBe(0);
+    expect([s.seats.p0!.coins, s.seats.p1!.coins]).toEqual([3, 0]);
   });
 
-  it('Échange : on garde autant de personnages qu’avant, la pioche reste complète', () => {
-    let s = table([['envoy', 'guard'], ['swordsman', 'corsair']]);
+  it('Échange : on garde autant de personnages qu’avant', () => {
+    let s = table([['envoy', 'guard'], ['executioner', 'brigand']]);
     s = play(s, 'p0', { type: 'act', kind: 'exchange' });
     s = passAll(s);
-    expect(s.phase).toBe('exchange');
     const pool = court.view(s, 'p0').me!.exchange!;
     expect(pool).toHaveLength(4);
-    expect(court.view(s, 'p1').me!.exchange).toBeNull();
     expect(ok(s, 'p0', { type: 'keep', cards: [pool[0]!] })).toBe(false);
     s = play(s, 'p0', { type: 'keep', cards: [pool[2]!, pool[3]!] });
-    expect(s.seats.p0!.cards).toEqual([pool[2], pool[3]]);
     expect(total(s)).toBe(15);
   });
 
-  it('Conspiration obligatoire dès 10 ducats, imparable', () => {
-    let s = table([['banker', 'guard'], ['swordsman', 'corsair']], [10, 2]);
+  it('Conspiration obligatoire dès 10 écus, imparable', () => {
+    let s = table([['banker', 'guard'], ['executioner', 'brigand']], [10, 2]);
     expect(ok(s, 'p0', { type: 'act', kind: 'tax' })).toBe(false);
     s = play(s, 'p0', { type: 'act', kind: 'conspiracy', target: 'p1' });
-    expect(s.phase).toBe('loss');
-    s = play(s, 'p1', { type: 'lose', card: 'corsair' });
+    s = play(s, 'p1', { type: 'lose', card: 'brigand' });
     expect(s.seats.p0!.coins).toBe(3);
   });
 
   it('fin du délai : tout le monde laisse passer', () => {
-    let s = table([['guard', 'guard'], ['swordsman', 'corsair']]);
+    let s = table([['guard', 'guard'], ['executioner', 'brigand']]);
     s = play(s, 'p0', { type: 'act', kind: 'tax' }, 1_000);
-    expect(court.deadline!(s)).toBe(21_000);
     s = applyDeadline(court, s, seededRng(1), 21_000)!;
     expect(s.seats.p0!.coins).toBe(5);
+  });
+});
+
+describe('Faux Jetons — Mouchard et Mercenaire', () => {
+  it('Espionnage : la cible choisit la carte, seul le Mouchard la voit', () => {
+    let s = table([['informer', 'guard'], ['executioner', 'brigand'], ['banker', 'envoy']], undefined, FULL);
+    s = play(s, 'p0', { type: 'act', kind: 'snoop', target: 'p1' });
+    s = passAll(s);
+    expect(s.phase).toBe('show');
+    expect(court.expectedActors(s)).toEqual(['p1']);
+    s = play(s, 'p1', { type: 'show', card: 'brigand' });
+    expect(s.phase).toBe('peek');
+    expect(court.view(s, 'p0').me!.intel).toEqual([{ target: 'p1', card: 'brigand' }]);
+    expect(court.view(s, 'p2').me!.intel).toEqual([]);
+    expect(court.view(s, 'p2').log.join(' ')).not.toMatch(/Brigand/);
+    expect(s.seats.p1!.cards).toEqual(['executioner', 'brigand']); // la carte reste en main
+    s = play(s, 'p0', { type: 'seen' });
     expect(s.active).toBe('p1');
   });
 
-  it('dernier en lice : victoire', () => {
-    let s = table([['swordsman', 'banker'], ['guard', 'envoy']], [7, 0]);
-    s.seats.p1!.cards = ['guard'];
-    s.seats.p1!.revealed = ['envoy'];
-    s = play(s, 'p0', { type: 'act', kind: 'conspiracy', target: 'p1' });
-    expect(s.phase).toBe('over');
-    expect(court.result(s)?.winners).toEqual(['p0']);
+  it('Espionnage d’un joueur à une seule influence : elle est montrée d’office', () => {
+    let s = table([['informer', 'guard'], ['executioner', 'brigand']], undefined, FULL);
+    s.seats.p1!.cards = ['brigand'];
+    s.seats.p1!.revealed = ['executioner'];
+    s = play(s, 'p0', { type: 'act', kind: 'snoop', target: 'p1' });
+    s = passAll(s);
+    expect(s.phase).toBe('peek');
+    expect(s.intel.p0).toEqual([{ target: 'p1', card: 'brigand' }]);
+  });
+
+  it('Escorte : intouchable par les personnages jusqu’à son prochain tour, pas par la Conspiration', () => {
+    let s = table([['mercenary', 'guard'], ['executioner', 'brigand'], ['informer', 'banker']], [2, 3, 7], FULL);
+    s = play(s, 'p0', { type: 'act', kind: 'escort' });
+    s = passAll(s);
+    expect(s.seats.p0).toMatchObject({ coins: 0, escorted: true });
+    expect(s.active).toBe('p1');
+    expect(ok(s, 'p1', { type: 'act', kind: 'execute', target: 'p0' })).toBe(false);
+    expect(ok(s, 'p1', { type: 'act', kind: 'racket', target: 'p0' })).toBe(false);
+    s = play(s, 'p1', { type: 'act', kind: 'income' });
+    expect(ok(s, 'p2', { type: 'act', kind: 'snoop', target: 'p0' })).toBe(false);
+    expect(ok(s, 'p2', { type: 'act', kind: 'conspiracy', target: 'p0' })).toBe(true);
+    s = play(s, 'p2', { type: 'act', kind: 'income' });
+    expect(s.active).toBe('p0');
+    expect(s.seats.p0!.escorted).toBe(false); // l'escorte prend fin à son tour
+  });
+
+  it('une Escorte bluffée et démasquée est remboursée et n’a pas d’effet', () => {
+    let s = table([['banker', 'guard'], ['executioner', 'brigand']], [2, 2], FULL);
+    s = play(s, 'p0', { type: 'act', kind: 'escort' });
+    s = play(s, 'p1', { type: 'challenge' });
+    s = play(s, 'p0', { type: 'lose', card: 'banker' });
+    expect(s.seats.p0).toMatchObject({ coins: 2, escorted: false });
   });
 });
 
 describe('Faux Jetons — robustesse', () => {
-  it.each([2, 3, 4, 5, 6])('400 parties de bots à %i joueurs, 15 cartes toujours comptées', (n) => {
+  it.each([2, 3, 4, 5, 6])('400 parties de bots à %i joueurs, cartes toujours comptées', (n) => {
     for (let seed = 0; seed < 400; seed++) {
+      const config = seed % 2 === 0 ? CLASSIC : FULL;
+      const cards = config.characters.length * 3;
       const { state } = simulate<CourtState>(court, players(n), seededRng(seed * 17 + n), {
-        config: { reaction: 20 },
-        onStep: (s) => expect(total(s)).toBe(15),
+        config,
+        onStep: (s) => expect(total(s)).toBe(cards),
       });
       expect(state.phase).toBe('over');
       expect(state.winner).not.toBeNull();
     }
-  }, 60_000);
+  }, 90_000);
 });

@@ -10,6 +10,7 @@ import {
   CHARACTER_POWER,
   CHARACTER_THE,
   FORCED_CONSPIRACY,
+  ecus,
   type ActionKind,
   type Character,
   type CourtMove,
@@ -20,10 +21,12 @@ type Props = BoardProps<CourtView, CourtMove>;
 
 const CHARACTER_STYLE: Record<Character, string> = {
   banker: 'border-key/70 bg-key/10 text-key',
-  swordsman: 'border-sabo/70 bg-sabo/10 text-sabo',
-  corsair: 'border-tech/70 bg-tech/10 text-tech',
+  executioner: 'border-sabo/70 bg-sabo/10 text-sabo',
+  brigand: 'border-tech/70 bg-tech/10 text-tech',
   envoy: 'border-accent/70 bg-accent/10 text-accent',
   guard: 'border-good/70 bg-good/10 text-good',
+  informer: 'border-muted/70 bg-muted/10 text-fg',
+  mercenary: 'border-key/40 bg-surface text-key',
 };
 
 export default function CourtBoard({ view, viewer, actingAs, mode, sendMove }: Props) {
@@ -36,7 +39,7 @@ export default function CourtBoard({ view, viewer, actingAs, mode, sendMove }: P
     <div className="flex flex-col gap-4">
       <Header view={view} nameOf={nameOf} />
       <Announcement view={view} nameOf={nameOf} />
-      {me && <Hand hand={me.hand} />}
+      {me && <Hand hand={me.hand} intel={me.intel} nameOf={nameOf} />}
 
       {actor?.alive && view.phase === 'turn' && actingAs === view.active && (
         <ActionPicker view={view} me={actingAs!} hand={me?.hand ?? null} mode={mode} sendMove={sendMove} />
@@ -47,12 +50,18 @@ export default function CourtBoard({ view, viewer, actingAs, mode, sendMove }: P
       {view.phase === 'loss' && view.losing === actingAs && privateView && me && (
         <LoseInfluence hand={me.hand} sendMove={sendMove} />
       )}
+      {view.phase === 'show' && view.action?.target === actingAs && privateView && me && (
+        <ShowCard hand={me.hand} spy={nameOf(view.active)} sendMove={sendMove} />
+      )}
+      {view.phase === 'peek' && view.active === actingAs && privateView && me && (
+        <Peek intel={me.intel.at(-1) ?? null} nameOf={nameOf} sendMove={sendMove} />
+      )}
       {view.phase === 'exchange' && view.active === actingAs && privateView && me?.exchange && (
         <Exchange pool={me.exchange} keep={me.hand.length} sendMove={sendMove} />
       )}
 
       <Court view={view} viewer={viewer} />
-      <Reference />
+      <Reference court={view.config.characters} />
       <Journal lines={view.log} />
     </div>
   );
@@ -102,6 +111,8 @@ function Announcement({ view, nameOf }: { view: CourtView; nameOf: (id: PlayerId
     if (view.phase === 'challengeBlock') text += ' Quelqu’un conteste le contre ?';
     if (view.phase === 'loss') text += ` ${nameOf(view.losing)} doit perdre une influence.`;
     if (view.phase === 'exchange') text += ` ${nameOf(a.actor)} choisit ses personnages.`;
+    if (view.phase === 'show') text += ` ${nameOf(a.target)} choisit l’influence à montrer.`;
+    if (view.phase === 'peek') text += ` ${nameOf(a.actor)} découvre la carte en secret.`;
   }
   return <div className="rounded-xl border border-key/40 bg-key/5 px-4 py-3 text-sm">{text}</div>;
 }
@@ -117,7 +128,15 @@ function CharacterCard({ c, small = false }: { c: Character; small?: boolean }) 
   );
 }
 
-function Hand({ hand }: { hand: Character[] }) {
+function Hand({
+  hand,
+  intel,
+  nameOf,
+}: {
+  hand: Character[];
+  intel: { target: PlayerId; card: Character }[];
+  nameOf: (id: PlayerId | null) => string;
+}) {
   return (
     <section className="animate-pop rounded-2xl border border-accent/40 bg-surface-2 p-4">
       <div className="text-sm text-muted">Tes influences secrètes :</div>
@@ -127,6 +146,12 @@ function Hand({ hand }: { hand: Character[] }) {
         ))}
         {hand.length === 0 && <p className="text-sm text-muted">Tu as quitté la cour.</p>}
       </div>
+      {intel.length > 0 && (
+        <p className="mt-3 text-xs text-muted">
+          Tes espionnages : {intel.slice(-3).map((i) => `${nameOf(i.target)} avait ${CHARACTER_THE[i.card]}`).join(' · ')}
+          {' '}(une carte peut avoir changé depuis)
+        </p>
+      )}
     </section>
   );
 }
@@ -154,17 +179,25 @@ function ActionPicker({
   }, [view.active, view.phase]);
   const coins = view.players.find((p) => p.id === me)!.coins;
   const forced = coins >= FORCED_CONSPIRACY;
-  const targets = view.players.filter((p) => p.alive && p.id !== me);
+  const targets = view.players.filter(
+    (p) => p.alive && p.id !== me && !(kind && ACTION_RULES[kind].claim && p.escorted),
+  );
   const rule = kind ? ACTION_RULES[kind] : null;
 
   return (
     <section className="animate-pop rounded-2xl border border-accent/40 bg-surface-2 p-4">
       <h4 className="font-semibold">{mode === 'hotseat' ? `${view.players.find((p) => p.id === me)!.name}, à toi : ` : 'À toi : '}choisis une action</h4>
-      {forced && <p className="mt-1 text-xs text-sabo">Avec {FORCED_CONSPIRACY} ducats ou plus, la Conspiration est obligatoire.</p>}
+      {forced && <p className="mt-1 text-xs text-sabo">Avec {FORCED_CONSPIRACY} écus ou plus, la Conspiration est obligatoire.</p>}
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {ACTIONS.map((k) => {
+        {ACTIONS.filter((k) => {
+          const claim = ACTION_RULES[k].claim;
+          return !claim || view.config.characters.includes(claim);
+        }).map((k) => {
           const r = ACTION_RULES[k];
-          const disabled = coins < r.cost || (forced && k !== 'conspiracy');
+          // Une action visée n'a de sens que s'il reste quelqu'un à viser (l'escorte protège des personnages).
+          const noTarget =
+            r.targeted && !view.players.some((p) => p.alive && p.id !== me && !(r.claim && p.escorted));
+          const disabled = coins < r.cost || (forced && k !== 'conspiracy') || noTarget;
           const bluff = hand && r.claim && !hand.includes(r.claim);
           return (
             <button
@@ -185,7 +218,7 @@ function ActionPicker({
                 {r.claim && <span className="text-xs font-normal text-muted">({CHARACTER_LABEL[r.claim]})</span>}
                 {bluff && <span className="ml-auto rounded border border-sabo/50 px-1 text-[10px] uppercase text-sabo">bluff</span>}
               </div>
-              <div className="text-xs text-muted">{r.summary}</div>
+              <div className="text-xs text-muted">{noTarget ? 'personne à viser : les autres sont sous escorte' : r.summary}</div>
             </button>
           );
         })}
@@ -205,7 +238,7 @@ function ActionPicker({
                   target === p.id ? 'border-sabo bg-sabo/15 text-fg' : 'border-line text-muted hover:text-fg'
                 }`}
               >
-                {p.name} · {p.coins} ducats
+                {p.name} · {ecus(p.coins)}
               </button>
             ))}
           </div>
@@ -253,7 +286,7 @@ function Reaction({
     return (
       <Panel title={`${prefix}contrer ${ACTION_RULES[a.kind].label} ?`}>
         <div className="grid gap-2 sm:grid-cols-3">
-          {ACTION_RULES[a.kind].blockedBy.map((c) => (
+          {ACTION_RULES[a.kind].blockedBy.filter((c) => view.config.characters.includes(c)).map((c) => (
             <button
               key={c}
               type="button"
@@ -298,6 +331,45 @@ function LoseInfluence({ hand, sendMove }: { hand: Character[]; sendMove: (m: Co
         ))}
       </div>
       <p className="mt-2 text-xs text-muted">La carte choisie sera retournée, face visible pour tous.</p>
+    </Panel>
+  );
+}
+
+function ShowCard({ hand, spy, sendMove }: { hand: Character[]; spy: string; sendMove: (m: CourtMove) => void }) {
+  return (
+    <Panel title={`${spy} t’espionne : quelle influence lui montres-tu ?`}>
+      <div className="flex flex-wrap gap-2">
+        {hand.map((c, i) => (
+          <button key={i} type="button" onClick={() => sendMove({ type: 'show', card: c })} aria-label={`Montrer ${CHARACTER_LABEL[c]}`}>
+            <CharacterCard c={c} />
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-muted">Seul {spy} la verra ; elle reste dans ta main.</p>
+    </Panel>
+  );
+}
+
+function Peek({
+  intel,
+  nameOf,
+  sendMove,
+}: {
+  intel: { target: PlayerId; card: Character } | null;
+  nameOf: (id: PlayerId | null) => string;
+  sendMove: (m: CourtMove) => void;
+}) {
+  if (!intel) return null;
+  return (
+    <Panel title={`Espionnage : ${nameOf(intel.target)} t’a montré…`}>
+      <CharacterCard c={intel.card} />
+      <button
+        type="button"
+        onClick={() => sendMove({ type: 'seen' })}
+        className="mt-3 w-full rounded-xl bg-accent px-4 py-3 font-semibold text-bg hover:brightness-110 sm:w-auto"
+      >
+        Compris
+      </button>
     </Panel>
   );
 }
@@ -365,7 +437,8 @@ function Court({ view, viewer }: { view: CourtView; viewer: PlayerId | null }) {
               </span>
               {waiting.has(p.id) && <span className="text-xs text-muted">réfléchit…</span>}
               {p.passed && <span className="text-xs text-good">laisse passer</span>}
-              <span className="shrink-0 font-bold tabular-nums text-key">{p.coins} ducat{p.coins > 1 ? 's' : ''}</span>
+              {p.escorted && <span className="shrink-0 rounded border border-key/50 px-1 text-[10px] uppercase text-key">escorté</span>}
+              <span className="shrink-0 font-bold tabular-nums text-key">{ecus(p.coins)}</span>
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               {Array.from({ length: p.influence }, (_, i) => (
@@ -385,19 +458,19 @@ function Court({ view, viewer }: { view: CourtView; viewer: PlayerId | null }) {
   );
 }
 
-function Reference() {
+function Reference({ court }: { court: Character[] }) {
   return (
     <details className="rounded-xl border border-line bg-surface p-3 text-sm">
       <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted">
         Aide-mémoire des personnages
       </summary>
       <ul className="mt-2 flex flex-col gap-1.5">
-        {CHARACTERS.map((c) => (
+        {CHARACTERS.filter((c) => court.includes(c)).map((c) => (
           <li key={c}>
             <strong>{CHARACTER_LABEL[c]}</strong> : <span className="text-muted">{CHARACTER_POWER[c]}</span>
           </li>
         ))}
-        <li className="text-muted">Pour tous : Revenu (+1), Faveur (+2, contrable), Conspiration (7 ducats, imparable).</li>
+        <li className="text-muted">Pour tous : Revenu (+1), Faveur (+2, contrable), Conspiration (7 écus, imparable).</li>
       </ul>
     </details>
   );

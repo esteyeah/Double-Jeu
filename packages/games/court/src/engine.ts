@@ -4,12 +4,16 @@ import {
   ACTION_RULES,
   CHARACTERS,
   CHARACTER_LABEL,
+  CLASSIC_COURT,
   CHARACTER_THE,
   COPIES,
   FORCED_CONSPIRACY,
+  MIN_COURT,
   START_COINS,
+  ecus,
   courtConfigSchema,
   courtMoveSchema,
+  type ActionKind,
   type Character,
   type CourtConfig,
   type CourtMove,
@@ -21,7 +25,7 @@ import {
 export const courtMeta: GameMeta = {
   id: 'court',
   name: 'Faux Jetons',
-  tagline: 'Deux influences cachées, des ducats et beaucoup de mensonges à la cour.',
+  tagline: 'Deux influences cachées, des écus et beaucoup de mensonges à la cour.',
   minPlayers: 2,
   maxPlayers: 6,
   durationMinutes: [10, 20],
@@ -37,14 +41,23 @@ export const courtMeta: GameMeta = {
         { value: 30, label: '30 secondes' },
       ],
     },
+    {
+      key: 'characters',
+      label: 'Personnages à la cour',
+      kind: 'multi',
+      min: MIN_COURT,
+      max: CHARACTERS.length,
+      choices: CHARACTERS.map((c) => ({ value: c, label: CHARACTER_LABEL[c] })),
+    },
   ],
   hotseatDefaults: { reaction: 30 },
   rules: [
-    `À la cour de la cité marchande, chacun avance masqué : 2 influences cachées (des personnages) et ${START_COINS} ducats. Perds tes 2 influences et tu quittes la cour. Le dernier en lice gagne.`,
-    `À ton tour, choisis une action. Toujours possibles : Revenu (+1 ducat), Faveur (+2, que le Banquier peut contrer), Conspiration (7 ducats : un joueur perd une influence, imparable ; obligatoire dès ${FORCED_CONSPIRACY} ducats).`,
-    'Actions de personnage, que tu peux annoncer même sans avoir la carte : Banquier (Taxe : +3), Spadassin (Assassinat : paie 3, la cible perd une influence), Corsaire (Racket : prends 2 ducats à un joueur), Émissaire (Échange : pioche 2 personnages et garde ceux que tu veux).',
-    'Contres : le Banquier contre la Faveur, la Garde contre l’Assassinat, le Corsaire et l’Émissaire contrent le Racket. Un contre est aussi une annonce : on peut mentir.',
+    `À la cour de la cité marchande, chacun avance masqué : 2 influences cachées (des personnages) et ${START_COINS} écus. Perds tes 2 influences et tu quittes la cour. Le dernier en lice gagne.`,
+    `À ton tour, choisis une action. Toujours possibles : Revenu (+1 écu), Faveur (+2, que le Banquier peut contrer), Conspiration (7 écus : un joueur perd une influence, imparable ; obligatoire dès ${FORCED_CONSPIRACY} écus).`,
+    'Actions de personnage, que tu peux annoncer même sans avoir la carte : Banquier (Taxe : +3), Bourreau (Exécution : paie 3, la cible perd une influence), Brigand (Racket : prends 2 écus à un joueur), Émissaire (Échange : pioche 2 personnages et garde ceux que tu veux).',
+    'Contres : le Banquier contre la Faveur, la Garde contre l’Exécution, le Brigand et l’Émissaire contrent le Racket. Un contre est aussi une annonce : on peut mentir.',
     'Toute annonce peut être contestée. Si l’annonceur avait bien le personnage, il le montre, en pioche un autre, et le contestataire perd une influence. Sinon, c’est le menteur qui perd une influence et son action (ou son contre) échoue.',
+    'Personnages en option (l’hôte compose la cour, 5 à 7 personnages) : Mouchard (Espionnage : la cible te montre en secret une de ses influences) et Mercenaire (Escorte : paie 2, plus aucune action de personnage ne peut te viser jusqu’à ton prochain tour ; la Conspiration reste imparable).',
   ],
 };
 
@@ -61,6 +74,11 @@ function log(s: CourtState, text: string, visibleTo: 'all' | PlayerId[] = 'all')
   s.log.push({ text, visibleTo });
 }
 
+/** Personnages de cette cour capables de contrer l'action. */
+export function blockersInPlay(s: CourtState, kind: ActionKind): Character[] {
+  return ACTION_RULES[kind].blockedBy.filter((c) => s.config.characters.includes(c));
+}
+
 /** Joueurs dont on attend une réaction dans la fenêtre ouverte. */
 export function responders(s: CourtState): PlayerId[] {
   const a = s.action;
@@ -69,7 +87,8 @@ export function responders(s: CourtState): PlayerId[] {
   if (s.phase === 'challenge') pool = aliveIds(s).filter((id) => id !== a.actor);
   else if (s.phase === 'block') {
     const rule = ACTION_RULES[a.kind];
-    if (rule.blockers === 'anyone') pool = aliveIds(s).filter((id) => id !== a.actor);
+    if (blockersInPlay(s, a.kind).length === 0) pool = [];
+    else if (rule.blockers === 'anyone') pool = aliveIds(s).filter((id) => id !== a.actor);
     else if (rule.blockers === 'target' && a.target && alive(s, a.target)) pool = [a.target];
   } else if (s.phase === 'challengeBlock' && s.block) {
     pool = aliveIds(s).filter((id) => id !== s.block!.blocker);
@@ -107,6 +126,11 @@ function nextTurn(s: CourtState): void {
   }
   s.active = s.players[s.turn]!.id;
   s.phase = 'turn';
+  const seat = s.seats[s.active]!;
+  if (seat.escorted) {
+    seat.escorted = false;
+    log(s, `L’escorte de ${nameOf(s, s.active)} prend fin.`);
+  }
 }
 
 /** Retourne l'influence (choisie ou forcée) puis enchaîne. */
@@ -142,7 +166,7 @@ function afterChallenge(s: CourtState, rng: Rng, now: number): void {
   const a = s.action!;
   if (!alive(s, a.actor)) return nextTurn(s);
   const rule = ACTION_RULES[a.kind];
-  if (rule.blockers !== 'none') {
+  if (rule.blockers !== 'none' && blockersInPlay(s, a.kind).length > 0) {
     openWindow(s, 'block', now);
     if (responders(s).length > 0) return;
   }
@@ -169,7 +193,7 @@ function resolve(s: CourtState, rng: Rng, now: number): void {
       const amount = Math.min(2, victim.coins);
       victim.coins -= amount;
       actor.coins += amount;
-      log(s, `${nameOf(s, a.actor)} empoche ${amount} ducat${amount > 1 ? 's' : ''} de ${nameOf(s, a.target)}.`);
+      log(s, `${nameOf(s, a.actor)} empoche ${ecus(amount)} de ${nameOf(s, a.target)}.`);
       break;
     }
     case 'exchange': {
@@ -178,12 +202,35 @@ function resolve(s: CourtState, rng: Rng, now: number): void {
       s.phase = 'exchange';
       return;
     }
-    case 'assassinate':
+    case 'execute':
     case 'conspiracy':
       if (a.target && alive(s, a.target)) return loseInfluence(s, a.target, 'next', rng, now);
       break;
+    case 'snoop': {
+      const target = a.target && alive(s, a.target) ? s.seats[a.target]! : null;
+      if (!target) break;
+      if (target.cards.length === 1) {
+        showCard(s, a.target!, target.cards[0]!);
+        return;
+      }
+      s.phase = 'show';
+      return;
+    }
+    case 'escort':
+      actor.escorted = true;
+      log(s, `${nameOf(s, a.actor)} s’offre l’escorte du Mercenaire jusqu’à son prochain tour.`);
+      break;
   }
   nextTurn(s);
+}
+
+/** Espionnage : la cible montre une influence ; seul le Mouchard la voit. */
+function showCard(s: CourtState, target: PlayerId, card: Character): void {
+  const spy = s.action!.actor;
+  (s.intel[spy] ??= []).push({ target, card });
+  log(s, `${nameOf(s, target)} montre en secret une influence à ${nameOf(s, spy)}.`);
+  log(s, `Espionnage : ${nameOf(s, target)} t’a montré ${CHARACTER_THE[card]}.`, [spy]);
+  s.phase = 'peek';
 }
 
 /** Contestation : l'annonceur montre la carte (et en change) ou perd une influence. */
@@ -238,7 +285,7 @@ function multisetIncludes(pool: Character[], picked: Character[]): boolean {
 export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
   meta: courtMeta,
   configSchema: courtConfigSchema,
-  defaultConfig: { reaction: 20 },
+  defaultConfig: { reaction: 20, characters: CLASSIC_COURT },
   moveSchema: courtMoveSchema,
 
   setup(players, config, rng) {
@@ -246,11 +293,11 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
     if (n < courtMeta.minPlayers || n > courtMeta.maxPlayers) {
       throw new Error(`Faux Jetons se joue de 2 à 6 joueurs (reçu ${n}).`);
     }
-    const deck = rng.shuffle(CHARACTERS.flatMap((c) => Array<Character>(COPIES).fill(c)));
+    const deck = rng.shuffle(config.characters.flatMap((c) => Array<Character>(COPIES).fill(c)));
     const turn = rng.int(n);
     const seats: CourtState['seats'] = {};
-    for (const p of players) seats[p.id] = { cards: deck.splice(0, 2), revealed: [], coins: START_COINS };
-    // À deux, le premier joueur ne reçoit qu'un ducat (sinon il est trop avantagé).
+    for (const p of players) seats[p.id] = { cards: deck.splice(0, 2), revealed: [], coins: START_COINS, escorted: false };
+    // À deux, le premier joueur ne reçoit qu'un écu (sinon il est trop avantagé).
     if (n === 2) seats[players[turn]!.id]!.coins = START_COINS - 1;
     return {
       players: players.map((p) => ({ ...p })),
@@ -266,6 +313,7 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
       windowEndsAt: null,
       loss: null,
       exchange: null,
+      intel: {},
       winner: null,
       log: [{ text: `La cour est réunie. ${players[turn]!.name} commence.`, visibleTo: 'all' }],
     };
@@ -282,6 +330,10 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
         return responders(s);
       case 'loss':
         return [s.loss!.player];
+      case 'show':
+        return [s.action!.target as PlayerId];
+      case 'peek':
+        return [s.active];
       default:
         return [];
     }
@@ -297,11 +349,15 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
         if (s.phase !== 'turn' || by !== s.active) return 'Ce n’est pas ton tour.';
         const rule = ACTION_RULES[move.kind];
         if (seat.coins >= FORCED_CONSPIRACY && move.kind !== 'conspiracy') {
-          return `Avec ${FORCED_CONSPIRACY} ducats ou plus, la Conspiration est obligatoire.`;
+          return `Avec ${FORCED_CONSPIRACY} écus ou plus, la Conspiration est obligatoire.`;
         }
-        if (seat.coins < rule.cost) return `Il faut ${rule.cost} ducats.`;
+        if (rule.claim && !s.config.characters.includes(rule.claim)) {
+          return `Le ${CHARACTER_LABEL[rule.claim]} n’est pas à la cour dans cette partie.`;
+        }
+        if (seat.coins < rule.cost) return `Il faut ${ecus(rule.cost)}.`;
         if (rule.targeted) {
           if (!move.target || move.target === by || !alive(s, move.target)) return 'Choisis un autre joueur encore en lice.';
+          if (rule.claim && s.seats[move.target]!.escorted) return `${nameOf(s, move.target)} est sous escorte : impossible de le viser.`;
         }
         return null;
       }
@@ -315,11 +371,16 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
       case 'block': {
         if (s.phase !== 'block') return 'Rien à contrer.';
         if (!responders(s).includes(by)) return 'Tu ne peux pas contrer cette action.';
-        return ACTION_RULES[s.action!.kind].blockedBy.includes(move.claim) ? null : 'Ce personnage ne contre pas cette action.';
+        return blockersInPlay(s, s.action!.kind).includes(move.claim) ? null : 'Ce personnage ne contre pas cette action.';
       }
       case 'lose':
         if (s.phase !== 'loss' || s.loss?.player !== by) return 'Tu n’as pas d’influence à perdre.';
         return seat.cards.includes(move.card) ? null : 'Tu n’as pas ce personnage.';
+      case 'show':
+        if (s.phase !== 'show' || by !== s.action?.target) return 'Personne ne t’espionne.';
+        return seat.cards.includes(move.card) ? null : 'Tu n’as pas ce personnage.';
+      case 'seen':
+        return s.phase === 'peek' && by === s.active ? null : 'Rien à voir.';
       case 'keep': {
         if (s.phase !== 'exchange' || by !== s.active) return 'Pas d’échange en cours.';
         if (move.cards.length !== seat.cards.length) return `Garde exactement ${seat.cards.length} personnage${seat.cards.length > 1 ? 's' : ''}.`;
@@ -364,6 +425,12 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
         continueAfter(s, then, rng, now);
         return s;
       }
+      case 'show':
+        showCard(s, by, move.card);
+        return s;
+      case 'seen':
+        nextTurn(s);
+        return s;
       case 'keep': {
         const pool = [...(s.exchange ?? [])];
         for (const c of move.cards) pool.splice(pool.indexOf(c), 1);
@@ -394,6 +461,7 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
           // En fin de partie, le gagnant montre ses cartes.
           revealed: over ? [...seat.revealed, ...seat.cards] : seat.revealed,
           alive: seat.cards.length > 0,
+          escorted: seat.escorted,
           passed: s.passed.includes(p.id),
         };
       }),
@@ -409,6 +477,7 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
             id: me,
             hand: s.seats[me]!.cards,
             exchange: s.phase === 'exchange' && me === s.active ? s.exchange : null,
+            intel: s.intel[me] ?? [],
           }
         : null,
       winner: s.winner,
@@ -439,6 +508,6 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
 
   hotseat: {
     // Choisir quelle influence perdre, ou quels personnages garder, se fait en secret.
-    needsPrivacy: (s) => s.phase === 'loss' || s.phase === 'exchange',
+    needsPrivacy: (s) => s.phase === 'loss' || s.phase === 'exchange' || s.phase === 'show' || s.phase === 'peek',
   },
 });

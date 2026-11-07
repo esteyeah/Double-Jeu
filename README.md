@@ -9,7 +9,7 @@ Nom de travail, à changer librement. Jeux disponibles :
 - **Le Trône Vide** (5 à 10 joueurs) : élections, édits votés en secret, pouvoirs du Régent et un Usurpateur caché. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 - **Butin** (3 à 8 joueurs) : des pirates se partagent un trésor, pistolet au poing. Charge sèche ou mouillée, visées, plongeon dans la cale, partage. Bots possibles ; plongeon annoncé à voix haute en mode un seul téléphone.
 - **Expédition** (5 à 10 joueurs) : des Mutins sabotent une expédition polaire. Cordées votées, cartes Réussite/Sabotage secrètes, variante avec Cartographe et Espion. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
-- **Faux Jetons** (2 à 6 joueurs) : bluff à la cour d'une cité marchande. Deux influences cachées, des ducats, des actions de personnage qu'on peut annoncer sans les avoir, des contres et des contestations dans un délai imposé. Bots possibles.
+- **Faux Jetons** (2 à 6 joueurs) : bluff à la cour d'une cité marchande. Deux influences cachées, des écus, des actions de personnage qu'on peut annoncer sans les avoir (Banquier, Bourreau, Brigand, Émissaire, Garde, et en option Mouchard et Mercenaire), des contres et des contestations dans un délai imposé. L'hôte compose la cour (5 à 7 personnages). Bots possibles.
 
 ## Obtenir un lien à partager
 
@@ -111,7 +111,7 @@ packages/
 
 Pour un chrono imposé, implémenter `deadline(state)` et `onDeadline(state, rng, now)` : le serveur (ou le navigateur, en mode local) applique l'échéance même si personne ne joue. Garde à vue s'en sert pour la fin de l'interrogatoire et le délai d'accusation.
 
-Dans `meta` : `supportsBots: false` pour un jeu de parole (le lobby masque alors les bots), et `settings` pour proposer des options à l'hôte (durée, manches…), avec `hotseatDefaults` pour les valeurs suggérées en mode un seul téléphone. Les valeurs sont validées par le `configSchema` du jeu.
+Dans `meta` : `supportsBots: false` pour un jeu de parole (le lobby masque alors les bots), et `settings` pour proposer des options à l'hôte (durée, manches… ; `kind: 'multi'` pour des choix multiples bornés par `min`/`max`), avec `hotseatDefaults` pour les valeurs suggérées en mode un seul téléphone. Les valeurs sont validées par le `configSchema` du jeu.
 4. Écrire les tests, dont une simulation de milliers de parties avec `simulate()`.
 
 Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `text-muted`, `text-tech`…) définis dans `apps/web/src/app/globals.css`.
