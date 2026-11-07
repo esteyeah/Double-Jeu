@@ -7,8 +7,9 @@ Nom de travail, à changer librement. Jeux disponibles :
 - **Réacteur** (4 à 8 joueurs) : bluff et cartes coupées à l'aveugle, bots possibles.
 - **Garde à vue** (4 à 8 joueurs) : jeu de parole. Un Enquêteur interroge des suspects qui glissent des mots secrets dans leurs réponses. Il se joue autour d'une table ou en appel vocal.
 - **Le Trône Vide** (5 à 10 joueurs) : élections, édits votés en secret, pouvoirs du Régent et un Usurpateur caché. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
+- **Butin** (3 à 8 joueurs) : des pirates se partagent un trésor, pistolet au poing. Charge sèche ou mouillée, visées, plongeon dans la cale, partage. Bots possibles ; plongeon annoncé à voix haute en mode un seul téléphone.
 
-Trois autres jeux sont prévus dans le catalogue.
+Deux autres jeux sont prévus dans le catalogue.
 
 ## Obtenir un lien à partager
 
@@ -72,6 +73,7 @@ packages/
     reactor/        Moteur pur, bot, plateau React, tests
     interrogation/  Garde à vue : moteur, contenu (affaires, mots), plateau, tests
     throne/         Le Trône Vide : moteur, bots, plateau, tests
+    plunder/        Butin : moteur, bots, plateau, tests
 ```
 
 ## Comment ça marche

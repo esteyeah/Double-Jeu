@@ -590,7 +590,7 @@ function Players({ view, viewer }: { view: InterrogationView; viewer: PlayerId |
       <ol className="mt-2 flex flex-col gap-1.5">
         {ranked.map((p) => (
           <li key={p.id} className="flex items-center gap-2 text-sm">
-            <span className="min-w-0 flex-1 truncate">
+            <span className="min-w-[5rem] flex-1 truncate">
               {p.name}
               {p.id === viewer && <span className="text-accent"> (toi)</span>}
             </span>

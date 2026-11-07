@@ -2,6 +2,8 @@ import type { ComponentType } from 'react';
 import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
 import { interrogation } from '@arcade/interrogation';
 import InterrogationBoard from '@arcade/interrogation/client';
+import { plunder } from '@arcade/plunder';
+import PlunderBoard from '@arcade/plunder/client';
 import { reactor } from '@arcade/reactor';
 import ReactorBoard from '@arcade/reactor/client';
 import { throne } from '@arcade/throne';
@@ -19,6 +21,7 @@ const games: Record<string, ClientGame> = {
   reactor: { module: reactor, Board: ReactorBoard },
   interrogation: { module: interrogation, Board: InterrogationBoard },
   throne: { module: throne, Board: ThroneBoard },
+  plunder: { module: plunder, Board: PlunderBoard },
 };
 
 export function getClientGame(id: string): ClientGame | undefined {
@@ -72,9 +75,9 @@ export const catalog: CatalogEntry[] = [
   {
     id: 'plunder',
     name: 'Butin',
-    tagline: 'Pistolets chargés ou poudre mouillée : les pirates se partagent le trésor.',
-    players: '4–8',
-    ready: false,
+    tagline: 'Poudre sèche ou mouillée : les pirates se partagent le trésor, pistolet au poing.',
+    players: '3–8',
+    ready: true,
     accent: 'from-good/30',
   },
   {

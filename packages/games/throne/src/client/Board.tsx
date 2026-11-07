@@ -609,7 +609,7 @@ function Players({ view, viewer }: { view: ThroneView; viewer: PlayerId | null }
       <ul className="mt-2 flex flex-col gap-1.5">
         {view.players.map((p) => (
           <li key={p.id} className={`flex flex-wrap items-center gap-2 text-sm ${p.alive ? '' : 'opacity-50'}`}>
-            <span className={`min-w-0 flex-1 truncate ${p.alive ? '' : 'line-through'}`}>
+            <span className={`min-w-[5rem] flex-1 truncate ${p.alive ? '' : 'line-through'}`}>
               {p.name}
               {p.id === viewer && <span className="text-accent"> (toi)</span>}
               {p.isBot && <span className="text-muted"> · bot</span>}

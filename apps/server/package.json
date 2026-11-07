@@ -13,6 +13,7 @@
   "dependencies": {
     "@arcade/game-sdk": "workspace:*",
     "@arcade/interrogation": "workspace:*",
+    "@arcade/plunder": "workspace:*",
     "@arcade/protocol": "workspace:*",
     "@arcade/reactor": "workspace:*",
     "@arcade/throne": "workspace:*",

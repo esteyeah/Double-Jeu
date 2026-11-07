@@ -139,8 +139,8 @@ function LocalSetup({
       <Panel>
         <p className="text-sm text-muted">
           Un seul appareil pour toute la table. Quand le jeu a besoin d’une info secrète, il demande
-          de passer le téléphone au bon joueur, qui confirme avant que l’écran ne s’affiche. Les
-          {meta.supportsBots ? 'bots jouent tout seuls. ' : 'discussions se font de vive voix. '}
+          de passer le téléphone au bon joueur, qui confirme avant que l’écran ne s’affiche.{' '}
+          {meta.supportsBots ? 'Les bots jouent tout seuls. ' : 'Les discussions se font de vive voix. '}
           Aucune connexion nécessaire une fois la page chargée.
         </p>
         {meta.settings && (

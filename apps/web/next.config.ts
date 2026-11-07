@@ -9,6 +9,7 @@ const config: NextConfig = {
     '@arcade/reactor',
     '@arcade/interrogation',
     '@arcade/throne',
+    '@arcade/plunder',
   ],
 };
 
