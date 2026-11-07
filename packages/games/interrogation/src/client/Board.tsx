@@ -59,6 +59,10 @@ export default function InterrogationBoard({ view, viewer, actingAs, mode, sendM
         <InspectorControls view={view} suspects={suspects} sendMove={sendMove} />
       )}
 
+      {view.phase === 'bets' && me && me.role !== 'inspector' && actingAs === me.id && (
+        <BetPanel myBet={me.myBet} inspector={nameOf(view.inspector)} sendMove={sendMove} />
+      )}
+
       {view.grills.length > 0 && (
         <section className="rounded-xl border border-line bg-surface p-3 text-sm">
           <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Mots grillés</div>
@@ -128,6 +132,10 @@ function Timer({ view }: { view: InterrogationView }) {
     } else if (left <= 30) {
       tone = 'text-key';
     }
+  } else if (view.phase === 'bets') {
+    title = 'Interrogatoire';
+    label = 'Paris en cours';
+    tone = 'text-key';
   } else if (view.phase !== 'briefing') {
     label = 'Terminé';
     tone = 'text-muted';
@@ -171,13 +179,19 @@ function Instruction({
     }
     case 'interrogation':
       text = isInspector
-        ? toInspector('lis l’affaire à voix haute, puis interroge les suspects. Grille les mots suspects, et accuse quand tu es prêt.')
+        ? toInspector('lis l’affaire à voix haute, puis interroge les suspects. Les innocents partagent les mêmes mots : repère qui va ensemble… et qui détonne.')
         : `${inspector} interroge les suspects. Réponds à ses questions… et place tes mots.`;
       break;
+    case 'bets': {
+      const done = view.players.filter((p) => p.betDone).length;
+      const total = view.players.length - 1;
+      text = `Interrogatoire terminé ! Chaque suspect parie en secret : ${inspector} va-t-il trouver le Coupable ? ${done}/${total} paris.`;
+      break;
+    }
     case 'accusation':
       text = isInspector
-        ? toInspector(`le temps est écoulé ! Accuse un suspect dans les ${ACCUSATION_SECONDS} secondes, sinon le Coupable s’échappe.`)
-        : `Temps écoulé, silence ! ${inspector} doit accuser un suspect.`;
+        ? toInspector(`les paris sont faits. Accuse un suspect dans les ${ACCUSATION_SECONDS} secondes, sinon le Coupable s’échappe.`)
+        : `Les paris sont faits, silence ! ${inspector} doit accuser un suspect.`;
       break;
     case 'review': {
       const waiting = view.players.filter((p) => p.id !== view.inspector && !p.declared);
@@ -234,11 +248,11 @@ function SecretPanel({
 }) {
   const hint: Record<Role, string> = {
     inspector:
-      'Tu ne connais ni le Coupable ni les mots secrets. Écoute bien : un mot placé trop habilement, ou qui colle trop à l’affaire, peut trahir quelqu’un.',
+      'Tu ne connais ni le Coupable ni les mots secrets. Les innocents ont tous la même liste : écoute qui place les mêmes mots. Le Coupable, lui, a des mots différents, liés à l’affaire.',
     culprit:
-      'Personne ne doit le découvrir. Tes mots ont un lien avec l’affaire : place-les sans attirer l’attention.',
+      'Les innocents partagent tous une même liste de mots, que tu ne connais pas. Écoute-les pour te fondre dans la masse, et place tes propres mots (liés à l’affaire) sans te trahir.',
     innocent:
-      'Tu n’as rien fait… mais tes mots sont bizarres. Place-les sans te faire griller, et évite de passer pour le Coupable.',
+      'Tous les innocents ont exactement ces mots-là : quand tu les entends, tu as trouvé un allié. Place-les sans te faire griller ; celui qui ne les place jamais est peut-être le Coupable.',
   };
   return (
     <section className={`animate-pop rounded-2xl border bg-surface-2 p-4 ${ROLE_STYLE[role]}`}>
@@ -337,19 +351,33 @@ function InspectorControls({
         </form>
       )}
 
-      <div className={canGrill ? 'border-t border-line pt-4' : ''}>
-        <h4 className="font-semibold">Accuser</h4>
-        <p className="text-xs text-muted">Termine l’interrogatoire et révèle tout.</p>
-        <SuspectPicker suspects={suspects} value={accused} onChange={setAccused} label="Qui est le Coupable ?" />
-        <button
-          type="button"
-          disabled={!accused}
-          onClick={() => accused && sendMove({ type: 'accuse', target: accused })}
-          className="mt-3 w-full rounded-xl bg-sabo px-4 py-3 font-semibold text-bg hover:brightness-110 disabled:opacity-40 sm:w-auto"
-        >
-          {accused ? `Accuser ${suspects.find((s) => s.id === accused)?.name}` : 'Choisis un suspect'}
-        </button>
-      </div>
+      {canGrill ? (
+        <div className="border-t border-line pt-4">
+          <h4 className="font-semibold">Clore l’interrogatoire</h4>
+          <p className="text-xs text-muted">Les suspects parieront en secret sur ta réussite, puis tu accuseras.</p>
+          <button
+            type="button"
+            onClick={() => sendMove({ type: 'close' })}
+            className="mt-3 w-full rounded-xl border border-key/60 px-4 py-3 font-semibold text-key hover:bg-key/10 sm:w-auto"
+          >
+            Clore l’interrogatoire
+          </button>
+        </div>
+      ) : (
+        <div>
+          <h4 className="font-semibold">Accuser</h4>
+          <p className="text-xs text-muted">Tout sera révélé, paris compris.</p>
+          <SuspectPicker suspects={suspects} value={accused} onChange={setAccused} label="Qui est le Coupable ?" />
+          <button
+            type="button"
+            disabled={!accused}
+            onClick={() => accused && sendMove({ type: 'accuse', target: accused })}
+            className="mt-3 w-full rounded-xl bg-sabo px-4 py-3 font-semibold text-bg hover:brightness-110 disabled:opacity-40 sm:w-auto"
+          >
+            {accused ? `Accuser ${suspects.find((s) => s.id === accused)?.name}` : 'Choisis un suspect'}
+          </button>
+        </div>
+      )}
     </section>
   );
 }
@@ -389,6 +417,46 @@ function SuspectPicker({
 }
 
 // ───────── Révélation et points ─────────
+
+function BetPanel({
+  myBet,
+  inspector,
+  sendMove,
+}: {
+  myBet: boolean | null;
+  inspector: string;
+  sendMove: (m: InterrogationMove) => void;
+}) {
+  if (myBet !== null) {
+    return (
+      <section className="rounded-2xl border border-line bg-surface-2 p-4 text-sm">
+        Ton pari : {myBet ? `${inspector} va trouver le Coupable` : `${inspector} va se tromper`}. En attente des autres…
+      </section>
+    );
+  }
+  return (
+    <section className="animate-pop rounded-2xl border border-accent/40 bg-surface-2 p-4">
+      <h4 className="font-semibold">Ton pari secret</h4>
+      <p className="mt-1 text-xs text-muted">{inspector} va-t-il démasquer le Coupable ? Pari gagné : +2 points.</p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => sendMove({ type: 'bet', found: true })}
+          className="rounded-xl bg-good px-3 py-4 font-bold text-bg hover:brightness-110"
+        >
+          Il va trouver
+        </button>
+        <button
+          type="button"
+          onClick={() => sendMove({ type: 'bet', found: false })}
+          className="rounded-xl bg-sabo px-3 py-4 font-bold text-bg hover:brightness-110"
+        >
+          Il va se tromper
+        </button>
+      </div>
+    </section>
+  );
+}
 
 /**
  * Révélation des mots, en trois temps :
@@ -465,6 +533,16 @@ function Reveal({
                 {id === view.culprit ? 'Coupable' : 'Innocent'}
               </span>
               {id === view.accused && <span className="text-xs font-semibold text-key">accusé</span>}
+              {view.bets && Object.hasOwn(view.bets, id) && (
+                <span className="ml-auto text-xs text-muted">
+                  pari : {view.bets[id] ? 'il va trouver' : 'il va se tromper'}{' '}
+                  {id === view.culprit && view.accused === view.culprit
+                    ? '(sans effet : arrêté)'
+                    : view.bets[id] === (view.accused !== null && view.accused === view.culprit)
+                      ? '✓'
+                      : '✗'}
+                </span>
+              )}
             </div>
             <ul className="mt-2 flex flex-wrap gap-2">
               {words.map((w) => {

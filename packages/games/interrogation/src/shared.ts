@@ -5,6 +5,7 @@ export type Role = 'inspector' | 'culprit' | 'innocent';
 export type Phase =
   | 'briefing'
   | 'interrogation'
+  | 'bets'
   | 'accusation'
   | 'review'
   | 'verify'
@@ -13,8 +14,10 @@ export type Phase =
 
 export const WORDS_PER_SUSPECT = 3;
 export const GRILLS_PER_ROUND = 3;
-/** Temps laissé à l'Enquêteur pour accuser une fois le chrono écoulé. */
+/** Temps laissé à l'Enquêteur pour accuser une fois les paris faits. */
 export const ACCUSATION_SECONDS = 60;
+/** Points d'un pari gagné (« il va trouver » / « il va se tromper »). */
+export const BET_POINTS = 2;
 
 export const interrogationConfigSchema = z.object({
   /** Durée indicative de l'interrogatoire. */
@@ -32,7 +35,11 @@ export const interrogationMoveSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ack') }),
   /** L'Enquêteur pense avoir entendu un mot secret chez ce suspect. */
   z.object({ type: z.literal('grill'), target: playerRef, word: wordInput }),
-  /** L'Enquêteur clôt l'interrogatoire en accusant un suspect. */
+  /** L'Enquêteur clôt l'interrogatoire (avant le chrono) : place aux paris. */
+  z.object({ type: z.literal('close') }),
+  /** Chaque suspect parie en secret : l'Enquêteur va-t-il trouver le Coupable ? */
+  z.object({ type: z.literal('bet'), found: z.boolean() }),
+  /** L'Enquêteur accuse un suspect (après les paris). */
   z.object({ type: z.literal('accuse'), target: playerRef }),
   /** Un suspect indique les mots qu'il a vraiment placés (après révélation). */
   z.object({ type: z.literal('declare'), placed: z.array(wordInput).max(WORDS_PER_SUSPECT) }),
@@ -94,6 +101,8 @@ export interface InterrogationState {
   grills: Grill[];
   endsAt: number | null;
   accused: PlayerId | null;
+  /** Paris des suspects : true = « il va trouver ». */
+  bets: Record<PlayerId, boolean>;
   declared: Record<PlayerId, string[]>;
   /** Signalements « pas entendu » de chaque votant. */
   doubts: Record<PlayerId, { target: PlayerId; word: string }[]>;
@@ -117,6 +126,8 @@ export interface InterrogationPlayerView {
   acked: boolean;
   declared: boolean;
   verified: boolean;
+  /** Pendant les paris : a déjà parié (sans dire quoi). */
+  betDone: boolean;
   /** L'Enquêteur est public ; Coupable/Innocent seulement pour soi, ou après révélation. */
   role: Role | null;
 }
@@ -142,7 +153,14 @@ export interface InterrogationView {
   grillsLeft: number;
   grills: Grill[];
   players: InterrogationPlayerView[];
-  me: { id: PlayerId; role: Role; words: { word: string; burned: boolean }[] } | null;
+  me: {
+    id: PlayerId;
+    role: Role;
+    words: { word: string; burned: boolean }[];
+    myBet: boolean | null;
+  } | null;
+  /** Paris de chacun, révélés après l'accusation. */
+  bets: Record<PlayerId, boolean> | null;
   accused: PlayerId | null;
   /** Révélé à partir de la phase « review ». */
   culprit: PlayerId | null;

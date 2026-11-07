@@ -9,6 +9,7 @@ import { interrogationBot } from './bot';
 import { CASES, WORDS } from './content';
 import {
   ACCUSATION_SECONDS,
+  BET_POINTS,
   GRILLS_PER_ROUND,
   WORDS_PER_SUSPECT,
   interrogationConfigSchema,
@@ -54,12 +55,12 @@ export const interrogationMeta: GameMeta = {
   ],
   rules: [
     'Un fait divers vient d’éclater. À chaque manche, un joueur devient l’Enquêteur et les autres sont suspects. L’un d’eux est le Coupable : lui seul le sait.',
-    'Chaque suspect reçoit en secret 3 mots à glisser dans ses réponses. Ceux du Coupable ont un lien avec l’affaire : bien placés, ils rapportent gros ; trop visibles, ils le trahissent.',
+    'Chaque suspect reçoit en secret 3 mots à glisser dans ses réponses. Tous les innocents ont la MÊME liste : en entendant leurs mots, ils se reconnaissent entre eux. Le Coupable a une liste différente, liée à l’affaire : il doit se fondre dans la masse sans se trahir.',
     'L’Enquêteur lit l’affaire à voix haute, puis interroge qui il veut, comme il veut, jusqu’à la fin du chrono. Les suspects doivent répondre, quitte à inventer. En ligne, jouez en appel vocal (ou par écrit dans le chat).',
     'S’il pense avoir entendu un mot secret, l’Enquêteur peut le griller (3 essais par manche) : si le mot appartient bien à ce suspect, il ne rapporte plus rien.',
-    'L’Enquêteur peut accuser à tout moment. Quand le chrono tombe, l’interrogatoire s’arrête : il lui reste une minute pour accuser, sinon le Coupable s’échappe.',
+    'L’interrogatoire s’arrête à la fin du chrono (ou plus tôt si l’Enquêteur le décide). Chaque suspect parie alors en secret : l’Enquêteur va-t-il trouver le Coupable ? Puis l’Enquêteur a une minute pour accuser, sinon le Coupable s’échappe.',
     'Tout est révélé et chaque suspect déclare les mots qu’il a placés. Puis chaque joueur signale ceux qu’il n’a pas entendus : un mot signalé par la majorité des autres joueurs ne compte pas.',
-    'Enquêteur : 3 points s’il arrête le Coupable, +1 par mot grillé. Coupable en fuite : 3 points +1 par mot placé (rien s’il est arrêté). Innocent : 1 point par mot placé, +1 s’il est accusé à tort. Le plus haut total gagne.',
+    'Enquêteur : 3 points s’il arrête le Coupable, +1 par mot grillé. Coupable en fuite : 3 points +1 par mot placé (rien s’il est arrêté). Innocent : 1 point par mot placé, +1 s’il est accusé à tort. Pari gagné : +2 pour chaque suspect (sauf un Coupable arrêté). Le plus haut total gagne.',
   ],
 };
 
@@ -112,28 +113,21 @@ function startRound(s: InterrogationState, round: number, rng: Rng): void {
   const list = suspects(s);
   s.culprit = rng.pick(list);
 
-  const needed = (list.length - 1) * WORDS_PER_SUSPECT;
+  // Les innocents partagent UNE liste ; le Coupable a la sienne, liée à l'affaire.
   let pool = WORDS.filter((w) => !s.usedWords.includes(w));
-  if (pool.length < needed) {
+  if (pool.length < WORDS_PER_SUSPECT) {
     s.usedWords = [];
     pool = [...WORDS];
   }
-  const drawn = rng.shuffle(pool);
-  const clues = rng.shuffle(CASES[s.caseIndex]!.clues);
+  const shared = rng.shuffle(pool).slice(0, WORDS_PER_SUSPECT);
+  s.usedWords.push(...shared);
+  const clues = rng.shuffle(CASES[s.caseIndex]!.clues).slice(0, WORDS_PER_SUSPECT);
   s.words = {};
-  let cursor = 0;
-  for (const id of list) {
-    if (id === s.culprit) {
-      s.words[id] = clues.slice(0, WORDS_PER_SUSPECT);
-    } else {
-      s.words[id] = drawn.slice(cursor, cursor + WORDS_PER_SUSPECT);
-      cursor += WORDS_PER_SUSPECT;
-      s.usedWords.push(...s.words[id]);
-    }
-  }
+  for (const id of list) s.words[id] = id === s.culprit ? clues : [...shared];
 
   s.burned = {};
   s.grills = [];
+  s.bets = {};
   s.declared = {};
   s.doubts = {};
   s.verified = [];
@@ -173,6 +167,11 @@ function scoreRound(s: InterrogationState): void {
         points += 1;
         reasons.push('Accusé à tort (+1)');
       }
+    }
+    // Pari : « il va trouver » gagne si le Coupable est arrêté, « il va se tromper » sinon.
+    if (Object.hasOwn(s.bets, id) && !(id === s.culprit && caught) && s.bets[id] === caught) {
+      points += BET_POINTS;
+      reasons.push(`Pari gagné (+${BET_POINTS})`);
     }
     if (burned.length) reasons.push(`${burned.length} grillé${burned.length > 1 ? 's' : ''}`);
     if (refused.length) reasons.push(`${refused.length} refusé${refused.length > 1 ? 's' : ''} par la table`);
@@ -243,6 +242,7 @@ export const interrogation = defineGame<
       grills: [],
       endsAt: null,
       accused: null,
+      bets: {},
       declared: {},
       doubts: {},
       verified: [],
@@ -265,6 +265,8 @@ export const interrogation = defineGame<
       case 'accusation':
       case 'scores':
         return [s.inspector];
+      case 'bets':
+        return suspects(s).filter((id) => !Object.hasOwn(s.bets, id));
       case 'review':
         return suspects(s).filter((id) => !Object.hasOwn(s.declared, id));
       case 'verify':
@@ -283,8 +285,7 @@ export const interrogation = defineGame<
         if (s.acked.includes(by)) return 'Déjà confirmé.';
         return null;
       case 'grill': {
-        if (s.phase === 'accusation') return 'Le temps est écoulé : il ne reste qu’à accuser.';
-        if (s.phase !== 'interrogation') return "L'interrogatoire n'a pas lieu.";
+        if (s.phase !== 'interrogation') return 'L’interrogatoire est terminé.';
         if (by !== s.inspector) return "Seul l'Enquêteur peut griller un mot.";
         if (!isSuspect(s, move.target)) return 'Choisis un suspect.';
         if (s.grills.length >= GRILLS_PER_ROUND) return 'Plus aucun essai pour cette manche.';
@@ -294,8 +295,15 @@ export const interrogation = defineGame<
         if (already) return 'Déjà tenté chez ce suspect.';
         return null;
       }
+      case 'close':
+        if (s.phase !== 'interrogation') return "L'interrogatoire n'a pas lieu.";
+        return by === s.inspector ? null : "Seul l'Enquêteur peut clore l'interrogatoire.";
+      case 'bet':
+        if (s.phase !== 'bets') return "Ce n'est pas le moment de parier.";
+        if (!isSuspect(s, by)) return "L'Enquêteur ne parie pas.";
+        return Object.hasOwn(s.bets, by) ? 'Tu as déjà parié.' : null;
       case 'accuse':
-        if (s.phase !== 'interrogation' && s.phase !== 'accusation') return "L'interrogatoire n'a pas lieu.";
+        if (s.phase !== 'accusation') return 'L’accusation vient après les paris.';
         if (by !== s.inspector) return "Seul l'Enquêteur peut accuser.";
         if (!isSuspect(s, move.target)) return 'Choisis un suspect.';
         return null;
@@ -359,11 +367,26 @@ export const interrogation = defineGame<
         );
         return s;
       }
+      case 'close':
+        s.phase = 'bets';
+        s.endsAt = null;
+        log(s, `${nameOf(s, by)} clôt l’interrogatoire : place aux paris !`);
+        return s;
+      case 'bet':
+        s.bets[by] = move.found;
+        if (suspects(s).every((id) => Object.hasOwn(s.bets, id))) {
+          s.phase = 'accusation';
+          s.endsAt = now + ACCUSATION_SECONDS * 1000;
+          log(s, `Les paris sont faits. ${nameOf(s, s.inspector)} a ${ACCUSATION_SECONDS} secondes pour accuser.`);
+        }
+        return s;
       case 'accuse': {
         s.accused = move.target;
         s.endsAt = null;
         s.phase = 'review';
         log(s, `${nameOf(s, by)} accuse ${nameOf(s, move.target)}. Le Coupable était… ${nameOf(s, s.culprit)} !`);
+        const believers = suspects(s).filter((id) => s.bets[id]).length;
+        log(s, `Paris : ${believers} pensai${believers > 1 ? 'ent' : 't'} qu’il trouverait, ${suspects(s).length - believers} qu’il se tromperait.`);
         return s;
       }
       case 'declare': {
@@ -441,6 +464,7 @@ export const interrogation = defineGame<
         acked: s.acked.includes(p.id),
         declared: Object.hasOwn(s.declared, p.id),
         verified: s.verified.includes(p.id),
+        betDone: s.phase === 'bets' && Object.hasOwn(s.bets, p.id),
         role: p.id === s.inspector || open || p.id === me ? roleOf(p.id) : null,
       })),
       me: me
@@ -448,8 +472,10 @@ export const interrogation = defineGame<
             id: me,
             role: roleOf(me),
             words: wordsOf(s, me).map((word) => ({ word, burned: burnedOf(s, me).includes(word) })),
+            myBet: Object.hasOwn(s.bets, me) ? (s.bets[me] as boolean) : null,
           }
         : null,
+      bets: open ? s.bets : null,
       accused: s.accused,
       culprit: open ? s.culprit : null,
       reveal,
@@ -480,9 +506,9 @@ export const interrogation = defineGame<
   onDeadline(state, _rng, now) {
     const s = structuredClone(state);
     if (s.phase === 'interrogation') {
-      s.phase = 'accusation';
-      s.endsAt = now + ACCUSATION_SECONDS * 1000;
-      log(s, `Temps écoulé ! ${nameOf(s, s.inspector)} a ${ACCUSATION_SECONDS} secondes pour accuser.`);
+      s.phase = 'bets';
+      s.endsAt = null;
+      log(s, 'Temps écoulé ! L’interrogatoire est terminé : place aux paris.');
     } else if (s.phase === 'accusation') {
       s.accused = null;
       s.endsAt = null;
@@ -496,7 +522,7 @@ export const interrogation = defineGame<
   bot: interrogationBot,
 
   hotseat: {
-    // Le rôle et les mots sont secrets : on se passe le téléphone pendant le briefing.
-    needsPrivacy: (s) => s.phase === 'briefing',
+    // Rôle, mots et paris sont secrets : on se passe le téléphone pendant le briefing et les paris.
+    needsPrivacy: (s) => s.phase === 'briefing' || s.phase === 'bets',
   },
 });

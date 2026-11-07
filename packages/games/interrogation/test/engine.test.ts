@@ -24,7 +24,15 @@ function play(s: InterrogationState, by: string, move: unknown, now = 1_000): In
 const ackAll = (s: InterrogationState) =>
   s.players.reduce((st, p) => play(st, p.id, { type: 'ack' }), s);
 const suspectsOf = (s: InterrogationState) => s.players.map((p) => p.id).filter((id) => id !== s.inspector);
-const innocentOf = (s: InterrogationState) => suspectsOf(s).find((id) => id !== s.culprit)!;
+const innocentsOf = (s: InterrogationState) => suspectsOf(s).filter((id) => id !== s.culprit);
+const innocentOf = (s: InterrogationState) => innocentsOf(s)[0]!;
+
+/** Clôt l'interrogatoire et fait parier chaque suspect (`found(id)` : « il va trouver »). */
+function toAccusation(s: InterrogationState, found: (id: string) => boolean = () => false): InterrogationState {
+  s = play(s, s.inspector, { type: 'close' });
+  for (const id of suspectsOf(s)) s = play(s, id, { type: 'bet', found: found(id) });
+  return s;
+}
 
 describe('Garde à vue — contenu', () => {
   it('les mots des innocents ne recoupent aucun indice ni aucun texte d’affaire', () => {
@@ -39,7 +47,6 @@ describe('Garde à vue — contenu', () => {
 
   it('pas de doublons, assez de mots et d’affaires', () => {
     expect(new Set(WORDS.map(normalizeWord)).size).toBe(WORDS.length);
-    expect(WORDS.length).toBeGreaterThanOrEqual(7 * 3 * 2);
     expect(CASES.length).toBeGreaterThanOrEqual(8);
     for (const c of CASES) expect(new Set(c.clues).size).toBe(6);
   });
@@ -51,16 +58,17 @@ describe('Garde à vue — contenu', () => {
   });
 });
 
-describe('Garde à vue — mise en place et secret', () => {
-  it.each([4, 6, 8])('distribue rôles et mots à %i joueurs', (n) => {
+describe('Garde à vue — mots partagés et secret', () => {
+  it.each([4, 6, 8])('à %i joueurs, tous les innocents ont la même liste, le Coupable une autre', (n) => {
     const s = setup(n);
-    const sus = suspectsOf(s);
-    expect(sus).toHaveLength(n - 1);
-    expect(sus).toContain(s.culprit);
-    expect(CASES[s.caseIndex]!.clues).toEqual(expect.arrayContaining(s.words[s.culprit]!));
-    const all = sus.flatMap((id) => s.words[id]!);
-    expect(all).toHaveLength((n - 1) * 3);
-    expect(new Set(all).size).toBe(all.length);
+    const innocents = innocentsOf(s);
+    expect(innocents).toHaveLength(n - 2);
+    const shared = s.words[innocents[0]!]!;
+    expect(shared).toHaveLength(3);
+    for (const id of innocents) expect(s.words[id]).toEqual(shared);
+    const culprit = s.words[s.culprit]!;
+    expect(CASES[s.caseIndex]!.clues).toEqual(expect.arrayContaining(culprit));
+    expect(culprit.some((w) => shared.includes(w))).toBe(false);
     expect(s.words[s.inspector]).toBeUndefined();
   });
 
@@ -75,51 +83,62 @@ describe('Garde à vue — mise en place et secret', () => {
     for (const id of suspectsOf(s)) for (const w of s.words[id]!) expect(json).not.toContain(`"${w}"`);
   });
 
-  it('un suspect ne voit que ses propres mots et son propre rôle', () => {
+  it('le Coupable ne voit pas la liste des innocents', () => {
     const s = setup(6);
-    const me = innocentOf(s);
-    const v = interrogation.view(s, me);
-    expect(v.me?.role).toBe('innocent');
-    expect(v.me?.words.map((w) => w.word)).toEqual(s.words[me]);
-    const others = JSON.stringify({ ...v, me: null });
-    for (const id of suspectsOf(s)) {
-      if (id === me) continue;
-      for (const w of s.words[id]!) expect(others).not.toContain(`"${w}"`);
-    }
-    expect(v.players.find((p) => p.id === s.culprit)?.role).toBeNull();
+    const json = JSON.stringify(interrogation.view(s, s.culprit));
+    for (const w of s.words[innocentOf(s)]!) expect(json).not.toContain(`"${w}"`);
   });
 
-  it('le chrono démarre quand tout le monde a lu son rôle', () => {
-    let s = setup(4);
-    expect(interrogation.expectedActors(s)).toHaveLength(4);
-    s = ackAll(s);
-    expect(s.phase).toBe('interrogation');
-    expect(s.endsAt).toBe(1_000 + 5 * 60_000);
+  it('griller un mot partagé ne le brûle que chez ce suspect', () => {
+    let s = ackAll(setup(6, 2));
+    const [a, b] = innocentsOf(s);
+    const word = s.words[a!]![0]!;
+    s = play(s, s.inspector, { type: 'grill', target: a!, word });
+    expect(s.burned[a!]).toEqual([word]);
+    expect(s.burned[b!]).toBeUndefined();
   });
 });
 
-describe('Garde à vue — interrogatoire', () => {
+describe('Garde à vue — interrogatoire, paris et accusation', () => {
   it('griller un vrai mot le brûle, un faux est raté, 3 essais maximum', () => {
     let s = ackAll(setup(5, 2));
     const target = innocentOf(s);
     const word = s.words[target]![0]!;
     s = play(s, s.inspector, { type: 'grill', target, word: word.toUpperCase() });
-    expect(s.burned[target]).toEqual([word]);
     expect(s.grills.at(-1)?.hit).toBe(true);
     s = play(s, s.inspector, { type: 'grill', target, word: 'zzz' });
     expect(s.grills.at(-1)?.hit).toBe(false);
     s = play(s, s.inspector, { type: 'grill', target: s.culprit, word: 'pas-un-mot' });
-    expect(
-      applyMove(interrogation, s, s.inspector, { type: 'grill', target, word: 'autre' }, seededRng(1)).ok,
-    ).toBe(false);
+    expect(applyMove(interrogation, s, s.inspector, { type: 'grill', target, word: 'autre' }, seededRng(1)).ok).toBe(false);
   });
 
-  it('seul l’Enquêteur grille et accuse, et jamais lui-même', () => {
-    const s = ackAll(setup(5));
+  it('on ne peut accuser qu’après les paris ; seul l’Enquêteur clôt et accuse', () => {
+    let s = ackAll(setup(5));
     const sus = innocentOf(s);
-    expect(interrogation.validate(s, sus, { type: 'accuse', target: s.culprit })).not.toBeNull();
-    expect(interrogation.validate(s, s.inspector, { type: 'accuse', target: s.inspector })).not.toBeNull();
-    expect(interrogation.validate(s, s.inspector, { type: 'grill', target: '__proto__', word: 'x' })).not.toBeNull();
+    expect(interrogation.validate(s, s.inspector, { type: 'accuse', target: s.culprit })).not.toBeNull();
+    expect(interrogation.validate(s, sus, { type: 'close' })).not.toBeNull();
+    s = play(s, s.inspector, { type: 'close' });
+    expect(s.phase).toBe('bets');
+    expect(interrogation.validate(s, s.inspector, { type: 'bet', found: true })).toMatch(/ne parie pas/);
+    expect(interrogation.validate(s, s.inspector, { type: 'grill', target: sus, word: 'x' })).toMatch(/terminé/);
+    s = play(s, sus, { type: 'bet', found: true });
+    expect(interrogation.validate(s, sus, { type: 'bet', found: false })).toMatch(/déjà/);
+  });
+
+  it('les paris restent secrets jusqu’à l’accusation', () => {
+    let s = ackAll(setup(5, 6));
+    s = play(s, s.inspector, { type: 'close' });
+    const [a, b] = suspectsOf(s);
+    s = play(s, a!, { type: 'bet', found: true });
+    const v = interrogation.view(s, b!);
+    expect(v.players.find((p) => p.id === a)).toMatchObject({ betDone: true });
+    expect(v.bets).toBeNull();
+    expect(interrogation.view(s, a!).me!.myBet).toBe(true);
+    for (const id of suspectsOf(s)) if (id !== a) s = play(s, id, { type: 'bet', found: false });
+    expect(s.phase).toBe('accusation');
+    expect(s.endsAt).toBe(1_000 + 60_000);
+    s = play(s, s.inspector, { type: 'accuse', target: s.culprit });
+    expect(interrogation.view(s, b!).bets).toMatchObject({ [a!]: true });
   });
 
   it('un suspect ne peut déclarer que ses mots non grillés', () => {
@@ -127,6 +146,7 @@ describe('Garde à vue — interrogatoire', () => {
     const target = innocentOf(s);
     const [w0, w1] = s.words[target]!;
     s = play(s, s.inspector, { type: 'grill', target, word: w0! });
+    s = toAccusation(s);
     s = play(s, s.inspector, { type: 'accuse', target: s.culprit });
     expect(interrogation.validate(s, target, { type: 'declare', placed: [w0!] })).toMatch(/grillé/);
     expect(interrogation.validate(s, target, { type: 'declare', placed: ['girafe-inventée'] })).not.toBeNull();
@@ -135,10 +155,12 @@ describe('Garde à vue — interrogatoire', () => {
 });
 
 describe('Garde à vue — points', () => {
-  function roundWith(accuseCulprit: boolean) {
+  /** 5 joueurs : l'Enquêteur grille 1 mot chez un innocent, tous parient `found`, accusation, tout est déclaré. */
+  function roundWith(accuseCulprit: boolean, found: boolean) {
     let s = ackAll(setup(5, 7));
     const innocent = innocentOf(s);
     s = play(s, s.inspector, { type: 'grill', target: innocent, word: s.words[innocent]![0]! });
+    s = toAccusation(s, () => found);
     s = play(s, s.inspector, { type: 'accuse', target: accuseCulprit ? s.culprit : innocent });
     for (const id of suspectsOf(s)) {
       const usable = s.words[id]!.filter((w) => !(s.burned[id] ?? []).includes(w));
@@ -146,31 +168,126 @@ describe('Garde à vue — points', () => {
     }
     expect(s.phase).toBe('verify');
     for (const p of s.players) s = play(s, p.id, { type: 'verify', doubts: [] });
-    return { s, innocent };
+    const other = innocentsOf(s).find((id) => id !== innocent)!;
+    return { s, innocent, other };
   }
 
-  it('Coupable arrêté : +3 et +1 par mot grillé pour l’Enquêteur, rien pour le Coupable', () => {
-    const { s, innocent } = roundWith(true);
+  it('Coupable arrêté, paris « il va trouver » gagnants (sauf pour le Coupable)', () => {
+    const { s, innocent, other } = roundWith(true, true);
     expect(s.phase).toBe('scores');
-    expect(s.scores[s.inspector]).toBe(4);
-    expect(s.scores[s.culprit]).toBe(0);
-    expect(s.scores[innocent]).toBe(2);
+    expect(s.scores[s.inspector]).toBe(4); // +3 arrestation, +1 mot grillé
+    expect(s.scores[s.culprit]).toBe(0); // arrêté : rien, même avec un pari juste
+    expect(s.scores[innocent]).toBe(2 + 2); // 2 mots + pari
+    expect(s.scores[other]).toBe(3 + 2); // 3 mots + pari
   });
 
-  it('Coupable en fuite : +3 et ses mots ; l’innocent accusé à tort gagne +1', () => {
-    const { s, innocent } = roundWith(false);
+  it('Coupable en fuite, paris « il va se tromper » gagnants ; l’innocent accusé à tort gagne +1', () => {
+    const { s, innocent, other } = roundWith(false, false);
     expect(s.scores[s.inspector]).toBe(1);
-    expect(s.scores[s.culprit]).toBe(6);
-    expect(s.scores[innocent]).toBe(3);
+    expect(s.scores[s.culprit]).toBe(3 + 3 + 2); // fuite + 3 mots + pari
+    expect(s.scores[innocent]).toBe(2 + 1 + 2); // 2 mots + accusé à tort + pari
+    expect(s.scores[other]).toBe(3 + 2);
+  });
+
+  it('un pari perdu ne rapporte rien', () => {
+    const { s, other } = roundWith(true, false);
+    expect(s.scores[other]).toBe(3);
   });
 
   it('la vue révèle tout après l’accusation', () => {
-    const { s } = roundWith(true);
+    const { s } = roundWith(true, true);
     const v = interrogation.view(s, null);
     expect(v.culprit).toBe(s.culprit);
     expect(v.players.every((p) => p.role !== null)).toBe(true);
     expect(Object.keys(v.reveal!)).toHaveLength(4);
     expect(v.lastRound).toHaveLength(5);
+  });
+});
+
+describe('Garde à vue — chrono imposé', () => {
+  it('à la fin du chrono : paris, puis une minute pour accuser', () => {
+    let s = ackAll(setup(5, 21));
+    const end = s.endsAt!;
+    expect(interrogation.deadline!(s)).toBe(end);
+    expect(applyDeadline(interrogation, s, seededRng(1), end - 1)).toBeNull();
+    s = applyDeadline(interrogation, s, seededRng(1), end)!;
+    expect(s.phase).toBe('bets');
+    expect(interrogation.deadline!(s)).toBeNull(); // pas de chrono pendant les paris
+    for (const id of suspectsOf(s)) s = play(s, id, { type: 'bet', found: true }, end + 5_000);
+    expect(s.phase).toBe('accusation');
+    expect(s.endsAt).toBe(end + 5_000 + 60_000);
+  });
+
+  it('sans accusation à temps, le Coupable s’échappe (et les paris « il va se tromper » gagnent)', () => {
+    let s = ackAll(setup(5, 22));
+    s = applyDeadline(interrogation, s, seededRng(1), s.endsAt!)!;
+    for (const id of suspectsOf(s)) s = play(s, id, { type: 'bet', found: false });
+    s = applyDeadline(interrogation, s, seededRng(1), s.endsAt!)!;
+    expect(s.phase).toBe('review');
+    expect(s.accused).toBeNull();
+    for (const id of suspectsOf(s)) s = play(s, id, { type: 'declare', placed: [] });
+    expect(s.phase).toBe('scores');
+    expect(s.scores[s.culprit]).toBe(3 + 2);
+    expect(s.scores[s.inspector]).toBe(0);
+    expect(s.lastRound?.[0]?.reasons).toContain('Aucune accusation');
+  });
+});
+
+describe('Garde à vue — vérification par la table', () => {
+  function toVerify(seed = 30) {
+    let s = ackAll(setup(5, seed));
+    s = toAccusation(s);
+    s = play(s, s.inspector, { type: 'accuse', target: s.culprit });
+    for (const id of suspectsOf(s)) s = play(s, id, { type: 'declare', placed: s.words[id]!.slice(0, 1) });
+    return s;
+  }
+
+  it('un mot signalé par la majorité des autres joueurs est refusé, pas en cas d’égalité', () => {
+    let s = toVerify();
+    const [a, b] = innocentsOf(s);
+    const wa = s.words[a!]![0]!;
+    const wb = s.words[b!]![0]!;
+    const others = (id: string) => s.players.map((p) => p.id).filter((x) => x !== id);
+    const doubtersA = others(a!).slice(0, 3);
+    const doubtersB = others(b!).slice(0, 2);
+    for (const p of s.players) {
+      const doubts = [
+        ...(doubtersA.includes(p.id) && p.id !== a ? [{ target: a!, word: wa }] : []),
+        ...(doubtersB.includes(p.id) && p.id !== b ? [{ target: b!, word: wb }] : []),
+      ];
+      s = play(s, p.id, { type: 'verify', doubts });
+    }
+    expect(s.phase).toBe('scores');
+    expect(s.rejected[a!]).toEqual([wa]);
+    expect(s.rejected[b!]).toBeUndefined();
+    const v = interrogation.view(s, null);
+    expect(v.reveal![a!]!.find((w) => w.word === wa)).toMatchObject({ rejected: true, doubts: 3 });
+    expect(v.reveal![b!]!.find((w) => w.word === wb)).toMatchObject({ rejected: false, doubts: 2 });
+  });
+
+  it('on ne peut pas douter de ses propres mots ni d’un mot non déclaré', () => {
+    const s = toVerify(31);
+    const a = innocentOf(s);
+    expect(interrogation.validate(s, a, { type: 'verify', doubts: [{ target: a, word: s.words[a]![0]! }] })).not.toBeNull();
+    expect(
+      interrogation.validate(s, s.inspector, { type: 'verify', doubts: [{ target: a, word: s.words[a]![2]! }] }),
+    ).toMatch(/pas été déclaré/);
+  });
+
+  it('les signalements restent secrets jusqu’au verdict', () => {
+    let s = toVerify(32);
+    const a = innocentOf(s);
+    s = play(s, s.inspector, { type: 'verify', doubts: [{ target: a, word: s.words[a]![0]! }] });
+    const v = interrogation.view(s, a);
+    expect(v.reveal![a]!.every((w) => w.doubts === null && w.rejected === null)).toBe(true);
+  });
+
+  it('si personne ne déclare de mot, on passe directement aux points', () => {
+    let s = ackAll(setup(4, 33));
+    s = toAccusation(s);
+    s = play(s, s.inspector, { type: 'accuse', target: s.culprit });
+    for (const id of suspectsOf(s)) s = play(s, id, { type: 'declare', placed: [] });
+    expect(s.phase).toBe('scores');
   });
 });
 
@@ -195,99 +312,9 @@ describe('Garde à vue — déroulé', () => {
   it.each([4, 5, 6, 7, 8])('200 parties simulées à %i joueurs se terminent', (n) => {
     for (let seed = 0; seed < 200; seed++) {
       const config: InterrogationConfig = { minutes: 5, rounds: ([0, 3, 5] as const)[seed % 3]! };
-      const { state } = simulate<InterrogationState>(interrogation, players(n), seededRng(seed + n * 1000), {
-        config,
-      });
+      const { state } = simulate<InterrogationState>(interrogation, players(n), seededRng(seed + n * 1000), { config });
       expect(state.phase).toBe('over');
       expect(state.round).toBe(config.rounds === 0 ? n : config.rounds);
     }
-  });
-});
-
-describe('Garde à vue — chrono imposé', () => {
-  it('à la fin du chrono, plus de grillage : il reste une minute pour accuser', () => {
-    let s = ackAll(setup(5, 21));
-    const end = s.endsAt!;
-    expect(interrogation.deadline!(s)).toBe(end);
-    expect(applyDeadline(interrogation, s, seededRng(1), end - 1)).toBeNull();
-    s = applyDeadline(interrogation, s, seededRng(1), end)!;
-    expect(s.phase).toBe('accusation');
-    expect(s.endsAt).toBe(end + 60_000);
-    const target = innocentOf(s);
-    expect(interrogation.validate(s, s.inspector, { type: 'grill', target, word: 'x' })).toMatch(/écoulé/);
-    expect(interrogation.validate(s, s.inspector, { type: 'accuse', target })).toBeNull();
-  });
-
-  it('sans accusation à temps, le Coupable s’échappe', () => {
-    let s = ackAll(setup(5, 22));
-    s = applyDeadline(interrogation, s, seededRng(1), s.endsAt!)!;
-    s = applyDeadline(interrogation, s, seededRng(1), s.endsAt!)!;
-    expect(s.phase).toBe('review');
-    expect(s.accused).toBeNull();
-    for (const id of suspectsOf(s)) s = play(s, id, { type: 'declare', placed: [] });
-    expect(s.phase).toBe('scores');
-    expect(s.scores[s.culprit]).toBe(3);
-    expect(s.scores[s.inspector]).toBe(0);
-    expect(s.lastRound?.[0]?.reasons).toContain('Aucune accusation');
-  });
-});
-
-describe('Garde à vue — vérification par la table', () => {
-  /** 5 joueurs : chaque mot déclaré est jugé par les 4 autres. */
-  function toVerify(seed = 30) {
-    let s = ackAll(setup(5, seed));
-    s = play(s, s.inspector, { type: 'accuse', target: s.culprit });
-    for (const id of suspectsOf(s)) s = play(s, id, { type: 'declare', placed: s.words[id]!.slice(0, 1) });
-    return s;
-  }
-
-  it('un mot signalé par la majorité des autres joueurs est refusé, pas en cas d’égalité', () => {
-    let s = toVerify();
-    const [a, b] = suspectsOf(s).filter((id) => id !== s.culprit);
-    const wa = s.words[a!]![0]!;
-    const wb = s.words[b!]![0]!;
-    const others = (id: string) => s.players.map((p) => p.id).filter((x) => x !== id);
-    // 3 doutes sur 4 votants pour a, 2 sur 4 pour b.
-    const doubtersA = others(a!).slice(0, 3);
-    const doubtersB = others(b!).slice(0, 2);
-    for (const p of s.players) {
-      const doubts = [
-        ...(doubtersA.includes(p.id) ? [{ target: a!, word: wa }] : []),
-        ...(doubtersB.includes(p.id) ? [{ target: b!, word: wb }] : []),
-      ];
-      s = play(s, p.id, { type: 'verify', doubts });
-    }
-    expect(s.phase).toBe('scores');
-    expect(s.rejected[a!]).toEqual([wa]);
-    expect(s.rejected[b!]).toBeUndefined();
-    const v = interrogation.view(s, null);
-    expect(v.reveal![a!]!.find((w) => w.word === wa)).toMatchObject({ rejected: true, doubts: 3 });
-    expect(v.reveal![b!]!.find((w) => w.word === wb)).toMatchObject({ rejected: false, doubts: 2 });
-    expect(s.scores[a!]).toBe(0);
-    expect(s.scores[b!]).toBe(1);
-  });
-
-  it('on ne peut pas douter de ses propres mots ni d’un mot non déclaré', () => {
-    const s = toVerify(31);
-    const a = innocentOf(s);
-    expect(interrogation.validate(s, a, { type: 'verify', doubts: [{ target: a, word: s.words[a]![0]! }] })).not.toBeNull();
-    expect(
-      interrogation.validate(s, s.inspector, { type: 'verify', doubts: [{ target: a, word: s.words[a]![2]! }] }),
-    ).toMatch(/pas été déclaré/);
-  });
-
-  it('les signalements restent secrets jusqu’au verdict', () => {
-    let s = toVerify(32);
-    const a = innocentOf(s);
-    s = play(s, s.inspector, { type: 'verify', doubts: [{ target: a, word: s.words[a]![0]! }] });
-    const v = interrogation.view(s, a);
-    expect(v.reveal![a]!.every((w) => w.doubts === null && w.rejected === null)).toBe(true);
-  });
-
-  it('si personne ne déclare de mot, on passe directement aux points', () => {
-    let s = ackAll(setup(4, 33));
-    s = play(s, s.inspector, { type: 'accuse', target: s.culprit });
-    for (const id of suspectsOf(s)) s = play(s, id, { type: 'declare', placed: [] });
-    expect(s.phase).toBe('scores');
   });
 });

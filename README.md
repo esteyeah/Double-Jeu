@@ -5,7 +5,7 @@ Arcade de jeux à rôles cachés et de bluff : en ligne entre amis, ou sur un se
 Nom de travail, à changer librement. Jeux disponibles :
 
 - **Réacteur** (4 à 8 joueurs) : bluff et cartes coupées à l'aveugle, bots possibles.
-- **Garde à vue** (4 à 8 joueurs) : jeu de parole. Un Enquêteur interroge des suspects qui glissent des mots secrets dans leurs réponses. Il se joue autour d'une table ou en appel vocal.
+- **Garde à vue** (4 à 8 joueurs) : jeu de parole. Un Enquêteur interroge des suspects qui glissent des mots secrets dans leurs réponses : les innocents partagent la même liste, le Coupable en a une autre. Avant l'accusation, chaque suspect parie en secret sur la réussite de l'Enquêteur. Il se joue autour d'une table ou en appel vocal.
 - **Le Trône Vide** (5 à 10 joueurs) : élections, édits votés en secret, pouvoirs du Régent et un Usurpateur caché. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 - **Butin** (3 à 8 joueurs) : des pirates se partagent un trésor, pistolet au poing. Charge sèche ou mouillée, visées, plongeon dans la cale, partage. Bots possibles ; plongeon annoncé à voix haute en mode un seul téléphone.
 - **Expédition** (5 à 10 joueurs) : des Mutins sabotent une expédition polaire. Cordées votées, cartes Réussite/Sabotage secrètes, variante avec Cartographe et Espion. Bots possibles ; vote à main levée proposé en mode un seul téléphone.

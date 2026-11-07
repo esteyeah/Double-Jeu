@@ -18,6 +18,11 @@ export function interrogationBot(
     case 'briefing':
       return self.acked ? null : { type: 'ack' };
     case 'interrogation':
+      return inspector ? { type: 'close' } : null;
+    case 'bets':
+      if (inspector || self.betDone || view.me.myBet !== null) return null;
+      // Le Coupable parie sur l'échec ; un innocent tente sa chance.
+      return { type: 'bet', found: view.me.role === 'culprit' ? false : rng.int(2) === 0 };
     case 'accusation': {
       if (!inspector) return null;
       const suspects = view.players.filter((p) => p.id !== me).map((p) => p.id);
