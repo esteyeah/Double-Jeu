@@ -9,8 +9,7 @@ Nom de travail, à changer librement. Jeux disponibles :
 - **Le Trône Vide** (5 à 10 joueurs) : élections, édits votés en secret, pouvoirs du Régent et un Usurpateur caché. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 - **Butin** (3 à 8 joueurs) : des pirates se partagent un trésor, pistolet au poing. Charge sèche ou mouillée, visées, plongeon dans la cale, partage. Bots possibles ; plongeon annoncé à voix haute en mode un seul téléphone.
 - **Expédition** (5 à 10 joueurs) : des Mutins sabotent une expédition polaire. Cordées votées, cartes Réussite/Sabotage secrètes, variante avec Cartographe et Espion. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
-
-Un dernier jeu (Intrigues) est prévu dans le catalogue.
+- **Faux Jetons** (2 à 6 joueurs) : bluff à la cour d'une cité marchande. Deux influences cachées, des ducats, des actions de personnage qu'on peut annoncer sans les avoir, des contres et des contestations dans un délai imposé. Bots possibles.
 
 ## Obtenir un lien à partager
 
@@ -76,6 +75,7 @@ packages/
     throne/         Le Trône Vide : moteur, bots, plateau, tests
     plunder/        Butin : moteur, bots, plateau, tests
     expedition/     Expédition : moteur, bots (raisonnement probabiliste), plateau, tests
+    court/          Faux Jetons : moteur (annonces, contres, contestations), bots, plateau, tests
 ```
 
 ## Comment ça marche

@@ -185,7 +185,7 @@ function Instruction({
     case 'bets': {
       const done = view.players.filter((p) => p.betDone).length;
       const total = view.players.length - 1;
-      text = `Interrogatoire terminé ! Chaque suspect parie en secret : ${inspector} va-t-il trouver le Coupable ? ${done}/${total} paris.`;
+      text = `Interrogatoire terminé ! Chaque suspect parie en secret : l’Enquêteur (${inspector}) va-t-il trouver le Coupable ? ${done}/${total} paris.`;
       break;
     }
     case 'accusation':
@@ -437,7 +437,7 @@ function BetPanel({
   return (
     <section className="animate-pop rounded-2xl border border-accent/40 bg-surface-2 p-4">
       <h4 className="font-semibold">Ton pari secret</h4>
-      <p className="mt-1 text-xs text-muted">{inspector} va-t-il démasquer le Coupable ? Pari gagné : +2 points.</p>
+      <p className="mt-1 text-xs text-muted">L’Enquêteur ({inspector}) va-t-il démasquer le Coupable ? Pari gagné : +2 points.</p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           type="button"

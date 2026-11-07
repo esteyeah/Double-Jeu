@@ -1,5 +1,7 @@
 import type { ComponentType } from 'react';
 import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
+import { court } from '@arcade/court';
+import CourtBoard from '@arcade/court/client';
 import { expedition } from '@arcade/expedition';
 import ExpeditionBoard from '@arcade/expedition/client';
 import { interrogation } from '@arcade/interrogation';
@@ -25,6 +27,7 @@ const games: Record<string, ClientGame> = {
   throne: { module: throne, Board: ThroneBoard },
   plunder: { module: plunder, Board: PlunderBoard },
   expedition: { module: expedition, Board: ExpeditionBoard },
+  court: { module: court, Board: CourtBoard },
 };
 
 export function getClientGame(id: string): ClientGame | undefined {
@@ -68,11 +71,11 @@ export const catalog: CatalogEntry[] = [
     accent: 'from-accent/30',
   },
   {
-    id: 'intrigue',
-    name: 'Intrigues',
-    tagline: 'Deux influences cachées, des actions bluffées et des contestations à la cour.',
+    id: 'court',
+    name: 'Faux Jetons',
+    tagline: 'Deux influences cachées, des ducats et beaucoup de mensonges à la cour.',
     players: '2–6',
-    ready: false,
+    ready: true,
     accent: 'from-key/30',
   },
   {
