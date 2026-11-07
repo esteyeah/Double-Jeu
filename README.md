@@ -11,6 +11,7 @@ Nom de travail, à changer librement. Jeux disponibles :
 - **Expédition** (5 à 10 joueurs) : des Mutins sabotent une expédition polaire. Cordées votées, cartes Réussite/Sabotage secrètes, rôles spéciaux au choix (Cartographe, avec ou sans Espion). Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 - **La Cité** (2 à 6 joueurs) : bluff à la cour d'une cité marchande. Deux influences cachées, des écus, des actions de personnage qu'on peut annoncer sans les avoir (Banquier, Bourreau, Brigand, Émissaire, Garde, Mouchard, Mercenaire), des contres et des contestations dans un délai imposé. Avant la partie, l'hôte coche les personnages en jeu ; le lancement vérifie qu'il y a assez de cartes pour la table. Bots possibles.
 - **Le Chaudron** (3 à 8 joueurs) : une guilde d'alchimistes remplit un chaudron, ingrédient par ingrédient, en annonçant à voix haute ce qu'elle verse. Les Empoisonneurs y glissent de la Ciguë en mentant. Goûter (en secret), Écumer, Soupçonner (3 jetons : chassé de la guilde) et voter pour servir la potion quand on pense qu'elle atteint sa force. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
+- **Gobelets** (2 à 8 joueurs) : dés cachés sous les gobelets et enchères sur l'ensemble de la table (« 4 × Cinq »), As jokers, « Menteur ! » pour soulever les gobelets. Variantes : « Pile ! » (enchère exacte, on regagne un dé), manche sèche au dernier dé, 3 à 5 dés par joueur. Bots possibles ; en mode un seul téléphone, on se passe le téléphone à chaque enchère.
 
 ## Obtenir un lien à partager
 
@@ -78,6 +79,7 @@ packages/
     expedition/     Expédition : moteur, bots (raisonnement probabiliste), plateau, tests
     court/          La Cité : moteur (annonces, contres, contestations), bots, plateau, tests
     cauldron/       Le Chaudron : moteur, bots (indices tirés des dégustations), plateau, tests
+    cups/           Gobelets : moteur, bots (probabilités binomiales), plateau, tests
 ```
 
 ## Comment ça marche

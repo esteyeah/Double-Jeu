@@ -13,6 +13,7 @@
   "dependencies": {
     "@arcade/cauldron": "workspace:*",
     "@arcade/court": "workspace:*",
+    "@arcade/cups": "workspace:*",
     "@arcade/expedition": "workspace:*",
     "@arcade/game-sdk": "workspace:*",
     "@arcade/interrogation": "workspace:*",
