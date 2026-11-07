@@ -32,8 +32,8 @@ export const sideOf = (role: Role): Side => (role === 'explorer' || role === 'ca
 
 export const expeditionConfigSchema = z.object({
   votes: z.enum(['secret', 'hands']),
-  /** Variante : Cartographe (connaît les Mutins) et Espion (peut la démasquer à la fin). */
-  roles: z.enum(['basic', 'special']),
+  /** Rôles spéciaux : aucun, Cartographe seule, ou Cartographe et Espion. */
+  roles: z.enum(['basic', 'cartographer', 'special']),
 });
 export type ExpeditionConfig = z.infer<typeof expeditionConfigSchema>;
 

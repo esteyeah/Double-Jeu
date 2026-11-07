@@ -5,7 +5,9 @@ import type { LogEntry, PlayerId, PlayerInfo } from '@arcade/game-sdk';
 export const CHARACTERS = ['banker', 'executioner', 'brigand', 'envoy', 'guard', 'informer', 'mercenary'] as const;
 export type Character = (typeof CHARACTERS)[number];
 export const CLASSIC_COURT: Character[] = ['banker', 'executioner', 'brigand', 'envoy', 'guard'];
-export const MIN_COURT = 5;
+/** Plancher absolu ; le vrai minimum dépend du nombre de joueurs (voir `cardsNeeded`). */
+export const MIN_COURT = 2;
+
 
 export const ACTIONS = [
   'income',
@@ -24,6 +26,8 @@ export type Phase = 'turn' | 'challenge' | 'block' | 'challengeBlock' | 'loss' |
 
 export const START_COINS = 2;
 export const COPIES = 3;
+/** Personnages nécessaires pour avoir assez de cartes : 2 par joueur + 2 pour l'Échange. */
+export const charactersNeeded = (players: number) => Math.ceil((2 * players + 2) / COPIES);
 export const CONSPIRACY_COST = 7;
 export const EXECUTE_COST = 3;
 export const ESCORT_COST = 2;

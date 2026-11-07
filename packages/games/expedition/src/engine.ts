@@ -41,8 +41,17 @@ export const expeditionMeta: GameMeta = {
       key: 'roles',
       label: 'Rôles',
       choices: [
-        { value: 'basic', label: 'Explorateurs et Mutins' },
-        { value: 'special', label: 'Avec Cartographe et Espion' },
+        { value: 'basic', label: 'Explorateurs et Mutins', hint: 'Aucun rôle spécial.' },
+        {
+          value: 'cartographer',
+          label: 'Avec la Cartographe',
+          hint: 'Une exploratrice connaît les Mutins. Pas d’Espion : avantage à l’Expédition.',
+        },
+        {
+          value: 'special',
+          label: 'Avec Cartographe et Espion',
+          hint: 'La Cartographe connaît les Mutins ; l’Espion peut la démasquer à la fin.',
+        },
       ],
     },
   ],
@@ -52,7 +61,7 @@ export const expeditionMeta: GameMeta = {
     `${MISSIONS} étapes jalonnent le voyage. À chaque étape, le Chef d’expédition (à tour de rôle) compose une cordée du nombre indiqué, puis tout le monde vote. À la majorité, la cordée part ; sinon, le rôle de Chef passe au suivant. ${MAX_REJECTIONS} refus d’affilée : l’expédition s’enlise et les Mutins gagnent.`,
     'Chaque membre de la cordée joue en secret une carte Réussite ou Sabotage. Les explorateurs loyaux jouent toujours Réussite. Un seul Sabotage suffit à faire échouer l’étape (il en faut deux pour la 4e étape à partir de 7 joueurs). On ne révèle que le nombre de sabotages, jamais qui les a joués.',
     `${TO_WIN} étapes réussies : l’expédition atteint le Pôle. ${TO_WIN} étapes ratées : les Mutins l’emportent.`,
-    'Variante : la Cartographe connaît les Mutins mais doit rester discrète. Chez les Mutins, l’Espion peut tout renverser : si l’expédition atteint le Pôle, il désigne qui est la Cartographe. S’il voit juste, les Mutins gagnent.',
+    'Rôles au choix avant la partie : la Cartographe connaît les Mutins mais doit rester discrète. Si l’Espion est aussi en jeu (chez les Mutins), il peut tout renverser : quand l’expédition atteint le Pôle, il désigne qui est la Cartographe ; s’il voit juste, les Mutins gagnent.',
   ],
 };
 
@@ -156,10 +165,8 @@ export const expedition = defineGame<ExpeditionState, ExpeditionMove, Expedition
       ...Array<Role>(n - mutineers).fill('explorer'),
       ...Array<Role>(mutineers).fill('mutineer'),
     ];
-    if (config.roles === 'special') {
-      deck[0] = 'cartographer';
-      deck[n - 1] = 'spy';
-    }
+    if (config.roles !== 'basic') deck[0] = 'cartographer';
+    if (config.roles === 'special') deck[n - 1] = 'spy';
     const dealt = rng.shuffle(deck);
     const roles: Record<PlayerId, Role> = {};
     players.forEach((p, i) => {

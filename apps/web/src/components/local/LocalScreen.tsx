@@ -130,6 +130,8 @@ function LocalSetup({
     if (new Set(names.map((n) => n.toLowerCase())).size !== names.length) {
       return setError('Deux joueurs ont le même nom.');
     }
+    const blocked = game.module.canStart?.(roster.length, config);
+    if (blocked) return setError(blocked);
     storage.set(KEYS.localRoster, JSON.stringify(roster));
     onStart(roster);
   }

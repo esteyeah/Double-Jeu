@@ -72,8 +72,8 @@ export const catalog: CatalogEntry[] = [
   },
   {
     id: 'court',
-    name: 'Faux Jetons',
-    tagline: 'Deux influences cachées, des ducats et beaucoup de mensonges à la cour.',
+    name: 'La Cité',
+    tagline: 'Deux influences cachées, des écus et beaucoup de mensonges à la cour de la Cité.',
     players: '2–6',
     ready: true,
     accent: 'from-key/30',

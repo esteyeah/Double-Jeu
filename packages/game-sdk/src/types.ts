@@ -34,7 +34,8 @@ export interface GameResult {
 export interface GameSetting {
   key: string;
   label: string;
-  choices: { value: string | number | boolean; label: string }[];
+  /** `hint` : courte description affichée sous le choix (rôles, variantes…). */
+  choices: { value: string | number | boolean; label: string; hint?: string }[];
   /** `multi` : plusieurs choix cochables (la valeur est alors un tableau). */
   kind?: 'single' | 'multi';
   /** Bornes du nombre de choix cochés (options `multi`). */
@@ -75,6 +76,11 @@ export interface GameModule<State, Move, View, Config> {
   defaultConfig: Config;
   moveSchema: z.ZodType<Move>;
 
+  /**
+   * Vérifie qu'une partie peut démarrer avec ce nombre de joueurs et ces options
+   * (ex. assez de cartes pour tous). `null` si c'est bon, sinon un message pour l'hôte.
+   */
+  canStart?(players: number, config: Config): string | null;
   /** Distribution des rôles, mélange, état initial. */
   setup(players: PlayerInfo[], config: Config, rng: Rng): State;
   /** Joueurs dont le jeu attend une action (0, 1 ou plusieurs pour les choix simultanés). */

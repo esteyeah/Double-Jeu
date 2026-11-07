@@ -106,6 +106,14 @@ describe('lobby', () => {
     expect((await call(host.socket, 'room:setConfig', { config: { rounds: 'beaucoup' } })).ok).toBe(false);
   });
 
+  it('refuse de lancer La Cité sans assez de personnages pour la table', async () => {
+    const host = await connect();
+    await call(host.socket, 'room:create', { name: 'Hôte', gameId: 'court' });
+    expect((await call(host.socket, 'room:setConfig', { config: { characters: ['banker', 'guard'] } })).ok).toBe(true);
+    for (let i = 0; i < 3; i++) await call(host.socket, 'room:addBot');
+    expect((await call(host.socket, 'room:start')).error).toMatch(/au moins 4 personnages/);
+  });
+
   it('refuse les bots dans un jeu de parole', async () => {
     const host = await connect();
     await call(host.socket, 'room:create', { name: 'Hôte', gameId: 'interrogation' });

@@ -166,13 +166,31 @@ describe('Expédition — étapes', () => {
   });
 });
 
+describe('Expédition — Cartographe seule', () => {
+  it('Cartographe sans Espion : trois étapes réussies suffisent', () => {
+    const roles: Role[] = ['cartographer', 'explorer', 'explorer', 'mutineer', 'mutineer'];
+    let s = ready(roles, { votes: 'secret', roles: 'cartographer' });
+    s = mission(s, ['p0', 'p1']);
+    s = mission(s, ['p0', 'p1', 'p2']);
+    s = mission(s, ['p1', 'p2']);
+    expect(s.outcome).toEqual({ winner: 'expedition', reason: 'missions' });
+  });
+
+  it('la variante distribue une Cartographe et aucun Espion', () => {
+    const s = expedition.setup(players(7), { votes: 'secret', roles: 'cartographer' }, seededRng(4));
+    const roles = Object.values(s.roles);
+    expect(roles.filter((r) => r === 'cartographer')).toHaveLength(1);
+    expect(roles).not.toContain('spy');
+  });
+});
+
 describe('Expédition — robustesse', () => {
   it.each([5, 6, 7, 8, 9, 10])('400 parties de bots à %i joueurs se terminent', (n) => {
     const wins = { expedition: 0, mutiny: 0 };
     for (let seed = 0; seed < 400; seed++) {
       const config: ExpeditionConfig = {
         votes: seed % 5 === 0 ? 'hands' : 'secret',
-        roles: seed % 2 === 0 ? 'special' : 'basic',
+        roles: (['basic', 'cartographer', 'special'] as const)[seed % 3]!,
       };
       const { state } = simulate<ExpeditionState>(expedition, players(n), seededRng(seed * 13 + n), { config });
       expect(state.phase).toBe('over');

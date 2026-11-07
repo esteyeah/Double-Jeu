@@ -264,6 +264,8 @@ export class Room {
     if (!mod.meta.supportsBots && this.seats.some((s) => s.isBot)) {
       return fail(`${mod.meta.name} se joue sans bots : retire-les d'abord.`);
     }
+    const blocked = mod.canStart?.(n, this.config);
+    if (blocked) return fail(blocked);
 
     this.game?.dispose();
     this.autopilot.clear();

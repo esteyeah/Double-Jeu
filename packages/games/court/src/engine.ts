@@ -4,12 +4,14 @@ import {
   ACTION_RULES,
   CHARACTERS,
   CHARACTER_LABEL,
-  CLASSIC_COURT,
+  CHARACTER_POWER,
   CHARACTER_THE,
+  CLASSIC_COURT,
   COPIES,
   FORCED_CONSPIRACY,
   MIN_COURT,
   START_COINS,
+  charactersNeeded,
   ecus,
   courtConfigSchema,
   courtMoveSchema,
@@ -24,8 +26,8 @@ import {
 
 export const courtMeta: GameMeta = {
   id: 'court',
-  name: 'Faux Jetons',
-  tagline: 'Deux influences cachées, des écus et beaucoup de mensonges à la cour.',
+  name: 'La Cité',
+  tagline: 'Deux influences cachées, des écus et beaucoup de mensonges à la cour de la Cité.',
   minPlayers: 2,
   maxPlayers: 6,
   durationMinutes: [10, 20],
@@ -43,11 +45,11 @@ export const courtMeta: GameMeta = {
     },
     {
       key: 'characters',
-      label: 'Personnages à la cour',
+      label: 'Personnages en jeu',
       kind: 'multi',
       min: MIN_COURT,
       max: CHARACTERS.length,
-      choices: CHARACTERS.map((c) => ({ value: c, label: CHARACTER_LABEL[c] })),
+      choices: CHARACTERS.map((c) => ({ value: c, label: CHARACTER_LABEL[c], hint: CHARACTER_POWER[c] })),
     },
   ],
   hotseatDefaults: { reaction: 30 },
@@ -57,7 +59,7 @@ export const courtMeta: GameMeta = {
     'Actions de personnage, que tu peux annoncer même sans avoir la carte : Banquier (Taxe : +3), Bourreau (Exécution : paie 3, la cible perd une influence), Brigand (Racket : prends 2 écus à un joueur), Émissaire (Échange : pioche 2 personnages et garde ceux que tu veux).',
     'Contres : le Banquier contre la Faveur, la Garde contre l’Exécution, le Brigand et l’Émissaire contrent le Racket. Un contre est aussi une annonce : on peut mentir.',
     'Toute annonce peut être contestée. Si l’annonceur avait bien le personnage, il le montre, en pioche un autre, et le contestataire perd une influence. Sinon, c’est le menteur qui perd une influence et son action (ou son contre) échoue.',
-    'Personnages en option (l’hôte compose la cour, 5 à 7 personnages) : Mouchard (Espionnage : la cible te montre en secret une de ses influences) et Mercenaire (Escorte : paie 2, plus aucune action de personnage ne peut te viser jusqu’à ton prochain tour ; la Conspiration reste imparable).',
+    'Avant la partie, l’hôte choisit les personnages en jeu (3 exemplaires de chacun) : il en faut assez pour donner 2 cartes à chacun. Deux personnages en plus sont proposés : Mouchard (Espionnage : la cible te montre en secret une de ses influences) et Mercenaire (Escorte : paie 2, plus aucune action de personnage ne peut te viser jusqu’à ton prochain tour ; la Conspiration reste imparable). Un personnage absent ne peut être ni annoncé ni utilisé pour contrer.',
   ],
 };
 
@@ -291,7 +293,7 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
   setup(players, config, rng) {
     const n = players.length;
     if (n < courtMeta.minPlayers || n > courtMeta.maxPlayers) {
-      throw new Error(`Faux Jetons se joue de 2 à 6 joueurs (reçu ${n}).`);
+      throw new Error(`La Cité se joue de 2 à 6 joueurs (reçu ${n}).`);
     }
     const deck = rng.shuffle(config.characters.flatMap((c) => Array<Character>(COPIES).fill(c)));
     const turn = rng.int(n);
@@ -317,6 +319,14 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
       winner: null,
       log: [{ text: `La cour est réunie. ${players[turn]!.name} commence.`, visibleTo: 'all' }],
     };
+  },
+
+  canStart(players, config) {
+    const needed = charactersNeeded(players);
+    if (config.characters.length < needed) {
+      return `À ${players} joueurs, il faut au moins ${needed} personnages en jeu (assez de cartes pour tout le monde).`;
+    }
+    return null;
   },
 
   expectedActors(s) {
@@ -489,7 +499,7 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
     if (s.phase !== 'over') return null;
     return {
       winners: s.winner ? [s.winner] : [],
-      title: s.winner ? `${nameOf(s, s.winner)} règne sur la cour` : 'Plus personne à la cour',
+      title: s.winner ? `${nameOf(s, s.winner)} règne sur la Cité` : 'Plus personne à la cour',
       detail: 'Dernier en lice.',
     };
   },

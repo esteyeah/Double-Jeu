@@ -44,7 +44,7 @@ const total = (s: CourtState) =>
   Object.values(s.seats).reduce((n, seat) => n + seat.cards.length + seat.revealed.length, 0) +
   (s.exchange ? s.exchange.length - s.seats[s.active]!.cards.length : 0);
 
-describe('Faux Jetons — mise en place, composition et secrets', () => {
+describe('La Cité — mise en place, composition et secrets', () => {
   it.each([2, 3, 6])('cour classique : 2 influences, 15 cartes en tout à %i joueurs', (n) => {
     const s = court.setup(players(n), CLASSIC, seededRng(n));
     expect(total(s)).toBe(15);
@@ -59,10 +59,19 @@ describe('Faux Jetons — mise en place, composition et secrets', () => {
     expect(total(s)).toBe(21);
   });
 
-  it('la composition doit compter de 5 à 7 personnages distincts', () => {
-    expect(courtConfigSchema.safeParse({ reaction: 20, characters: CLASSIC_COURT.slice(0, 4) }).success).toBe(false);
-    expect(courtConfigSchema.safeParse({ reaction: 20, characters: [...CLASSIC_COURT.slice(0, 4), 'banker'] }).success).toBe(false);
+  it('chaque personnage est optionnel (au moins 2, sans doublon)', () => {
+    expect(courtConfigSchema.safeParse({ reaction: 20, characters: ['banker'] }).success).toBe(false);
+    expect(courtConfigSchema.safeParse({ reaction: 20, characters: ['banker', 'banker'] }).success).toBe(false);
+    expect(courtConfigSchema.safeParse({ reaction: 20, characters: ['banker', 'guard'] }).success).toBe(true);
     expect(courtConfigSchema.safeParse(FULL).success).toBe(true);
+  });
+
+  it('au lancement, il faut assez de personnages pour le nombre de joueurs', () => {
+    const cfg = (characters: Character[]): CourtConfig => ({ reaction: 20, characters });
+    expect(court.canStart!(2, cfg(['banker', 'guard']))).toBeNull(); // 6 cartes pour 4 + 2
+    expect(court.canStart!(4, cfg(['banker', 'guard', 'brigand']))).toMatch(/au moins 4/);
+    expect(court.canStart!(6, cfg(CLASSIC_COURT.slice(0, 4)))).toMatch(/au moins 5/);
+    expect(court.canStart!(6, CLASSIC)).toBeNull();
   });
 
   it('on ne peut pas annoncer un personnage absent de la cour', () => {
@@ -87,7 +96,7 @@ describe('Faux Jetons — mise en place, composition et secrets', () => {
   });
 });
 
-describe('Faux Jetons — actions et contres', () => {
+describe('La Cité — actions et contres', () => {
   it('Revenu : +1, sans fenêtre de réaction', () => {
     let s = table([['banker', 'guard'], ['executioner', 'brigand']]);
     s = play(s, 'p0', { type: 'act', kind: 'income' });
@@ -178,7 +187,7 @@ describe('Faux Jetons — actions et contres', () => {
   });
 });
 
-describe('Faux Jetons — Mouchard et Mercenaire', () => {
+describe('La Cité — Mouchard et Mercenaire', () => {
   it('Espionnage : la cible choisit la carte, seul le Mouchard la voit', () => {
     let s = table([['informer', 'guard'], ['executioner', 'brigand'], ['banker', 'envoy']], undefined, FULL);
     s = play(s, 'p0', { type: 'act', kind: 'snoop', target: 'p1' });
@@ -230,7 +239,25 @@ describe('Faux Jetons — Mouchard et Mercenaire', () => {
   });
 });
 
-describe('Faux Jetons — robustesse', () => {
+describe('La Cité — petites cours', () => {
+  it.each([
+    [2, ['executioner', 'guard']],
+    [3, ['banker', 'brigand', 'envoy']],
+    [4, ['banker', 'executioner', 'informer', 'mercenary']],
+  ] as [number, Character[]][])('%i joueurs avec %j : les parties se terminent', (n, characters) => {
+    const config: CourtConfig = { reaction: 20, characters };
+    expect(court.canStart!(n, config)).toBeNull();
+    for (let seed = 0; seed < 150; seed++) {
+      const { state } = simulate<CourtState>(court, players(n), seededRng(seed + 7 * n), {
+        config,
+        onStep: (s) => expect(total(s)).toBe(characters.length * 3),
+      });
+      expect(state.phase).toBe('over');
+    }
+  }, 60_000);
+});
+
+describe('La Cité — robustesse', () => {
   it.each([2, 3, 4, 5, 6])('400 parties de bots à %i joueurs, cartes toujours comptées', (n) => {
     for (let seed = 0; seed < 400; seed++) {
       const config = seed % 2 === 0 ? CLASSIC : FULL;

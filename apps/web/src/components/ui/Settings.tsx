@@ -76,6 +76,7 @@ function SingleSetting({
           ))}
         </select>
       )}
+      {setting.choices[current]?.hint && <span className="text-xs text-muted">{setting.choices[current]!.hint}</span>}
     </div>
   );
 }
@@ -118,7 +119,11 @@ function MultiSetting({
             .join(', ') || '—'}
         </span>
       ) : (
-        <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby={id}>
+        <div
+          className={`grid gap-1.5 ${setting.choices.some((c) => c.hint) ? 'sm:grid-cols-2' : 'grid-cols-[repeat(auto-fill,minmax(8rem,1fr))]'}`}
+          role="group"
+          aria-labelledby={id}
+        >
           {setting.choices.map((choice, i) => {
             const on = value.includes(choice.value);
             const locked = (on && value.length <= min) || (!on && value.length >= max);
@@ -127,14 +132,18 @@ function MultiSetting({
                 key={i}
                 type="button"
                 aria-pressed={on}
+                aria-label={choice.label}
                 disabled={locked}
                 onClick={() => toggle(choice.value)}
-                className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed ${
+                className={`rounded-lg border px-3 py-2 text-left text-sm disabled:cursor-not-allowed ${
                   on ? 'border-accent bg-accent/15 text-fg' : 'border-line text-muted hover:text-fg'
                 } ${locked ? 'opacity-60' : ''}`}
               >
-                {on ? '✓ ' : ''}
-                {choice.label}
+                <span className="font-semibold">
+                  {on ? '✓ ' : ''}
+                  {choice.label}
+                </span>
+                {choice.hint && <span className="mt-0.5 block text-xs text-muted">{choice.hint}</span>}
               </button>
             );
           })}

@@ -8,8 +8,8 @@ Nom de travail, à changer librement. Jeux disponibles :
 - **Garde à vue** (4 à 8 joueurs) : jeu de parole. Un Enquêteur interroge des suspects qui glissent des mots secrets dans leurs réponses : les innocents partagent la même liste, le Coupable en a une autre. Avant l'accusation, chaque suspect parie en secret sur la réussite de l'Enquêteur. Il se joue autour d'une table ou en appel vocal.
 - **Le Trône Vide** (5 à 10 joueurs) : élections, édits votés en secret, pouvoirs du Régent et un Usurpateur caché. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 - **Butin** (3 à 8 joueurs) : des pirates se partagent un trésor, pistolet au poing. Charge sèche ou mouillée, visées, plongeon dans la cale, partage. Bots possibles ; plongeon annoncé à voix haute en mode un seul téléphone.
-- **Expédition** (5 à 10 joueurs) : des Mutins sabotent une expédition polaire. Cordées votées, cartes Réussite/Sabotage secrètes, variante avec Cartographe et Espion. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
-- **Faux Jetons** (2 à 6 joueurs) : bluff à la cour d'une cité marchande. Deux influences cachées, des écus, des actions de personnage qu'on peut annoncer sans les avoir (Banquier, Bourreau, Brigand, Émissaire, Garde, et en option Mouchard et Mercenaire), des contres et des contestations dans un délai imposé. L'hôte compose la cour (5 à 7 personnages). Bots possibles.
+- **Expédition** (5 à 10 joueurs) : des Mutins sabotent une expédition polaire. Cordées votées, cartes Réussite/Sabotage secrètes, rôles spéciaux au choix (Cartographe, avec ou sans Espion). Bots possibles ; vote à main levée proposé en mode un seul téléphone.
+- **La Cité** (2 à 6 joueurs) : bluff à la cour d'une cité marchande. Deux influences cachées, des écus, des actions de personnage qu'on peut annoncer sans les avoir (Banquier, Bourreau, Brigand, Émissaire, Garde, Mouchard, Mercenaire), des contres et des contestations dans un délai imposé. Avant la partie, l'hôte coche les personnages en jeu ; le lancement vérifie qu'il y a assez de cartes pour la table. Bots possibles.
 
 ## Obtenir un lien à partager
 
@@ -75,7 +75,7 @@ packages/
     throne/         Le Trône Vide : moteur, bots, plateau, tests
     plunder/        Butin : moteur, bots, plateau, tests
     expedition/     Expédition : moteur, bots (raisonnement probabiliste), plateau, tests
-    court/          Faux Jetons : moteur (annonces, contres, contestations), bots, plateau, tests
+    court/          La Cité : moteur (annonces, contres, contestations), bots, plateau, tests
 ```
 
 ## Comment ça marche
@@ -111,7 +111,7 @@ packages/
 
 Pour un chrono imposé, implémenter `deadline(state)` et `onDeadline(state, rng, now)` : le serveur (ou le navigateur, en mode local) applique l'échéance même si personne ne joue. Garde à vue s'en sert pour la fin de l'interrogatoire et le délai d'accusation.
 
-Dans `meta` : `supportsBots: false` pour un jeu de parole (le lobby masque alors les bots), et `settings` pour proposer des options à l'hôte (durée, manches… ; `kind: 'multi'` pour des choix multiples bornés par `min`/`max`), avec `hotseatDefaults` pour les valeurs suggérées en mode un seul téléphone. Les valeurs sont validées par le `configSchema` du jeu.
+Dans `meta` : `supportsBots: false` pour un jeu de parole (le lobby masque alors les bots), et `settings` pour proposer des options à l'hôte (durée, manches… ; `kind: 'multi'` pour des choix multiples bornés par `min`/`max`, `hint` pour décrire un choix). `canStart(joueurs, options)` permet de refuser un lancement avec un message clair (ex. pas assez de cartes), avec `hotseatDefaults` pour les valeurs suggérées en mode un seul téléphone. Les valeurs sont validées par le `configSchema` du jeu.
 4. Écrire les tests, dont une simulation de milliers de parties avec `simulate()`.
 
 Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `text-muted`, `text-tech`…) définis dans `apps/web/src/app/globals.css`.
