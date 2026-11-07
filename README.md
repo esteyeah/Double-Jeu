@@ -8,8 +8,9 @@ Nom de travail, à changer librement. Jeux disponibles :
 - **Garde à vue** (4 à 8 joueurs) : jeu de parole. Un Enquêteur interroge des suspects qui glissent des mots secrets dans leurs réponses. Il se joue autour d'une table ou en appel vocal.
 - **Le Trône Vide** (5 à 10 joueurs) : élections, édits votés en secret, pouvoirs du Régent et un Usurpateur caché. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 - **Butin** (3 à 8 joueurs) : des pirates se partagent un trésor, pistolet au poing. Charge sèche ou mouillée, visées, plongeon dans la cale, partage. Bots possibles ; plongeon annoncé à voix haute en mode un seul téléphone.
+- **Expédition** (5 à 10 joueurs) : des Mutins sabotent une expédition polaire. Cordées votées, cartes Réussite/Sabotage secrètes, variante avec Cartographe et Espion. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 
-Deux autres jeux sont prévus dans le catalogue.
+Un dernier jeu (Intrigues) est prévu dans le catalogue.
 
 ## Obtenir un lien à partager
 
@@ -74,6 +75,7 @@ packages/
     interrogation/  Garde à vue : moteur, contenu (affaires, mots), plateau, tests
     throne/         Le Trône Vide : moteur, bots, plateau, tests
     plunder/        Butin : moteur, bots, plateau, tests
+    expedition/     Expédition : moteur, bots (raisonnement probabiliste), plateau, tests
 ```
 
 ## Comment ça marche
@@ -126,4 +128,5 @@ Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `te
 - Pas encore de comptes, de points ni de déblocages (prévus).
 - Mode local : il fonctionne sans réseau une fois la page chargée, mais l'application n'est pas encore installable hors ligne (PWA prévue).
 - Bots du Trône Vide : entre bots seulement, la Couronne gagne 55 à 85 % des parties selon la table.
+- Bots d'Expédition : les loyaux déduisent les Mutins des sabotages, mais sans discussion les Mutins gagnent encore 46 à 93 % des parties entre bots (plus à 8 joueurs et au-delà).
 - Bots de Réacteur volontairement simples : entre bots seulement, les Saboteurs gagnent environ 85 % des parties. Avec des humains, c'est la discussion qui équilibre.

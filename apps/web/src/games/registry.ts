@@ -1,5 +1,7 @@
 import type { ComponentType } from 'react';
 import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
+import { expedition } from '@arcade/expedition';
+import ExpeditionBoard from '@arcade/expedition/client';
 import { interrogation } from '@arcade/interrogation';
 import InterrogationBoard from '@arcade/interrogation/client';
 import { plunder } from '@arcade/plunder';
@@ -22,6 +24,7 @@ const games: Record<string, ClientGame> = {
   interrogation: { module: interrogation, Board: InterrogationBoard },
   throne: { module: throne, Board: ThroneBoard },
   plunder: { module: plunder, Board: PlunderBoard },
+  expedition: { module: expedition, Board: ExpeditionBoard },
 };
 
 export function getClientGame(id: string): ClientGame | undefined {
@@ -59,9 +62,9 @@ export const catalog: CatalogEntry[] = [
   {
     id: 'expedition',
     name: 'Expédition',
-    tagline: 'Des traîtres sabotent les missions polaires. Composez la bonne équipe.',
+    tagline: 'Des Mutins sabotent l’expédition polaire. Composez la bonne cordée.',
     players: '5–10',
-    ready: false,
+    ready: true,
     accent: 'from-accent/30',
   },
   {
