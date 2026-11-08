@@ -335,7 +335,7 @@ function RevealPanel({
   } else {
     verdict =
       reveal.count === bid.quantity
-        ? `Pile ! ${reveal.gainer ? `${nameOf(reveal.caller)} regagne un dé.` : `Bien vu (${nameOf(reveal.caller)} a déjà tous ses dés).`}`
+        ? `Pile ! ${nameOf(reveal.caller)} gagne un dé.`
         : `Raté : ${nameOf(reveal.caller)} perd un dé.`;
   }
 
@@ -437,7 +437,7 @@ function Reference({ view }: { view: CupsView }) {
         <li>Monter : plus de dés, ou autant d’une valeur plus forte.</li>
         <li>Vers les As : la moitié (arrondie au-dessus) ; depuis les As : le double plus un.</li>
         <li>« Menteur ! » : celui qui a tort perd un dé.</li>
-        {view.config.exact && <li>« Pile ! » : exact, on regagne un dé ; sinon on en perd un.</li>}
+        {view.config.exact && <li>« Pile ! » : exact, on gagne un dé (même au-delà du départ) ; sinon on en perd un.</li>}
         {view.config.dry && <li>Manche sèche quand un joueur tombe à son dernier dé : pas de jokers, valeur fixe.</li>}
       </ul>
     </details>

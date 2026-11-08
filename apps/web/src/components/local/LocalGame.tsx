@@ -97,6 +97,41 @@ export function LocalGame({
   };
   const noop = () => {};
 
+  // ── Un seul humain face à des bots : rien à lui cacher, il voit toujours ses informations. ──
+  const solo = humans.length === 1 ? humans[0]! : null;
+  if (solo) {
+    const acting = !result && expected.includes(solo) ? solo : null;
+    const waitingBots = !result && !acting && expected.length > 0;
+    return (
+      <div className="flex flex-col gap-4">
+        {result && (
+          <ResultBanner title={result.title} detail={result.detail} winners={result.winners.map(nameOf)} />
+        )}
+        {result && (
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="primary" onClick={onReplay}>
+              Rejouer
+            </Button>
+            <Button onClick={onExit}>Changer les joueurs</Button>
+          </div>
+        )}
+        {waitingBots && (
+          <p className="text-sm text-muted">
+            {expected.map(nameOf).join(', ')} réfléchi{expected.length > 1 ? 'ssent' : 't'}…
+          </p>
+        )}
+        <ErrorNote>{error}</ErrorNote>
+        <Board
+          view={mod.view(state, solo)}
+          viewer={solo}
+          actingAs={acting}
+          mode="hotseat"
+          sendMove={acting ? play(solo) : noop}
+        />
+      </div>
+    );
+  }
+
   // ── Revoir ses cartes (écran privé à la demande) ──
   if (peek) {
     if (!peek.who) {

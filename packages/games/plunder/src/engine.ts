@@ -21,6 +21,7 @@ import {
 } from './shared';
 
 export const plunderMeta: GameMeta = {
+  records: [{ key: 'loot', label: 'Plus gros butin en une partie', unit: 'doublons' }],
   id: 'plunder',
   name: 'Butin',
   tagline: 'Pistolets chargés ou poudre mouillée : les pirates se partagent le trésor.',
@@ -401,6 +402,11 @@ export const plunder = defineGame<PlunderState, PlunderMove, PlunderView, Plunde
       pearlLeaders: pearlLeaders(s),
       log: visibleLog(s.log, viewer),
     };
+  },
+
+  recordValues(s) {
+    if (s.phase !== 'over') return [];
+    return standing(s).map((id) => ({ key: 'loot', players: [id], value: scoreOf(s, id) }));
   },
 
   result(s) {

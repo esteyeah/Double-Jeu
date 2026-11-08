@@ -69,12 +69,20 @@ export function Home() {
           <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
             Faux<span className="text-accent">-</span>Semblants
           </h1>
-          <Link
-            href="/compte"
-            className="mt-1 max-w-[45%] shrink-0 truncate rounded-xl border border-line bg-surface px-3 py-2 text-sm hover:border-accent/60"
-          >
-            {account.status === 'signedIn' && account.user ? `👤 ${account.user.name}` : 'Se connecter'}
-          </Link>
+          <div className="mt-1 flex min-w-0 shrink-0 flex-col items-end gap-1.5 sm:flex-row">
+            <Link
+              href="/records"
+              className="rounded-xl border border-line bg-surface px-3 py-2 text-sm hover:border-accent/60"
+            >
+              🏆 Records
+            </Link>
+            <Link
+              href="/compte"
+              className="max-w-[10rem] truncate rounded-xl border border-line bg-surface px-3 py-2 text-sm hover:border-accent/60"
+            >
+              {account.status === 'signedIn' && account.user ? `👤 ${account.user.name}` : 'Se connecter'}
+            </Link>
+          </div>
         </div>
         <p className="mt-1 text-muted">
           Rôles cachés, bluff et déduction. En ligne entre amis, ou sur un seul téléphone qu’on se

@@ -271,3 +271,50 @@ describe('La Cité — robustesse', () => {
     }
   }, 90_000);
 });
+
+describe('La Cité — mémoire des annonces et contestations des bots', () => {
+  it('les annonces publiques sont suivies, puis oubliées quand la main change', () => {
+    let s = table([['banker', 'guard'], ['brigand', 'envoy'], ['executioner', 'envoy']], undefined, FULL);
+    s = play(s, 'p0', { type: 'act', kind: 'tax' });
+    expect(court.view(s, 'p1').players[0]!.claimed).toEqual(['banker']);
+    s = passAll(s); // pas de contestation : +3 écus
+    s = play(s, 'p1', { type: 'act', kind: 'exchange' });
+    expect(court.view(s, 'p2').players[1]!.claimed).toEqual(['envoy']);
+    s = passAll(s);
+    s = play(s, 'p1', { type: 'keep', cards: s.exchange!.slice(0, 2) });
+    expect(s.claims.p1).toEqual([]);
+  });
+
+  it('un bot conteste presque toujours un troisième personnage différent annoncé avec deux cartes', async () => {
+    const { courtBot } = await import('../src');
+    let s = table([['guard', 'guard'], ['brigand', 'envoy'], ['executioner', 'envoy']], [5, 2, 2], FULL);
+    s.claims.p0 = ['banker', 'executioner'];
+    s = play(s, 'p0', { type: 'act', kind: 'snoop', target: 'p1' });
+    const tries = 400;
+    let challenged = 0;
+    for (let seed = 0; seed < tries; seed++) {
+      const move = courtBot(court.view(s, 'p2'), 'p2', seededRng(seed));
+      if (move?.type === 'challenge') challenged++;
+    }
+    // Annonce crédible (même personnage déjà revendiqué) : contestée bien plus rarement.
+    let s2 = table([['guard', 'guard'], ['brigand', 'envoy'], ['executioner', 'envoy']], [5, 2, 2], FULL);
+    s2.claims.p0 = ['informer', 'informer'];
+    s2 = play(s2, 'p0', { type: 'act', kind: 'snoop', target: 'p1' });
+    let credible = 0;
+    for (let seed = 0; seed < tries; seed++) {
+      if (courtBot(court.view(s2, 'p2'), 'p2', seededRng(seed))?.type === 'challenge') credible++;
+    }
+    expect(challenged / tries).toBeGreaterThan(0.35);
+    expect(credible / tries).toBeLessThan(0.1);
+  });
+
+  it('un bot menacé d’Exécution avec sa dernière influence conteste très souvent', async () => {
+    const { courtBot } = await import('../src');
+    let s = table([['guard', 'banker'], ['brigand'], ['envoy', 'envoy']], [3, 2, 2], FULL);
+    s.seats.p1!.revealed = ['guard'];
+    s = play(s, 'p0', { type: 'act', kind: 'execute', target: 'p1' });
+    let n = 0;
+    for (let seed = 0; seed < 200; seed++) if (courtBot(court.view(s, 'p1'), 'p1', seededRng(seed))?.type === 'challenge') n++;
+    expect(n / 200).toBeGreaterThan(0.5);
+  });
+});

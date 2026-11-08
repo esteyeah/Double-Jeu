@@ -26,7 +26,7 @@ export type CupsConfig = z.infer<typeof cupsConfigSchema>;
 const faceSchema = z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]);
 
 export const cupsMoveSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('bid'), quantity: z.number().int().min(1).max(60), face: faceSchema }),
+  z.object({ type: z.literal('bid'), quantity: z.number().int().min(1).max(200), face: faceSchema }),
   /** « Menteur ! » : l'enchère précédente est fausse. */
   z.object({ type: z.literal('liar') }),
   /** « Pile ! » : l'enchère précédente est exactement juste. */
@@ -72,6 +72,8 @@ export interface CupsState {
   revealUntil: number | null;
   /** Ordre d'élimination. */
   out: PlayerId[];
+  /** Pour les records : « Pile ! » réussis et plus grand nombre de dés tenus. */
+  stats: Record<PlayerId, { exact: number; maxDice: number }>;
   winner: PlayerId | null;
   log: LogEntry[];
 }

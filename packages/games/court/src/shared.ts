@@ -170,6 +170,13 @@ export interface CourtState {
   exchange: Character[] | null;
   /** Espionnages réussis, connus seulement de celui qui a espionné. */
   intel: Record<PlayerId, Intel[]>;
+  /**
+   * Personnages revendiqués par chacun (annonces et contres, information publique),
+   * depuis sa dernière main renouvelée. Plus de personnages différents que de cartes = bluff certain.
+   */
+  claims: Record<PlayerId, Character[]>;
+  /** Pour les records : écus au plus haut, bluffs démasqués. */
+  stats: Record<PlayerId, { maxCoins: number; caught: number }>;
   winner: PlayerId | null;
   log: LogEntry[];
 }
@@ -188,6 +195,8 @@ export interface CourtPlayerView {
   escorted: boolean;
   /** Pendant une fenêtre de réaction : a déjà laissé passer. */
   passed: boolean;
+  /** Personnages revendiqués depuis sa dernière main renouvelée (dans l'ordre, avec répétitions). */
+  claimed: Character[];
 }
 
 export interface CourtView {

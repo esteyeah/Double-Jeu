@@ -114,3 +114,10 @@ export function simulate<State>(
   }
   throw new Error(`Pas de fin après ${maxSteps} coups`);
 }
+
+/** « 8 écus », « 1 écu », « 92 % » : valeur d'un record avec son unité accordée. */
+export function formatRecordValue(value: number, unit: string): string {
+  if (unit === '%') return `${value} %`;
+  const singular = Math.abs(value) < 2 && /s$/.test(unit) ? unit.replace(/s$/, '') : unit;
+  return `${value} ${singular}`;
+}

@@ -1,4 +1,5 @@
-import type { GameResult, PlayerId, SetupExtras } from '@arcade/game-sdk';
+import { formatRecordValue, type GameResult, type PlayerId, type SetupExtras } from '@arcade/game-sdk';
+import type { RecordCandidate } from './records';
 import type { Ack, ChatMessage, RoomState, RoomStatus } from '@arcade/protocol';
 import { GameSession } from './gameSession';
 import { getGame } from './games';
@@ -15,7 +16,19 @@ interface SeatEntry {
   id: PlayerId;
   name: string;
   isBot: boolean;
+  /** Pseudo du compte connecté, s'il y en a un (pour le tableau des records). */
+  account?: string;
 }
+
+/** Ce que la plateforme fournit aux salons. */
+export interface RoomPlatform {
+  /** Contenu injecté au lancement (mots ajoutés depuis le site…). */
+  extrasFor(gameId: string): SetupExtras | undefined;
+  /** Performances de fin de partie ; renvoie la place obtenue par chacune (null = hors tableau). */
+  submitRecords(gameId: string, candidates: RecordCandidate[]): Promise<(number | null)[]>;
+}
+
+const noPlatform: RoomPlatform = { extrasFor: () => undefined, submitRecords: async (_, c) => c.map(() => null) };
 
 const ok = { ok: true } as const;
 
@@ -47,8 +60,7 @@ export class Room {
     readonly code: string,
     hostId: PlayerId,
     gameId: string,
-    /** Contenu fourni par la plateforme au lancement (mots ajoutés depuis le site…). */
-    private readonly extrasFor: (gameId: string) => SetupExtras | undefined = () => undefined,
+    private readonly platform: RoomPlatform = noPlatform,
   ) {
     this.hostId = hostId;
     this.gameId = gameId;
@@ -67,12 +79,14 @@ export class Room {
 
   join(socket: ArcadeSocket, playerId: PlayerId, name: string): Ack {
     const seat = this.seats.find((s) => s.id === playerId);
+    const account = socket.data.account?.name;
     if (seat) {
       seat.name = name;
+      seat.account = account;
     } else if (this.spectators.has(playerId)) {
       this.spectators.set(playerId, name);
     } else if (this.status === 'lobby' && this.seats.length < this.maxSeats) {
-      this.seats.push({ id: playerId, name, isBot: false });
+      this.seats.push({ id: playerId, name, isBot: false, account });
       this.system(`${name} a rejoint le salon.`);
     } else {
       this.spectators.set(playerId, name);
@@ -281,7 +295,7 @@ export class Room {
         onChange: () => this.broadcastSnapshots(),
         onEnd: (result) => this.onGameEnd(result),
       },
-      this.extrasFor(this.gameId),
+      this.platform.extrasFor(this.gameId),
     );
     // Les absents du lobby repartent sur le délai de grâce « partie ».
     for (const s of this.seats) {
@@ -355,9 +369,47 @@ export class Room {
 
   private onGameEnd(result: GameResult): void {
     this.status = 'ended';
+    this.collectRecords();
     const winners = result.winners.map((id) => this.nameOf(id)).join(', ');
     this.system(`${result.title} — ${winners}`);
     this.broadcastState();
+  }
+
+  /**
+   * Records : seulement les parties en ligne (le serveur a tout arbitré), jamais les bots
+   * ni les joueurs remplacés par un bot en cours de partie.
+   */
+  private collectRecords(): void {
+    const values = this.game?.recordValues() ?? [];
+    const candidates: RecordCandidate[] = [];
+    for (const v of values) {
+      const seats = v.players.map((id) => this.seats.find((s) => s.id === id));
+      if (seats.some((s) => !s || s.isBot || this.autopilot.has(s.id))) continue;
+      candidates.push({
+        game: this.gameId,
+        key: v.key,
+        value: v.value,
+        detail: v.detail,
+        names: seats.map((s) => s!.account ?? s!.name),
+        verified: seats.every((s) => !!s!.account),
+      });
+    }
+    if (!candidates.length) return;
+    const types = getGame(this.gameId)?.meta.records ?? [];
+    void this.platform
+      .submitRecords(this.gameId, candidates)
+      .then((places) =>
+        places.forEach((place, i) => {
+          const c = candidates[i]!;
+          const type = types.find((t) => t.key === c.key);
+          if (!place || !type) return;
+          const value = formatRecordValue(c.value, type.unit);
+          this.system(
+            `🏆 ${place === 1 ? 'Nouveau record' : `Tableau des records (${place}e place)`} : ${c.names.join(', ')}, ${value} — ${type.label}.`,
+          );
+        }),
+      )
+      .catch(() => {});
   }
 
   /** Seuls les humains assis voient leur information privée ; les autres ont la vue publique. */

@@ -3,7 +3,7 @@ import { JsonFileStore, MemoryStore } from './memory';
 import { PostgresStore } from './postgres';
 import type { Store } from './types';
 
-export type { Store, UserRecord, WordRecord } from './types';
+export type { RecordRow, Store, UserRecord, WordRecord } from './types';
 export { MemoryStore, JsonFileStore, PostgresStore };
 
 /**

@@ -61,6 +61,8 @@ export interface GameMeta {
   settings?: GameSetting[];
   /** Valeurs d'options suggérées pour le mode « un seul téléphone ». */
   hotseatDefaults?: Record<string, unknown>;
+  /** Records tenus pour ce jeu (tableau des records, parties en ligne seulement). */
+  records?: RecordType[];
   /** Règles affichées dans le lobby, un paragraphe par entrée. */
   rules: string[];
 }
@@ -108,6 +110,8 @@ export interface GameModule<State, Move, View, Config> {
   /** Bot : ne reçoit que la vue filtrée, comme un humain. `null` = rien à faire. */
   bot?(view: View, me: PlayerId, rng: Rng): Move | null;
 
+  /** Performances de fin de partie pour le tableau des records (voir `meta.records`). */
+  recordValues?(state: State): RecordValue[];
   /** Le jeu accepte des mots ajoutés depuis le site (en plus de sa liste de base). */
   wordBank?: { base: readonly string[] };
   hotseat?: {
@@ -117,6 +121,27 @@ export interface GameModule<State, Move, View, Config> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface RecordType {
+  key: string;
+  /** Ex. « Plus gros butin en une partie ». */
+  label: string;
+  /** Unité affichée après la valeur (« doublons », « % »…). */
+  unit: string;
+  /** Record collectif (toute la table), sinon individuel. */
+  team?: boolean;
+}
+
+/** Une performance candidate au tableau des records, calculée en fin de partie. */
+export interface RecordValue {
+  key: string;
+  /** Le joueur (ou toute l'équipe pour un record collectif). */
+  players: PlayerId[];
+  /** Plus grand = meilleur. */
+  value: number;
+  /** Précision affichée (ex. « 33 / 36 »). */
+  detail?: string;
+}
+
 /** Contenu injecté au lancement d'une partie. */
 export interface SetupExtras {
   /** Mots ajoutés par l'administrateur du site. */

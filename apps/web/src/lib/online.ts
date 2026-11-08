@@ -50,12 +50,17 @@ function serverUrl(): string | undefined {
 
 let socket: Client | null = null;
 
+/** Après connexion ou déconnexion du compte : le socket se reconnecte pour transmettre le nouveau compte. */
+export function refreshSocketAccount(): void {
+  if (socket?.connected) socket.disconnect().connect();
+}
+
 /** Socket unique pour toute l'application, créé à la première utilisation. */
 export function getSocket(): Client {
   if (socket) return socket;
   const options = {
-    // Relu à chaque (re)connexion : le jeton secret identifie le joueur.
-    auth: (cb: (data: object) => void) => cb({ token: storage.get(KEYS.token) }),
+    // Relu à chaque (re)connexion : le jeton secret identifie le joueur ; le compte (facultatif) signe ses records.
+    auth: (cb: (data: object) => void) => cb({ token: storage.get(KEYS.token), account: storage.get(KEYS.account) }),
   };
   const url = serverUrl();
   const s: Client = url ? io(url, options) : io(options);

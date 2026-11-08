@@ -1,7 +1,6 @@
 import { randomInt } from 'node:crypto';
-import type { SetupExtras } from '@arcade/game-sdk';
 import { ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH, type Ack } from '@arcade/protocol';
-import { Room } from './room';
+import { Room, type RoomPlatform } from './room';
 import type { Session } from './sessions';
 import type { ArcadeSocket, IO } from './types';
 
@@ -13,7 +12,7 @@ export class RoomManager {
 
   constructor(
     private readonly io: IO,
-    private readonly extrasFor: (gameId: string) => SetupExtras | undefined = () => undefined,
+    private readonly platform?: RoomPlatform,
   ) {}
 
   get(code: string | null | undefined): Room | undefined {
@@ -36,7 +35,7 @@ export class RoomManager {
         () => ROOM_CODE_ALPHABET[randomInt(ROOM_CODE_ALPHABET.length)],
       ).join('');
     } while (this.rooms.has(code));
-    const room = new Room(this.io, code, hostId, gameId, this.extrasFor);
+    const room = new Room(this.io, code, hostId, gameId, this.platform);
     this.rooms.set(code, room);
     return room;
   }

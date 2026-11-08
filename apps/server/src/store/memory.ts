@@ -1,14 +1,15 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import type { Store, UserRecord, WordRecord } from './types';
+import type { RecordRow, Store, UserRecord, WordRecord } from './types';
 
 interface Data {
   users: UserRecord[];
   tokens: { hash: string; userId: string; expiresAt: number }[];
   words: WordRecord[];
+  records: RecordRow[];
 }
 
-const empty = (): Data => ({ users: [], tokens: [], words: [] });
+const empty = (): Data => ({ users: [], tokens: [], words: [], records: [] });
 
 /** Stockage en mémoire (tests), et base de la version fichier. */
 export class MemoryStore implements Store {
@@ -67,6 +68,21 @@ export class MemoryStore implements Store {
     }
     if (added.length) await this.persist();
     return added;
+  }
+
+  async listRecords(): Promise<RecordRow[]> {
+    return this.data.records.map((r) => ({ ...r, names: [...r.names] }));
+  }
+
+  async addRecord(record: RecordRow): Promise<void> {
+    this.data.records.push({ ...record, names: [...record.names] });
+    await this.persist();
+  }
+
+  async deleteRecords(ids: string[]): Promise<void> {
+    if (!ids.length) return;
+    this.data.records = this.data.records.filter((r) => !ids.includes(r.id));
+    await this.persist();
   }
 
   async deleteWord(game: string, id: string): Promise<boolean> {

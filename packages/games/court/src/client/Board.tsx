@@ -451,6 +451,14 @@ function Court({ view, viewer }: { view: CourtView; viewer: PlayerId | null }) {
               ))}
               {!p.alive && view.phase !== 'over' && <span className="text-xs text-muted">a quitté la cour</span>}
             </div>
+            {p.alive && p.claimed.length > 0 && view.phase !== 'over' && (
+              <div className="mt-1 text-xs text-muted">
+                A revendiqué : {[...new Set(p.claimed)].map((c) => CHARACTER_LABEL[c]).join(', ')}
+                {new Set(p.claimed).size > p.influence && (
+                  <span className="ml-1 font-semibold text-sabo">— plus de personnages que de cartes !</span>
+                )}
+              </div>
+            )}
           </li>
         ))}
       </ul>

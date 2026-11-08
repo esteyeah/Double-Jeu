@@ -15,6 +15,10 @@ import {
 } from './shared';
 
 export const cupsMeta: GameMeta = {
+  records: [
+    { key: 'exact', label: 'Plus de « Pile ! » réussis en une partie', unit: '« Pile ! »' },
+    { key: 'dice', label: 'Plus de dés sous son gobelet', unit: 'dés' },
+  ],
   id: 'cups',
   name: 'Gobelets',
   tagline: 'Des dés cachés sous les gobelets et des enchères de plus en plus folles. Menteur !',
@@ -37,7 +41,7 @@ export const cupsMeta: GameMeta = {
       key: 'exact',
       label: 'Annonce « Pile ! »',
       choices: [
-        { value: true, label: 'Oui', hint: 'Parier que l’enchère est exacte : réussi, on regagne un dé ; raté, on en perd un.' },
+        { value: true, label: 'Oui', hint: 'Parier que l’enchère est exacte : réussi, on gagne un dé (même au-delà du départ) ; raté, on en perd un.' },
         { value: false, label: 'Non' },
       ],
     },
@@ -59,7 +63,7 @@ export const cupsMeta: GameMeta = {
     'À tour de rôle, on enchérit sur TOUS les dés de la table : « 4 × Cinq » veut dire « il y a au moins quatre Cinq (As compris) sous l’ensemble des gobelets ». Chaque enchère doit monter : plus de dés, ou autant de dés d’une valeur plus forte.',
     'Parier sur les As : la moitié de la quantité suffit (arrondie au-dessus). Revenir des As vers une autre valeur : il faut le double plus un. On ne peut pas ouvrir une manche sur les As.',
     'Au lieu de monter, tu peux crier « Menteur ! » : on soulève les gobelets. S’il y a au moins la quantité annoncée, tu perds un dé ; sinon, c’est l’enchérisseur qui en perd un.',
-    'Variante « Pile ! » : tu paries que l’enchère est exactement juste. Si c’est le cas, tu regagnes un dé (sans dépasser ton nombre de départ) ; sinon, tu en perds un.',
+    'Variante « Pile ! » : tu paries que l’enchère est exactement juste. Si c’est le cas, tu gagnes un dé, même au-delà de ton nombre de départ ; sinon, tu en perds un.',
     'Celui qui vient de perdre un dé ouvre la manche suivante, et tout le monde relance ses dés. Sans dé, on est éliminé ; le dernier à garder des dés gagne.',
     'Variante « Manche sèche » : quand un joueur tombe à son dernier dé (une fois par joueur, à trois joueurs ou plus), la manche suivante se joue sans jokers et la valeur annoncée à l’ouverture ne change plus.',
   ],
@@ -126,20 +130,19 @@ function resolve(s: CupsState, call: 'liar' | 'exact', caller: PlayerId, now: nu
       }`,
     );
   } else if (count === bid.quantity) {
-    gainer = s.counts[caller]! < s.config.dice ? caller : null;
-    log(
-      s,
-      `${nameOf(s, caller)} annonce « Pile ! » sur ${bidText(bid)}. Il y en a exactement ${count} : ${
-        gainer ? `${nameOf(s, caller)} regagne un dé !` : 'bien vu (déjà au maximum de dés).'
-      }`,
-    );
+    gainer = caller;
+    s.stats[caller]!.exact++;
+    log(s, `${nameOf(s, caller)} annonce « Pile ! » sur ${bidText(bid)}. Il y en a exactement ${count} : ${nameOf(s, caller)} gagne un dé !`);
   } else {
     loser = caller;
     log(s, `${nameOf(s, caller)} annonce « Pile ! » sur ${bidText(bid)}. Il y en a ${count} : raté, un dé de perdu.`);
   }
 
   s.reveal = { dice: structuredClone(s.dice), bid, call, caller, count, dry: s.dry, loser, gainer };
-  if (gainer) s.counts[gainer]!++;
+  if (gainer) {
+    s.counts[gainer]!++;
+    s.stats[gainer]!.maxDice = Math.max(s.stats[gainer]!.maxDice, s.counts[gainer]!);
+  }
   if (loser) {
     s.counts[loser]!--;
     if (s.counts[loser] === 0) {
@@ -186,6 +189,7 @@ export const cups = defineGame<CupsState, CupsMove, CupsView, CupsConfig>({
       config,
       dice: {},
       counts: Object.fromEntries(players.map((p) => [p.id, config.dice])),
+      stats: Object.fromEntries(players.map((p) => [p.id, { exact: 0, maxDice: config.dice }])),
       round: 0,
       phase: 'bid',
       active: starter,
@@ -279,6 +283,20 @@ export const cups = defineGame<CupsState, CupsMove, CupsView, CupsConfig>({
       winner: s.winner,
       log: visibleLog(s.log, viewer),
     };
+  },
+
+  recordValues(s) {
+    if (s.phase !== 'over') return [];
+    return s.players.flatMap((p) => {
+      const st = s.stats[p.id]!;
+      return [
+        ...(st.exact > 0 ? [{ key: 'exact', players: [p.id], value: st.exact }] : []),
+        // Seulement au-delà du nombre de départ (grâce aux « Pile ! »).
+        ...(st.maxDice > s.config.dice
+          ? [{ key: 'dice', players: [p.id], value: st.maxDice, detail: `départ à ${s.config.dice}` }]
+          : []),
+      ];
+    });
   },
 
   result(s) {

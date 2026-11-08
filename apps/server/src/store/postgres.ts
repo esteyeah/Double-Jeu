@@ -1,5 +1,5 @@
 import pg from 'pg';
-import type { Store, UserRecord, WordRecord } from './types';
+import type { RecordRow, Store, UserRecord, WordRecord } from './types';
 
 /** Stockage PostgreSQL (production) : `DATABASE_URL` fournie par l'hébergeur. */
 export class PostgresStore implements Store {
@@ -40,6 +40,16 @@ export class PostgresStore implements Store {
         created_by TEXT NOT NULL,
         created_at BIGINT NOT NULL,
         UNIQUE (game, word_key)
+      );
+      CREATE TABLE IF NOT EXISTS records (
+        id TEXT PRIMARY KEY,
+        game TEXT NOT NULL,
+        key TEXT NOT NULL,
+        value DOUBLE PRECISION NOT NULL,
+        detail TEXT,
+        names TEXT NOT NULL,
+        verified BOOLEAN NOT NULL,
+        created_at BIGINT NOT NULL
       );
     `);
   }
@@ -101,6 +111,31 @@ export class PostgresStore implements Store {
       if (res.rowCount) added.push({ ...w });
     }
     return added;
+  }
+
+  async listRecords(): Promise<RecordRow[]> {
+    const res = await this.pool.query('SELECT * FROM records ORDER BY created_at');
+    return res.rows.map((r) => ({
+      id: r.id,
+      game: r.game,
+      key: r.key,
+      value: Number(r.value),
+      detail: r.detail,
+      names: JSON.parse(r.names) as string[],
+      verified: r.verified,
+      createdAt: Number(r.created_at),
+    }));
+  }
+
+  async addRecord(r: RecordRow): Promise<void> {
+    await this.pool.query(
+      'INSERT INTO records (id, game, key, value, detail, names, verified, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [r.id, r.game, r.key, r.value, r.detail, JSON.stringify(r.names), r.verified, r.createdAt],
+    );
+  }
+
+  async deleteRecords(ids: string[]): Promise<void> {
+    if (ids.length) await this.pool.query('DELETE FROM records WHERE id = ANY($1)', [ids]);
   }
 
   async deleteWord(game: string, id: string): Promise<boolean> {

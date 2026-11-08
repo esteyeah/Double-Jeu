@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { addWordsSchema } from '@arcade/protocol';
 import type { Accounts } from './accounts';
+import { listGames } from './games';
+import type { RecordBook } from './records';
 import type { WordBank } from './words';
 
 const BODY_LIMIT = 64 * 1024;
@@ -69,6 +71,7 @@ export interface ApiDeps {
   corsOrigin: string[] | true;
   /** Faux si la base est injoignable (les mots ajoutés seront perdus au redémarrage). */
   persistent?: boolean;
+  records?: RecordBook;
 }
 
 /**
@@ -77,7 +80,7 @@ export interface ApiDeps {
  *   GET /api/words/:jeu (public) · POST /api/words/:jeu (admin) · DELETE /api/words/:jeu/:id (admin)
  * Renvoie false si l'URL ne commence pas par /api/.
  */
-export function createApi({ accounts, words, corsOrigin, persistent = true }: ApiDeps) {
+export function createApi({ accounts, words, corsOrigin, persistent = true, records }: ApiDeps) {
   const authLimit = ipLimiter(10, 10);
 
   function cors(req: IncomingMessage, res: ServerResponse): void {
@@ -118,6 +121,26 @@ export function createApi({ accounts, words, corsOrigin, persistent = true }: Ap
         const user = await accounts.userForToken(bearer(req));
         return user ? send(res, 200, { ok: true, user }) : send(res, 401, { ok: false, error: 'Non connecté.' });
       }
+    }
+
+    if (path === '/api/records' && method === 'GET') {
+      const games = listGames()
+        .filter((g) => g.meta.records?.length)
+        .map((g) => ({
+          id: g.meta.id,
+          name: g.meta.name,
+          records: g.meta.records!.map((r) => ({
+            ...r,
+            entries: (records?.top(g.meta.id, r.key) ?? []).map((e) => ({
+              names: e.names,
+              verified: e.verified,
+              value: e.value,
+              detail: e.detail,
+              at: e.createdAt,
+            })),
+          })),
+        }));
+      return send(res, 200, { ok: true, games });
     }
 
     const wordsMatch = /^\/api\/words\/([a-z0-9-]{1,32})(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(path);

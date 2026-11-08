@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Accounts, hashPassword, verifyPassword } from '../src/accounts';
 import { createArcadeServer, type ArcadeServer } from '../src/app';
 import { JsonFileStore, MemoryStore, PostgresStore, type Store } from '../src/store';
+import { RecordBook } from '../src/records';
 import { WordBank } from '../src/words';
 
 let server: ArcadeServer;
@@ -20,6 +21,7 @@ beforeAll(async () => {
       store,
       accounts: new Accounts(store, ['Maître Mots']),
       words: await WordBank.load(store, { compass: ['plage', 'lune', 'château'] }),
+      records: await RecordBook.load(store),
       persistent: true,
     },
   });

@@ -20,6 +20,19 @@ export interface WordRecord {
   createdAt: number;
 }
 
+export interface RecordRow {
+  id: string;
+  game: string;
+  key: string;
+  value: number;
+  detail: string | null;
+  /** Nom(s) du ou des joueurs, tels qu'affichés au tableau. */
+  names: string[];
+  /** Tous les joueurs étaient connectés à leur compte. */
+  verified: boolean;
+  createdAt: number;
+}
+
 export interface Store {
   /** Prépare le stockage (tables, fichier…). */
   init(): Promise<void>;
@@ -40,4 +53,8 @@ export interface Store {
   /** Ajoute les mots ; ceux déjà présents (même clé, même jeu) sont ignorés. Renvoie ceux ajoutés. */
   addWords(words: WordRecord[]): Promise<WordRecord[]>;
   deleteWord(game: string, id: string): Promise<boolean>;
+
+  listRecords(): Promise<RecordRow[]>;
+  addRecord(record: RecordRow): Promise<void>;
+  deleteRecords(ids: string[]): Promise<void>;
 }

@@ -6,6 +6,8 @@ export interface SocketData {
   session: Session;
   /** Salon auquel CE socket est attaché (un onglet = un salon). */
   roomCode: string | null;
+  /** Compte connecté sur ce navigateur (facultatif : on joue aussi sans compte). */
+  account: { id: string; name: string } | null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

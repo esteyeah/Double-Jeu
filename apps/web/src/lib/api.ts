@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { ApiUser, ApiWord } from '@arcade/protocol';
+import { refreshSocketAccount } from './online';
 import { KEYS, storage } from './storage';
 
 /**
@@ -79,6 +80,7 @@ export async function signIn(mode: 'login' | 'register', name: string, password:
   storage.set(KEYS.name, res.user.name);
   useAccount.setState({ status: 'signedIn', user: res.user });
   checking = Promise.resolve();
+  refreshSocketAccount();
   return null;
 }
 
@@ -87,6 +89,7 @@ export async function signOut(): Promise<void> {
   storage.remove(KEYS.account);
   useAccount.setState({ status: 'anonymous', user: null });
   checking = Promise.resolve();
+  refreshSocketAccount();
 }
 
 // ───────── Mots ajoutés aux jeux ─────────
@@ -95,4 +98,24 @@ export async function fetchWords(gameId: string, timeoutMs?: number) {
   return api<{ baseCount: number; words: ApiWord[]; persistent?: boolean }>('GET', `/api/words/${gameId}`, undefined, {
     timeoutMs,
   });
+}
+
+// ───────── Tableau des records ─────────
+
+export interface ApiRecordEntry {
+  names: string[];
+  verified: boolean;
+  value: number;
+  detail: string | null;
+  at: number;
+}
+
+export interface ApiGameRecords {
+  id: string;
+  name: string;
+  records: { key: string; label: string; unit: string; team?: boolean; entries: ApiRecordEntry[] }[];
+}
+
+export async function fetchRecords() {
+  return api<{ games: ApiGameRecords[] }>('GET', '/api/records');
 }

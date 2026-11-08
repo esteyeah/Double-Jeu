@@ -125,7 +125,7 @@ describe('Gobelets — Menteur et Pile', () => {
     expect(s.starter).toBe('p0');
   });
 
-  it('« Pile ! » réussi : on regagne un dé (sans dépasser le départ)', () => {
+  it('« Pile ! » réussi : on gagne un dé, même au-delà du nombre de départ', () => {
     let s = table([[2, 2], [2, 6, 6, 6, 6], [1, 3, 5]]);
     s = play(s, 'p0', { type: 'bid', quantity: 3, face: 6 });
     s = play(s, 'p1', { type: 'bid', quantity: 4, face: 2 }); // 2, 2, 2 et l'As
@@ -133,6 +133,16 @@ describe('Gobelets — Menteur et Pile', () => {
     expect(s.reveal).toMatchObject({ count: 4, gainer: 'p2', loser: null });
     expect(s.counts.p2).toBe(4);
     expect(s.starter).toBe('p2');
+  });
+
+  it('avec tous ses dés, un « Pile ! » réussi en donne un sixième (et compte pour les records)', () => {
+    let s = table([[2, 3], [1, 4, 4, 4, 6]]);
+    s = play(s, 'p0', { type: 'bid', quantity: 4, face: 4 }); // 4, 4, 4 et l'As
+    s = play(s, 'p1', { type: 'exact' });
+    expect(s.counts.p1).toBe(6);
+    expect(s.stats.p1).toEqual({ exact: 1, maxDice: 6 });
+    s = play(s, 'p1', { type: 'next' });
+    expect(s.dice.p1).toHaveLength(6);
   });
 
   it('« Pile ! » raté : un dé de perdu ; variante désactivable', () => {

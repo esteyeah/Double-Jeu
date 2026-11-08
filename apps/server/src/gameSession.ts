@@ -9,6 +9,7 @@ import {
   type GameSnapshot,
   type PlayerId,
   type PlayerInfo,
+  type RecordValue,
   type SetupExtras,
 } from '@arcade/game-sdk';
 
@@ -42,6 +43,11 @@ export class GameSession {
 
   get result(): GameResult | null {
     return this.mod.result(this.state);
+  }
+
+  /** Performances de fin de partie (tableau des records). */
+  recordValues(): RecordValue[] {
+    return this.mod.recordValues?.(this.state) ?? [];
   }
 
   snapshot(viewer: PlayerId | null): GameSnapshot {

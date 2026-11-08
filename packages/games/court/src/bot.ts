@@ -130,7 +130,13 @@ function chooseAction(
   return rng.int(100) < 55 ? { type: 'act', kind: 'favor' } : { type: 'act', kind: 'income' };
 }
 
-/** Probabilité (en %) de contester une annonce, selon les exemplaires déjà visibles. */
+/**
+ * Probabilité (en %) de contester une annonce. Le bot raisonne comme un joueur attentif :
+ * - les exemplaires déjà visibles (sa main, les cartes retournées) ;
+ * - ce que l'annonceur a déjà revendiqué : plus de personnages différents que de cartes = bluff certain,
+ *   un personnage déjà annoncé plusieurs fois est plus crédible ;
+ * - ce qu'il risque : une Exécution qui le tue se conteste presque toujours.
+ */
 function challengeChance(view: CourtView, hand: Character[], claim: Character, claimant: PlayerId, me: PlayerId): number {
   if (claimant === me) return 0;
   const visible =
@@ -139,13 +145,29 @@ function challengeChance(view: CourtView, hand: Character[], claim: Character, c
   if (visible >= COPIES) return 100; // impossible : c'est un bluff
   // Ce que l'Espionnage a appris (peut être périmé si la carte a été échangée depuis).
   const spied = view.me!.intel.filter((i) => i.target === claimant).at(-1);
-  if (spied?.card === claim) return 2;
-  let p = visible === 2 ? 45 : visible === 1 ? 12 : 5;
+  if (spied?.card === claim) return 3;
+
+  const who = view.players.find((x) => x.id === claimant)!;
+  const self = view.players.find((x) => x.id === me)!;
+  const distinct = new Set(who.claimed).size;
+  const repeated = who.claimed.filter((c) => c === claim).length >= 2;
+  let p = distinct > who.influence ? 60 : repeated ? 4 : 11;
+  p += visible === 2 ? 30 : visible === 1 ? 6 : 0;
+
   const a = view.action!;
-  // On conteste plus volontiers ce qui nous vise directement.
-  if (a.target === me && view.phase === 'challenge') p += a.kind === 'execute' ? 20 : 10;
+  const targeted = view.phase === 'challenge' && a.target === me;
+  // Avec une seule influence, une Exécution me tue de toute façon : contester ne coûte rien de plus.
+  const lethal = targeted && a.kind === 'execute' && self.influence === 1;
+  if (lethal) p += 50;
+  else if (targeted) p += a.kind === 'execute' ? 20 : a.kind === 'racket' ? 12 : 6;
+  // Mon action est contrée : je conteste plus volontiers le contre.
   if (view.phase === 'challengeBlock' && a.actor === me) p += 15;
-  // Contester avec une seule influence est risqué.
-  if (view.players.find((x) => x.id === me)!.influence === 1) p = Math.round(p * 0.5);
-  return Math.min(100, p);
+  // Un rival qui s'enrichit vite devient dangereux.
+  if (view.phase === 'challenge' && a.kind === 'tax' && who.coins >= 4) p += 8;
+
+  // Contester avec une seule influence est risqué (sauf si l'on est perdu de toute façon).
+  if (self.influence === 1 && !lethal) p *= 0.5;
+  // Quand plusieurs joueurs peuvent contester, chacun s'en remet un peu aux autres.
+  if (!targeted && view.responders.length > 1) p *= 1.5 / view.responders.length;
+  return Math.max(0, Math.min(100, Math.round(p)));
 }

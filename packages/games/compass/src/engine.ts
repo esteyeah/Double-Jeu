@@ -22,6 +22,7 @@ import {
 import { BASE_WORDS } from './words';
 
 export const compassMeta: GameMeta = {
+  records: [{ key: 'team', label: 'Meilleur score d’équipe', unit: '%', team: true }],
   id: 'compass',
   name: 'Boussole',
   tagline: 'Un mot pour en relier deux : retrouvez ensemble la boussole de chacun. Jeu coopératif.',
@@ -294,6 +295,12 @@ export const compass = defineGame<CompassState, CompassMove, CompassView, Compas
       max: PERFECT * s.players.length,
       log: visibleLog(s.log, viewer),
     };
+  },
+
+  recordValues(s) {
+    if (s.phase !== 'over') return [];
+    const max = PERFECT * s.players.length;
+    return [{ key: 'team', players: ids(s), value: Math.round((total(s) / max) * 100), detail: `${total(s)} / ${max}` }];
   },
 
   result(s) {

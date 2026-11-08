@@ -25,6 +25,10 @@ import {
 } from './shared';
 
 export const courtMeta: GameMeta = {
+  records: [
+    { key: 'coins', label: 'Plus d’écus amassés en une partie', unit: 'écus' },
+    { key: 'caught', label: 'Plus de bluffs démasqués en une partie', unit: 'bluffs' },
+  ],
   id: 'court',
   name: 'La Cité',
   tagline: 'Deux influences cachées, des écus et beaucoup de mensonges à la cour de la Cité.',
@@ -105,6 +109,10 @@ function openWindow(s: CourtState, phase: 'challenge' | 'block' | 'challengeBloc
 }
 
 function nextTurn(s: CourtState): void {
+  for (const [id, seat] of Object.entries(s.seats)) {
+    const st = (s.stats[id] ??= { maxCoins: 0, caught: 0 });
+    st.maxCoins = Math.max(st.maxCoins, seat.coins);
+  }
   s.action = null;
   s.block = null;
   s.passed = [];
@@ -148,10 +156,16 @@ function loseInfluence(s: CourtState, player: PlayerId, then: Then, rng: Rng, no
   s.windowEndsAt = null;
 }
 
+/** Oublie les annonces d'un personnage (carte perdue, prouvée ou bluff démasqué). */
+function forgetClaim(s: CourtState, player: PlayerId, card: Character): void {
+  s.claims[player] = (s.claims[player] ?? []).filter((c) => c !== card);
+}
+
 function reveal(s: CourtState, player: PlayerId, card: Character): void {
   const seat = s.seats[player]!;
   seat.cards.splice(seat.cards.indexOf(card), 1);
   seat.revealed.push(card);
+  forgetClaim(s, player, card);
   log(s, `${nameOf(s, player)} perd une influence : ${CHARACTER_LABEL[card]}${seat.cards.length ? '.' : ' — éliminé !'}`);
 }
 
@@ -243,6 +257,8 @@ function settleChallenge(s: CourtState, challenger: PlayerId, rng: Rng, now: num
   const seat = s.seats[claimant]!;
   log(s, `${nameOf(s, challenger)} conteste ${CHARACTER_THE[claim]} de ${nameOf(s, claimant)}.`);
   s.windowEndsAt = null;
+  // Prouvée ou démasquée, cette annonce ne compte plus.
+  forgetClaim(s, claimant, claim);
   if (seat.cards.includes(claim)) {
     // Preuve faite : la carte retourne dans la pioche, on en tire une autre.
     seat.cards.splice(seat.cards.indexOf(claim), 1);
@@ -252,6 +268,7 @@ function settleChallenge(s: CourtState, challenger: PlayerId, rng: Rng, now: num
     loseInfluence(s, challenger, onBlock ? 'next' : 'block', rng, now);
   } else {
     log(s, `${nameOf(s, claimant)} bluffait !`);
+    (s.stats[challenger] ??= { maxCoins: 0, caught: 0 }).caught++;
     if (!onBlock) {
       // Action ratée : on rend ce qui avait été payé.
       s.seats[s.action!.actor]!.coins += s.action!.paid;
@@ -316,6 +333,8 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
       loss: null,
       exchange: null,
       intel: {},
+      claims: Object.fromEntries(players.map((p) => [p.id, []])),
+      stats: Object.fromEntries(players.map((p) => [p.id, { maxCoins: seats[p.id]!.coins, caught: 0 }])),
       winner: null,
       log: [{ text: `La cour est réunie. ${players[turn]!.name} commence.`, visibleTo: 'all' }],
     };
@@ -407,6 +426,7 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
         s.seats[by]!.coins -= rule.cost;
         s.action = { kind: move.kind, actor: by, target: rule.targeted ? (move.target as PlayerId) : null, paid: rule.cost };
         s.block = null;
+        if (rule.claim) (s.claims[by] ??= []).push(rule.claim);
         log(
           s,
           `${nameOf(s, by)} annonce ${rule.label}${rule.claim ? ` (${CHARACTER_LABEL[rule.claim]})` : ''}${
@@ -426,6 +446,7 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
         return s;
       case 'block':
         s.block = { blocker: by, claim: move.claim };
+        (s.claims[by] ??= []).push(move.claim);
         log(s, `${nameOf(s, by)} contre avec ${CHARACTER_THE[move.claim]}.`);
         openWindow(s, 'challengeBlock', now);
         return s;
@@ -446,6 +467,8 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
         for (const c of move.cards) pool.splice(pool.indexOf(c), 1);
         s.seats[by]!.cards = [...move.cards];
         s.deck = rng.shuffle([...s.deck, ...pool]);
+        // Nouvelle main : les anciennes annonces ne disent plus rien.
+        s.claims[by] = [];
         log(s, `${nameOf(s, by)} a échangé ses personnages.`);
         nextTurn(s);
         return s;
@@ -473,6 +496,7 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
           alive: seat.cards.length > 0,
           escorted: seat.escorted,
           passed: s.passed.includes(p.id),
+          claimed: s.claims[p.id] ?? [],
         };
       }),
       active: s.active,
@@ -493,6 +517,17 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
       winner: s.winner,
       log: visibleLog(s.log, viewer),
     };
+  },
+
+  recordValues(s) {
+    if (s.phase !== 'over') return [];
+    return s.players.flatMap((p) => {
+      const st = s.stats[p.id] ?? { maxCoins: 0, caught: 0 };
+      return [
+        { key: 'coins', players: [p.id], value: st.maxCoins },
+        ...(st.caught > 0 ? [{ key: 'caught', players: [p.id], value: st.caught }] : []),
+      ];
+    });
   },
 
   result(s) {
@@ -517,7 +552,8 @@ export const court = defineGame<CourtState, CourtMove, CourtView, CourtConfig>({
   bot: courtBot,
 
   hotseat: {
-    // Choisir quelle influence perdre, ou quels personnages garder, se fait en secret.
-    needsPrivacy: (s) => s.phase === 'loss' || s.phase === 'exchange' || s.phase === 'show' || s.phase === 'peek',
+    // Choisir son action (en voyant ses cartes), quelle influence perdre ou quels personnages garder : en secret.
+    needsPrivacy: (s) =>
+      s.phase === 'turn' || s.phase === 'loss' || s.phase === 'exchange' || s.phase === 'show' || s.phase === 'peek',
   },
 });

@@ -9,9 +9,9 @@ Nom de travail, à changer librement. Jeux disponibles :
 - **Le Trône Vide** (5 à 10 joueurs) : élections, édits votés en secret, pouvoirs du Régent et un Usurpateur caché. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
 - **Butin** (3 à 8 joueurs) : des pirates se partagent un trésor, pistolet au poing. Charge sèche ou mouillée, visées, plongeon dans la cale, partage. Bots possibles ; plongeon annoncé à voix haute en mode un seul téléphone.
 - **Expédition** (5 à 10 joueurs) : des Mutins sabotent une expédition polaire. Cordées votées, cartes Réussite/Sabotage secrètes, rôles spéciaux au choix (Cartographe, avec ou sans Espion). Bots possibles ; vote à main levée proposé en mode un seul téléphone.
-- **La Cité** (2 à 6 joueurs) : bluff à la cour d'une cité marchande. Deux influences cachées, des écus, des actions de personnage qu'on peut annoncer sans les avoir (Banquier, Bourreau, Brigand, Émissaire, Garde, Mouchard, Mercenaire), des contres et des contestations dans un délai imposé. Avant la partie, l'hôte coche les personnages en jeu ; le lancement vérifie qu'il y a assez de cartes pour la table. Bots possibles.
+- **La Cité** (2 à 6 joueurs) : bluff à la cour d'une cité marchande. Deux influences cachées, des écus, des actions de personnage qu'on peut annoncer sans les avoir (Banquier, Bourreau, Brigand, Émissaire, Garde, Mouchard, Mercenaire), des contres et des contestations dans un délai imposé. Avant la partie, l'hôte coche les personnages en jeu ; le lancement vérifie qu'il y a assez de cartes pour la table. Les annonces de chacun restent affichées (« A revendiqué : … ») : qui revendique plus de personnages que de cartes bluffe forcément. Bots possibles, qui contestent en tenant compte de ces annonces.
 - **Le Chaudron** (3 à 8 joueurs) : une guilde d'alchimistes remplit un chaudron, ingrédient par ingrédient, en annonçant à voix haute ce qu'elle verse. Les Empoisonneurs y glissent de la Ciguë en mentant. Goûter (en secret), Écumer, Soupçonner (3 jetons : chassé de la guilde) et voter pour servir la potion quand on pense qu'elle atteint sa force. Bots possibles ; vote à main levée proposé en mode un seul téléphone.
-- **Gobelets** (2 à 8 joueurs) : dés cachés sous les gobelets et enchères sur l'ensemble de la table (« 4 × Cinq »), As jokers, « Menteur ! » pour soulever les gobelets. Variantes : « Pile ! » (enchère exacte, on regagne un dé), manche sèche au dernier dé, 3 à 5 dés par joueur. Bots possibles ; en mode un seul téléphone, on se passe le téléphone à chaque enchère.
+- **Gobelets** (2 à 8 joueurs) : dés cachés sous les gobelets et enchères sur l'ensemble de la table (« 4 × Cinq »), As jokers, « Menteur ! » pour soulever les gobelets. Variantes : « Pile ! » (enchère exacte : on gagne un dé, même au-delà du nombre de départ), manche sèche au dernier dé, 3 à 5 dés par joueur. Bots possibles ; en mode un seul téléphone, on se passe le téléphone à chaque enchère.
 - **Boussole** (2 à 6 joueurs) : jeu coopératif d'association de mots. Chacun écrit en secret quatre indices pour relier les mots de ses cartes (Nord, Est, Sud, Ouest), puis l'équipe reconstitue chaque boussole (cartes à replacer et à tourner, avec un ou deux leurres) pendant que son auteur reste muet. 522 mots de base, plus ceux que l'administrateur ajoute depuis le site. Sans bots.
 
 ## Obtenir un lien à partager
@@ -71,6 +71,21 @@ ADMIN_USERS=TonPseudo pnpm play
 
 (Sous Windows, dans PowerShell : `$env:ADMIN_USERS="TonPseudo"; pnpm play`.) Crée ensuite ton compte avec ce pseudo.
 
+## Records
+
+La page « 🏆 Records » (`/records`) garde les 10 meilleures performances de chaque record :
+
+| Jeu | Records |
+| --- | --- |
+| Butin | plus gros butin en une partie |
+| La Cité | plus d'écus amassés, plus de bluffs démasqués en une partie |
+| Gobelets | plus de « Pile ! » réussis en une partie, plus de dés sous son gobelet (au-delà du départ) |
+| Boussole | meilleur score d'équipe (en % du maximum) |
+
+Seules les parties **en ligne** comptent (le serveur arbitre tout ; une partie sur un seul téléphone tourne dans le navigateur et pourrait être truquée), et jamais les bots ni un joueur remplacé par un bot. Le nom affiché est celui du compte si le joueur est connecté (avec un ✓), sinon son pseudo de salon. Quand une performance entre au tableau, le salon l'annonce dans la discussion.
+
+Pour ajouter un record à un jeu : décrire le record dans `meta.records` (`key`, `label`, `unit`, `team`) et renvoyer les performances de fin de partie avec `recordValues(state)`.
+
 ## Comptes
 
 - On peut toujours jouer **sans compte**. Un compte (pseudo + mot de passe, sans e-mail) garde ton pseudo ; les points et les déblocages viendront s'y rattacher.
@@ -84,6 +99,7 @@ API (`/api`, même adresse que le jeu) :
 | --- | --- |
 | `POST /api/auth/register`, `POST /api/auth/login` | `{ name, password }` → `{ token, user }` |
 | `GET /api/auth/me`, `POST /api/auth/logout` | avec `Authorization: Bearer <token>` |
+| `GET /api/records` | tableau des records (public) |
 | `GET /api/words/compass` | mots ajoutés (public) |
 | `POST /api/words/compass`, `DELETE /api/words/compass/:id` | réservé aux administrateurs |
 
@@ -143,7 +159,7 @@ packages/
 4. Le hasard est cryptographique (`cryptoRng`). Les positions des cartes cachées ne sont jamais envoyées.
 5. Les bots reçoivent la même vue filtrée que les humains.
 
-**Mode un seul téléphone** : quand `needsPrivacy` est vrai, l'écran demande de passer le téléphone au joueur attendu. Ce joueur confirme, puis l'écran privé s'affiche, et il se reverrouille après chaque action. Sinon, un écran public partagé n'affiche que la vue spectateur. Un bouton permet de « revoir ses informations secrètes ».
+**Mode un seul téléphone** : avec un seul humain face à des bots, rien n'est caché : il voit toujours ses informations. Avec plusieurs humains, quand `needsPrivacy` est vrai, l'écran demande de passer le téléphone au joueur attendu. Ce joueur confirme, puis l'écran privé s'affiche, et il se reverrouille après chaque action. Sinon, un écran public partagé n'affiche que la vue spectateur. Un bouton permet de « revoir ses informations secrètes ».
 
 **Robustesse** : déconnexion → 30 s de grâce, puis un bot joue à la place du joueur jusqu'à son retour. Le jeton dans `localStorage` permet de reprendre sa place après un rafraîchissement.
 
