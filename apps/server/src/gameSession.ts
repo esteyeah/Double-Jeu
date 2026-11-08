@@ -9,6 +9,7 @@ import {
   type GameSnapshot,
   type PlayerId,
   type PlayerInfo,
+  type SetupExtras,
 } from '@arcade/game-sdk';
 
 export interface GameSessionHooks {
@@ -33,8 +34,9 @@ export class GameSession {
     readonly players: PlayerInfo[],
     config: unknown,
     private readonly hooks: GameSessionHooks,
+    extras?: SetupExtras,
   ) {
-    this.state = mod.setup(players, config, this.rng);
+    this.state = mod.setup(players, config, this.rng, extras);
     this.scheduleDeadline();
   }
 

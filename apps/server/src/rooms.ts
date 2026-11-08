@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto';
+import type { SetupExtras } from '@arcade/game-sdk';
 import { ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH, type Ack } from '@arcade/protocol';
 import { Room } from './room';
 import type { Session } from './sessions';
@@ -10,7 +11,10 @@ const EMPTY_ROOM_TTL_MS = 10 * 60_000;
 export class RoomManager {
   private rooms = new Map<string, Room>();
 
-  constructor(private readonly io: IO) {}
+  constructor(
+    private readonly io: IO,
+    private readonly extrasFor: (gameId: string) => SetupExtras | undefined = () => undefined,
+  ) {}
 
   get(code: string | null | undefined): Room | undefined {
     return code ? this.rooms.get(code) : undefined;
@@ -32,7 +36,7 @@ export class RoomManager {
         () => ROOM_CODE_ALPHABET[randomInt(ROOM_CODE_ALPHABET.length)],
       ).join('');
     } while (this.rooms.has(code));
-    const room = new Room(this.io, code, hostId, gameId);
+    const room = new Room(this.io, code, hostId, gameId, this.extrasFor);
     this.rooms.set(code, room);
     return room;
   }

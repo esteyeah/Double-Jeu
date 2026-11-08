@@ -47,8 +47,8 @@ const children = [
   ),
 ];
 
-/** /socket.io → serveur de jeu, tout le reste → site Next.js. */
-const portFor = (url = '/') => (url.startsWith('/socket.io') ? GAME_PORT : WEB_PORT);
+/** /socket.io et /api → serveur de jeu, tout le reste → site Next.js. */
+const portFor = (url = '/') => (url.startsWith('/socket.io') || url.startsWith('/api/') ? GAME_PORT : WEB_PORT);
 
 const proxy = http.createServer((req, res) => {
   const upstream = http.request(

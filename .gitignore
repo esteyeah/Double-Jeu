@@ -6,5 +6,8 @@ dist
 .DS_Store
 coverage
 
+# Comptes et mots enregistrés en local (pnpm play)
+data/
+
 # Généré par Next.js
 next-env.d.ts

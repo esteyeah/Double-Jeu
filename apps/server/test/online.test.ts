@@ -18,7 +18,7 @@ let url: string;
 const open: Client[] = [];
 
 beforeAll(async () => {
-  server = createArcadeServer({ corsOrigin: true });
+  server = await createArcadeServer({ corsOrigin: true });
   await new Promise<void>((resolve) => server.http.listen(0, resolve));
   url = `http://localhost:${(server.http.address() as AddressInfo).port}`;
 });

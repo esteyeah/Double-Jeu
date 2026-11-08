@@ -1,4 +1,4 @@
-import type { GameResult, PlayerId } from '@arcade/game-sdk';
+import type { GameResult, PlayerId, SetupExtras } from '@arcade/game-sdk';
 import type { Ack, ChatMessage, RoomState, RoomStatus } from '@arcade/protocol';
 import { GameSession } from './gameSession';
 import { getGame } from './games';
@@ -47,6 +47,8 @@ export class Room {
     readonly code: string,
     hostId: PlayerId,
     gameId: string,
+    /** Contenu fourni par la plateforme au lancement (mots ajoutés depuis le site…). */
+    private readonly extrasFor: (gameId: string) => SetupExtras | undefined = () => undefined,
   ) {
     this.hostId = hostId;
     this.gameId = gameId;
@@ -279,6 +281,7 @@ export class Room {
         onChange: () => this.broadcastSnapshots(),
         onEnd: (result) => this.onGameEnd(result),
       },
+      this.extrasFor(this.gameId),
     );
     // Les absents du lobby repartent sur le délai de grâce « partie ».
     for (const s of this.seats) {

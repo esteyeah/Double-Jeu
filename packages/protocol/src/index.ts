@@ -110,3 +110,64 @@ export interface ServerToClientEvents {
   'chat:history': (messages: ChatMessage[]) => void;
   'chat:message': (message: ChatMessage) => void;
 }
+
+// ───────── Comptes et API HTTP (/api) ─────────
+
+export const ACCOUNT_NAME_MIN = 3;
+export const PASSWORD_MIN = 8;
+
+export const accountNameSchema = z
+  .string()
+  .trim()
+  .transform((s) => s.replace(/\s+/g, ' '))
+  .pipe(
+    z
+      .string()
+      .min(ACCOUNT_NAME_MIN, `Pseudo trop court (${ACCOUNT_NAME_MIN} caractères min).`)
+      .max(NAME_MAX, `Pseudo trop long (${NAME_MAX} caractères max).`)
+      .regex(/^[\p{L}\p{N}][\p{L}\p{N} ._'-]*$/u, 'Lettres, chiffres, espaces et . _ \' - seulement.'),
+  );
+
+export const passwordSchema = z
+  .string()
+  .min(PASSWORD_MIN, `Mot de passe trop court (${PASSWORD_MIN} caractères min).`)
+  .max(128, 'Mot de passe trop long.');
+
+export const credentialsSchema = z.object({ name: accountNameSchema, password: passwordSchema });
+
+/** Un compte tel que le site le voit. */
+export interface ApiUser {
+  id: string;
+  name: string;
+  /** Peut gérer les mots ajoutés aux jeux. */
+  admin: boolean;
+}
+
+export interface ApiWord {
+  id: string;
+  word: string;
+  createdAt: number;
+}
+
+/** Clé de comparaison : sans accents, sans majuscules, espaces réduits. */
+export const wordKey = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+export const CUSTOM_WORD_MAX = 20;
+export const customWordSchema = z
+  .string()
+  .trim()
+  .transform((s) => s.replace(/\s+/g, ' ').toLocaleLowerCase('fr'))
+  .pipe(
+    z
+      .string()
+      .min(2, 'Mot trop court.')
+      .max(CUSTOM_WORD_MAX, `Mot trop long (${CUSTOM_WORD_MAX} caractères max).`)
+      .regex(/^[\p{L}\p{N}][\p{L}\p{N}' -]*$/u, 'Lettres, chiffres, espaces, apostrophes et tirets seulement.'),
+  );
+export const addWordsSchema = z.object({ words: z.array(z.string().max(100)).min(1).max(300) });

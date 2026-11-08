@@ -82,7 +82,8 @@ export interface GameModule<State, Move, View, Config> {
    */
   canStart?(players: number, config: Config): string | null;
   /** Distribution des rôles, mélange, état initial. */
-  setup(players: PlayerInfo[], config: Config, rng: Rng): State;
+  /** `extras` : contenu fourni par la plateforme (ex. mots ajoutés depuis le site). */
+  setup(players: PlayerInfo[], config: Config, rng: Rng, extras?: SetupExtras): State;
   /** Joueurs dont le jeu attend une action (0, 1 ou plusieurs pour les choix simultanés). */
   expectedActors(state: State): PlayerId[];
   /** `null` si le coup est légal, sinon un message lisible. */
@@ -107,6 +108,8 @@ export interface GameModule<State, Move, View, Config> {
   /** Bot : ne reçoit que la vue filtrée, comme un humain. `null` = rien à faire. */
   bot?(view: View, me: PlayerId, rng: Rng): Move | null;
 
+  /** Le jeu accepte des mots ajoutés depuis le site (en plus de sa liste de base). */
+  wordBank?: { base: readonly string[] };
   hotseat?: {
     /** Vrai quand les actions attendues reposent sur de l'information privée. */
     needsPrivacy(state: State): boolean;
@@ -114,6 +117,12 @@ export interface GameModule<State, Move, View, Config> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+/** Contenu injecté au lancement d'une partie. */
+export interface SetupExtras {
+  /** Mots ajoutés par l'administrateur du site. */
+  words?: readonly string[];
+}
+
 export type AnyGameModule = GameModule<any, any, any, any>;
 
 /** Ce que le serveur envoie à chaque client après chaque coup. */

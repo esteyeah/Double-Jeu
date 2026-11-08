@@ -1,14 +1,32 @@
 import { createServer, type Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
-import { listGames } from './games';
+import { Accounts } from './accounts';
+import { createApi } from './api';
+import { listGames, wordBankGames } from './games';
 import { registerHandlers } from './handlers';
 import { RoomManager } from './rooms';
 import { SessionStore } from './sessions';
+import { MemoryStore, type Store } from './store';
 import type { IO } from './types';
+import { WordBank } from './words';
 
 export interface ArcadeServerOptions {
   /** Origines autorisées (CORS). `true` = toutes (pratique en dev, à restreindre en prod). */
   corsOrigin: string[] | true;
+  /** Comptes et mots ajoutés ; par défaut, en mémoire (tests). */
+  services?: ArcadeServices;
+}
+
+export interface ArcadeServices {
+  store: Store;
+  accounts: Accounts;
+  words: WordBank;
+}
+
+/** Prépare le stockage durable puis les services qui s'en servent. */
+export async function createServices(store: Store, admins: string[] = []): Promise<ArcadeServices> {
+  await store.init();
+  return { store, accounts: new Accounts(store, admins), words: await WordBank.load(store, wordBankGames()) };
 }
 
 export interface ArcadeServer {
@@ -18,10 +36,13 @@ export interface ArcadeServer {
   close(): Promise<void>;
 }
 
-export function createArcadeServer(options: ArcadeServerOptions): ArcadeServer {
+export async function createArcadeServer(options: ArcadeServerOptions): Promise<ArcadeServer> {
   const sessions = new SessionStore();
+  const services = options.services ?? (await createServices(new MemoryStore()));
+  const api = createApi({ accounts: services.accounts, words: services.words, corsOrigin: options.corsOrigin });
 
   const http = createServer((req, res) => {
+    if (api(req, res)) return;
     if (req.url === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(
@@ -42,7 +63,9 @@ export function createArcadeServer(options: ArcadeServerOptions): ArcadeServer {
     // Les messages légitimes font quelques centaines d'octets.
     maxHttpBufferSize: 16_000,
   });
-  const rooms = new RoomManager(io);
+  const rooms = new RoomManager(io, (gameId) =>
+    services.words.supports(gameId) ? { words: services.words.words(gameId) } : undefined,
+  );
 
   io.use((socket, next) => {
     socket.data.session = sessions.resumeOrCreate(socket.handshake.auth?.token);
@@ -65,7 +88,7 @@ export function createArcadeServer(options: ArcadeServerOptions): ArcadeServer {
       new Promise((resolve) => {
         clearInterval(sweeper);
         rooms.disposeAll();
-        io.close(() => resolve());
+        io.close(() => void services.store.close().then(() => resolve()));
       }),
   };
 }

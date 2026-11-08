@@ -8,6 +8,7 @@ import {
   nextBotMove,
   type PlayerId,
   type PlayerInfo,
+  type SetupExtras,
 } from '@arcade/game-sdk';
 import type { ClientGame } from '@/games/registry';
 import { Button, ErrorNote, ResultBanner } from '../ui/kit';
@@ -23,19 +24,22 @@ export function LocalGame({
   game,
   players,
   config,
+  extras,
   onReplay,
   onExit,
 }: {
   game: ClientGame;
   players: PlayerInfo[];
   config: Record<string, unknown>;
+  /** Mots ajoutés depuis le site, chargés avant la partie si le jeu en accepte. */
+  extras?: SetupExtras;
   onReplay: () => void;
   onExit: () => void;
 }) {
   const mod = game.module;
   const { Board } = game;
   const rng = useMemo(() => cryptoRng(), []);
-  const [state, setState] = useState<unknown>(() => mod.setup(players, config, rng));
+  const [state, setState] = useState<unknown>(() => mod.setup(players, config, rng, extras));
   /** Joueur qui a confirmé tenir le téléphone pendant la phase privée. */
   const [unlockedFor, setUnlockedFor] = useState<PlayerId | null>(null);
   /** « Revoir mes cartes » pendant une phase publique. */

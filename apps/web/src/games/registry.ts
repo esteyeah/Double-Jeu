@@ -2,6 +2,8 @@ import type { ComponentType } from 'react';
 import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
 import { cauldron } from '@arcade/cauldron';
 import CauldronBoard from '@arcade/cauldron/client';
+import { compass } from '@arcade/compass';
+import CompassBoard from '@arcade/compass/client';
 import { court } from '@arcade/court';
 import CourtBoard from '@arcade/court/client';
 import { cups } from '@arcade/cups';
@@ -34,6 +36,7 @@ const games: Record<string, ClientGame> = {
   court: { module: court, Board: CourtBoard },
   cauldron: { module: cauldron, Board: CauldronBoard },
   cups: { module: cups, Board: CupsBoard },
+  compass: { module: compass, Board: CompassBoard },
 };
 
 export function getClientGame(id: string): ClientGame | undefined {
@@ -99,6 +102,14 @@ export const catalog: CatalogEntry[] = [
     players: '2–8',
     ready: true,
     accent: 'from-key/20 via-tech/10',
+  },
+  {
+    id: 'compass',
+    name: 'Boussole',
+    tagline: 'Un mot pour en relier deux : retrouvez ensemble la boussole de chacun. Jeu coopératif.',
+    players: '2–6',
+    ready: true,
+    accent: 'from-tech/20 via-good/10',
   },
   {
     id: 'plunder',

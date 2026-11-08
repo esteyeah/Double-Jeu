@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import type { PlayerInfo } from '@arcade/game-sdk';
+import type { PlayerInfo, SetupExtras } from '@arcade/game-sdk';
 import { NAME_MAX } from '@arcade/protocol';
 import { getClientGame, type ClientGame } from '@/games/registry';
+import { fetchWords } from '@/lib/api';
 import { KEYS, storage } from '@/lib/storage';
 import { Button, ErrorNote, Panel, Rules } from '../ui/kit';
 import { SettingsForm } from '../ui/Settings';
@@ -23,6 +24,7 @@ export function LocalScreen({ gameId }: { gameId: string }) {
     ...(game?.module.meta.hotseatDefaults ?? {}),
   }));
   const [gameKey, setGameKey] = useState(0);
+  const [extras, setExtras] = useState<SetupExtras>({});
 
   if (!game || !game.module.meta.supportsHotseat) {
     return (
@@ -59,6 +61,7 @@ export function LocalScreen({ gameId }: { gameId: string }) {
           game={game}
           players={players}
           config={config}
+          extras={extras}
           onReplay={() => setGameKey((k) => k + 1)}
           onExit={() => setPlayers(null)}
         />
@@ -67,15 +70,20 @@ export function LocalScreen({ gameId }: { gameId: string }) {
           game={game}
           config={config}
           onConfig={(patch) => setConfig((c) => ({ ...c, ...patch }))}
-          onStart={(roster) =>
+          onStart={async (roster) => {
+            // Mots ajoutés par l'administrateur : on les prend s'ils arrivent vite, sinon on joue avec la liste de base.
+            if (game.module.wordBank) {
+              const res = await fetchWords(game.module.meta.id, 2500);
+              setExtras(res.ok ? { words: res.words.map((w) => w.word) } : {});
+            }
             setPlayers(
               roster.map((p, i) => ({
                 id: `local_${i}`,
                 name: p.name.trim(),
                 isBot: game.module.meta.supportsBots && p.isBot,
               })),
-            )
-          }
+            );
+          }}
         />
       )}
     </main>
@@ -99,7 +107,7 @@ function LocalSetup({
   game: ClientGame;
   config: Record<string, unknown>;
   onConfig: (patch: Record<string, unknown>) => void;
-  onStart: (r: RosterEntry[]) => void;
+  onStart: (r: RosterEntry[]) => void | Promise<void>;
 }) {
   const { meta } = game.module;
   const [roster, setRoster] = useState<RosterEntry[]>([]);

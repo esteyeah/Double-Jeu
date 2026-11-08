@@ -1,5 +1,6 @@
 import type { AnyGameModule } from '@arcade/game-sdk';
 import { cauldron } from '@arcade/cauldron';
+import { compass } from '@arcade/compass';
 import { court } from '@arcade/court';
 import { cups } from '@arcade/cups';
 import { expedition } from '@arcade/expedition';
@@ -18,6 +19,7 @@ const registry: Record<string, AnyGameModule> = {
   [court.meta.id]: court,
   [cauldron.meta.id]: cauldron,
   [cups.meta.id]: cups,
+  [compass.meta.id]: compass,
 };
 
 export function getGame(id: string): AnyGameModule | undefined {
@@ -26,4 +28,9 @@ export function getGame(id: string): AnyGameModule | undefined {
 
 export function listGames(): AnyGameModule[] {
   return Object.values(registry);
+}
+
+/** Jeux qui acceptent des mots ajoutés depuis le site, avec leur liste de base. */
+export function wordBankGames(): Record<string, readonly string[]> {
+  return Object.fromEntries(listGames().flatMap((g) => (g.wordBank ? [[g.meta.id, g.wordBank.base]] : [])));
 }

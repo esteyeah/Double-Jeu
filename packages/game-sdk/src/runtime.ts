@@ -1,4 +1,4 @@
-import type { AnyGameModule, GameSnapshot, LogEntry, PlayerId, PlayerInfo, Rng } from './types';
+import type { AnyGameModule, GameSnapshot, LogEntry, PlayerId, PlayerInfo, Rng, SetupExtras } from './types';
 
 export type MoveOutcome<State> = { ok: true; state: State } | { ok: false; error: string };
 
@@ -88,10 +88,10 @@ export function simulate<State>(
   mod: AnyGameModule,
   players: PlayerInfo[],
   rng: Rng,
-  options: { maxSteps?: number; onStep?: (state: State) => void; config?: unknown } = {},
+  options: { maxSteps?: number; onStep?: (state: State) => void; config?: unknown; extras?: SetupExtras } = {},
 ): { state: State; steps: number } {
   const maxSteps = options.maxSteps ?? 10_000;
-  let state = mod.setup(players, options.config ?? mod.defaultConfig, rng) as State;
+  let state = mod.setup(players, options.config ?? mod.defaultConfig, rng, options.extras) as State;
   let clock = 0; // horloge virtuelle : une minute par coup
   const ids = players.map((p) => p.id);
   for (let steps = 0; steps < maxSteps; steps++) {

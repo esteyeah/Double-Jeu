@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { NAME_MAX, ROOM_CODE_LENGTH } from '@arcade/protocol';
 import { catalog } from '@/games/registry';
+import { loadAccount, useAccount } from '@/lib/api';
 import { request } from '@/lib/online';
 import { KEYS, storage } from '@/lib/storage';
 import { Button, ErrorNote, Panel } from './ui/kit';
@@ -17,7 +18,15 @@ export function Home() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
-  useEffect(() => setName(storage.get(KEYS.name) ?? ''), []);
+  const account = useAccount();
+  useEffect(() => {
+    setName(storage.get(KEYS.name) ?? '');
+    void loadAccount();
+  }, []);
+  // Connecté et sans pseudo : on reprend celui du compte.
+  useEffect(() => {
+    if (account.user && !storage.get(KEYS.name)) setName(account.user.name);
+  }, [account.user]);
 
   const updateName = (value: string) => {
     setName(value);
@@ -56,9 +65,17 @@ export function Home() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:py-12">
       <header>
-        <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-          Faux<span className="text-accent">-</span>Semblants
-        </h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+            Faux<span className="text-accent">-</span>Semblants
+          </h1>
+          <Link
+            href="/compte"
+            className="mt-1 max-w-[45%] shrink-0 truncate rounded-xl border border-line bg-surface px-3 py-2 text-sm hover:border-accent/60"
+          >
+            {account.status === 'signedIn' && account.user ? `👤 ${account.user.name}` : 'Se connecter'}
+          </Link>
+        </div>
         <p className="mt-1 text-muted">
           Rôles cachés, bluff et déduction. En ligne entre amis, ou sur un seul téléphone qu’on se
           passe.
@@ -81,7 +98,12 @@ export function Home() {
             className="mt-2 w-full rounded-xl border border-line bg-bg px-4 py-3 outline-none focus:border-accent"
           />
           <p className="mt-2 text-xs text-muted">
-            Pas besoin de compte pour l’instant : ton pseudo est gardé sur cet appareil.
+            Pas besoin de compte pour jouer : ton pseudo est gardé sur cet appareil.{' '}
+            {account.status !== 'signedIn' && (
+              <Link href="/compte" className="text-accent">
+                Créer un compte
+              </Link>
+            )}
           </p>
         </Panel>
 

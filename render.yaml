@@ -1,5 +1,6 @@
 # Déploiement en un clic sur Render (https://render.com).
 # Un seul service web : le site et le serveur de jeu partagent la même adresse.
+# Une base PostgreSQL garde les comptes et les mots ajoutés depuis le site.
 services:
   - type: web
     name: faux-semblants
@@ -15,3 +16,16 @@ services:
         value: same-origin
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: faux-semblants-db
+          property: connectionString
+      # Pseudo(s) administrateur(s), séparés par des virgules. Render le demande au déploiement.
+      - key: ADMIN_USERS
+        sync: false
+
+databases:
+  - name: faux-semblants-db
+    plan: free
+    databaseName: fauxsemblants
+    user: fauxsemblants
