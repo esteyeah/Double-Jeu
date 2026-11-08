@@ -6,6 +6,8 @@ services:
   - type: web
     name: double-jeu
     runtime: node
+    # Serveurs en Europe (Francfort) : moins de latence pour les joueurs en France.
+    region: frankfurt
     plan: free
     buildCommand: npm install -g pnpm@10.28.0 && NODE_ENV=development pnpm install --frozen-lockfile && pnpm build
     startCommand: node scripts/play.mjs --no-build

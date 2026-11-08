@@ -33,7 +33,7 @@ Jeux disponibles :
 4. Render affiche l'adresse du jeu, du type `https://double-jeu-xxxx.onrender.com`, à partager à tes amis.
 5. Sur le site, « Se connecter » → « Créer un compte » avec exactement le pseudo donné à l'étape 2 (fais-le tout de suite, avant que quelqu'un ne prenne ce pseudo). La page « Gérer les mots des jeux » apparaît dans « Mon compte ».
 
-Tout est gratuit, sans limite de durée : le site sur Render (formule gratuite) et la base sur Neon (offre gratuite). La configuration vient de `render.yaml`. Les deux valeurs se modifient plus tard dans l'onglet « Environment » du service sur Render.
+Le site est hébergé en Europe (Francfort) ; choisis aussi une région européenne pour la base Neon. Tout est gratuit, sans limite de durée : le site sur Render (formule gratuite) et la base sur Neon (offre gratuite). La configuration vient de `render.yaml`. Les deux valeurs se modifient plus tard dans l'onglet « Environment » du service sur Render.
 
 À savoir :
 - Avec la formule gratuite, le site s'endort après environ 15 minutes sans visite : la première visite suivante prend une minute environ. Un réveil ou un redéploiement coupe les salons en cours, mais pas les comptes ni les mots (ils sont dans la base).
