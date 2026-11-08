@@ -67,7 +67,7 @@ export function Home() {
       <header>
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-            Faux<span className="text-accent">-</span>Semblants
+            Double <span className="text-accent">Jeu</span>
           </h1>
           <div className="mt-1 flex min-w-0 shrink-0 flex-col items-end gap-1.5 sm:flex-row">
             <Link

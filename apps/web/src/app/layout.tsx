@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Faux-Semblants · arcade de déduction sociale',
+  title: 'Double Jeu · jeux de société de bluff et de déduction',
   description:
     'Jeux à rôles cachés et de bluff, en ligne entre amis ou sur un seul téléphone.',
 };

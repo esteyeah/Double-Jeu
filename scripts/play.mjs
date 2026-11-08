@@ -83,7 +83,7 @@ proxy.listen(PORT, '0.0.0.0', () => {
     .flat()
     .filter((i) => i && i.family === 'IPv4' && !i.internal)
     .map((i) => `http://${i.address}:${PORT}`);
-  console.log('\n🎲 Faux-Semblants est prêt !');
+  console.log('\n🎲 Double Jeu est prêt !');
   console.log(`   Sur cet ordinateur : http://localhost:${PORT}`);
   if (lan.length) console.log(`   Pour tes amis (même Wi-Fi) : ${lan.join('  ou  ')}`);
   console.log('   Ctrl+C pour arrêter.\n');

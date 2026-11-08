@@ -1,8 +1,8 @@
-# Faux-Semblants
+# Double Jeu
 
-Arcade de jeux à rôles cachés et de bluff : en ligne entre amis, ou sur un seul téléphone qu'on se passe.
+Jeux de société de bluff et de déduction : en ligne entre amis, ou sur un seul téléphone qu'on se passe.
 
-Nom de travail, à changer librement. Jeux disponibles :
+Jeux disponibles :
 
 - **Réacteur** (4 à 8 joueurs) : bluff et cartes coupées à l'aveugle, bots possibles.
 - **Garde à vue** (4 à 8 joueurs) : jeu de parole. Un Enquêteur interroge des suspects qui glissent des mots secrets dans leurs réponses : les innocents partagent la même liste, le Coupable en a une autre. Avant l'accusation, chaque suspect parie en secret sur la réussite de l'Enquêteur. Il se joue autour d'une table ou en appel vocal.
@@ -16,7 +16,7 @@ Nom de travail, à changer librement. Jeux disponibles :
 
 ## Obtenir un lien à partager
 
-[![Déployer sur Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/esteyeah/Plateforme)
+[![Déployer sur Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/esteyeah/double-jeu)
 
 **Avant de cliquer** (5 minutes, gratuit, une seule fois) : crée la base qui gardera les comptes et les mots ajoutés.
 
@@ -30,7 +30,7 @@ Nom de travail, à changer librement. Jeux disponibles :
    - `DATABASE_URL` : colle l'adresse copiée sur Neon ;
    - `ADMIN_USERS` : le pseudo que tu utiliseras pour ton compte (ex. `esteyeah`).
 3. Valide (« Apply » ou « Deploy Blueprint »). Le premier build prend quelques minutes.
-4. Render affiche l'adresse du jeu, du type `https://faux-semblants-xxxx.onrender.com`, à partager à tes amis.
+4. Render affiche l'adresse du jeu, du type `https://double-jeu-xxxx.onrender.com`, à partager à tes amis.
 5. Sur le site, « Se connecter » → « Créer un compte » avec exactement le pseudo donné à l'étape 2 (fais-le tout de suite, avant que quelqu'un ne prenne ce pseudo). La page « Gérer les mots des jeux » apparaît dans « Mon compte ».
 
 Tout est gratuit, sans limite de durée : le site sur Render (formule gratuite) et la base sur Neon (offre gratuite). La configuration vient de `render.yaml`. Les deux valeurs se modifient plus tard dans l'onglet « Environment » du service sur Render.

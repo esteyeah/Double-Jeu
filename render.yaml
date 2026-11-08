@@ -4,7 +4,7 @@
 # car les bases gratuites de Render expirent au bout de 30 jours.
 services:
   - type: web
-    name: faux-semblants
+    name: double-jeu
     runtime: node
     plan: free
     buildCommand: npm install -g pnpm@10.28.0 && NODE_ENV=development pnpm install --frozen-lockfile && pnpm build
