@@ -18,15 +18,29 @@ Nom de travail, à changer librement. Jeux disponibles :
 
 [![Déployer sur Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/esteyeah/Plateforme)
 
-1. Clique sur le bouton et connecte-toi à Render avec ton compte GitHub.
-2. Render demande la valeur de `ADMIN_USERS` : tape le pseudo que tu utiliseras pour ton compte (ex. `esteyeah`).
-3. Valide (« Apply » ou « Deploy Blueprint »). Render crée le site et une base PostgreSQL gratuite ; le premier build prend quelques minutes.
+**Avant de cliquer** (5 minutes, gratuit, une seule fois) : crée la base qui gardera les comptes et les mots ajoutés.
+
+1. Va sur [neon.com](https://neon.com), crée un compte (possible avec GitHub), puis un projet (région Europe, par exemple Frankfurt).
+2. Copie l'adresse de connexion proposée par Neon (bouton « Connect »). Elle commence par `postgresql://`.
+
+**Ensuite, sur Render :**
+
+1. Clique sur le bouton ci-dessus et connecte-toi à Render avec ton compte GitHub.
+2. Render demande deux valeurs :
+   - `DATABASE_URL` : colle l'adresse copiée sur Neon ;
+   - `ADMIN_USERS` : le pseudo que tu utiliseras pour ton compte (ex. `esteyeah`).
+3. Valide (« Apply » ou « Deploy Blueprint »). Le premier build prend quelques minutes.
 4. Render affiche l'adresse du jeu, du type `https://faux-semblants-xxxx.onrender.com`, à partager à tes amis.
-5. Sur le site, « Se connecter » → « Créer un compte » avec exactement le pseudo donné à l'étape 2 : la page « Gérer les mots des jeux » apparaît dans « Mon compte ».
+5. Sur le site, « Se connecter » → « Créer un compte » avec exactement le pseudo donné à l'étape 2 (fais-le tout de suite, avant que quelqu'un ne prenne ce pseudo). La page « Gérer les mots des jeux » apparaît dans « Mon compte ».
 
-La configuration vient de `render.yaml`. Avec la formule gratuite, le service s'endort après environ 15 minutes sans visite : la première visite suivante prend une minute environ. Un réveil ou un redéploiement efface les salons en cours, mais pas les comptes ni les mots ajoutés (ils sont dans la base).
+Tout est gratuit, sans limite de durée : le site sur Render (formule gratuite) et la base sur Neon (offre gratuite). La configuration vient de `render.yaml`. Les deux valeurs se modifient plus tard dans l'onglet « Environment » du service sur Render.
 
-**Base de données gratuite** : chez Render, une base PostgreSQL gratuite expire au bout de 30 jours selon ses conditions actuelles (Render prévient par e-mail ; il faut alors passer à une formule payante). Alternative gratuite et durable : créer une base sur [Neon](https://neon.tech), copier son adresse de connexion, et la coller dans la variable `DATABASE_URL` du service sur Render (onglet « Environment »).
+À savoir :
+- Avec la formule gratuite, le site s'endort après environ 15 minutes sans visite : la première visite suivante prend une minute environ. Un réveil ou un redéploiement coupe les salons en cours, mais pas les comptes ni les mots (ils sont dans la base).
+- La base Neon se met en veille quand personne ne s'en sert et se réveille toute seule en quelques instants.
+- Si la base est injoignable (adresse fausse, base supprimée, panne), le site démarre quand même : tous les jeux marchent, seuls les comptes et les mots ajoutés ne sont gardés qu'en mémoire jusqu'au redémarrage. La page « Mots des jeux » affiche alors un avertissement.
+- Sur la page « Mots des jeux », « Télécharger (.txt) » fait une copie de secours de tes mots ; « Importer un fichier .txt » les remet.
+- Évite les bases PostgreSQL gratuites de Render : elles expirent au bout de 30 jours.
 
 ## Jouer tout de suite
 

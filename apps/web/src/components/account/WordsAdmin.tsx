@@ -53,13 +53,44 @@ function Editor() {
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [persistent, setPersistent] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const reload = useCallback(async () => {
     const res = await fetchWords(gameId);
     if (!res.ok) return setError(res.error);
     setWords(res.words);
     setBaseCount(res.baseCount);
+    setPersistent(res.persistent !== false);
   }, [gameId]);
+
+  const gameName = wordGames.find((g) => g.id === gameId)?.name ?? gameId;
+  const asText = () => (words ?? []).map((w) => w.word).join('\n');
+
+  function download() {
+    const url = URL.createObjectURL(new Blob([`${asText()}\n`], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mots-${gameId}-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(asText());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Copie impossible : utilise plutôt « Télécharger ».');
+    }
+  }
+
+  async function importFile(file: File | undefined) {
+    if (!file) return;
+    const text = await file.text();
+    setDraft((d) => [d.trim(), text.trim()].filter(Boolean).join('\n'));
+  }
 
   useEffect(() => {
     setWords(null);
@@ -100,6 +131,12 @@ function Editor() {
 
   return (
     <>
+      {!persistent && (
+        <p role="alert" className="rounded-xl border border-sabo/50 bg-sabo/10 px-4 py-3 text-sm text-sabo">
+          La base de données est injoignable : les mots ajoutés maintenant seront perdus au prochain redémarrage du
+          serveur. Vérifie la variable DATABASE_URL sur Render.
+        </p>
+      )}
       {wordGames.length > 1 && (
         <Panel>
           <label className="flex flex-col gap-1 text-sm">
@@ -120,7 +157,7 @@ function Editor() {
       )}
 
       <Panel className="flex flex-col gap-3">
-        <h2 className="font-semibold">Ajouter des mots à {wordGames.find((g) => g.id === gameId)?.name}</h2>
+        <h2 className="font-semibold">Ajouter des mots à {gameName}</h2>
         <p className="text-sm text-muted">
           Un mot par ligne (ou séparés par des virgules). Ils rejoignent les {baseCount} mots de base dès la prochaine
           partie, en ligne comme sur un seul téléphone.
@@ -135,9 +172,23 @@ function Editor() {
         />
         <ErrorNote>{error}</ErrorNote>
         {report && <pre className="whitespace-pre-wrap rounded-lg font-sans border border-line bg-surface-2 px-3 py-2 text-xs">{report}</pre>}
-        <Button variant="primary" disabled={busy || !draft.trim()} onClick={() => void add()}>
-          {busy ? 'Ajout…' : 'Ajouter'}
-        </Button>
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+          <Button variant="primary" disabled={busy || !draft.trim()} onClick={() => void add()}>
+            {busy ? 'Ajout…' : 'Ajouter'}
+          </Button>
+          <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-line px-4 py-2.5 text-sm hover:border-accent/60">
+            Importer un fichier .txt
+            <input
+              type="file"
+              accept=".txt,text/plain"
+              className="sr-only"
+              onChange={(e) => {
+                void importFile(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        </div>
       </Panel>
 
       <Panel className="flex flex-col gap-3">
@@ -152,6 +203,18 @@ function Editor() {
           />
         </div>
         {words && words.length === 0 && <p className="text-sm text-muted">Aucun mot ajouté pour l’instant.</p>}
+        {words && words.length > 0 && (
+          <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface-2 p-3 text-sm">
+            <span className="text-muted">
+              Copie de secours : garde ce fichier. Pour remettre les mots (nouvelle base…), importe-le ci-dessus puis
+              « Ajouter ».
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <Button onClick={download}>Télécharger (.txt)</Button>
+              <Button onClick={() => void copy()}>{copied ? 'Copié !' : 'Copier la liste'}</Button>
+            </div>
+          </div>
+        )}
         <ul className="flex flex-wrap gap-1.5">
           {shown.map((w) => (
             <li key={w.id} className="flex items-center gap-1 rounded-lg border border-line bg-surface-2 py-1 pl-2.5 pr-1 text-sm">

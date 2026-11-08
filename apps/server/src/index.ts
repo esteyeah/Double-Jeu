@@ -1,4 +1,4 @@
-import { createArcadeServer, createServices } from './app';
+import { createArcadeServer, createServicesOrFallback } from './app';
 import { storeFromEnv } from './store';
 
 const port = Number(process.env.PORT ?? 4000);
@@ -15,12 +15,16 @@ const admins = (process.env.ADMIN_USERS ?? '')
   .map((s) => s.trim())
   .filter(Boolean);
 const { store, label } = storeFromEnv();
-const services = await createServices(store, admins);
+const services = await createServicesOrFallback(store, admins);
 const server = await createArcadeServer({ corsOrigin, services });
 
 server.http.listen(port, () => {
   console.log(`Serveur de jeu prêt sur http://localhost:${port} (santé : /health)`);
-  console.log(`  Comptes et mots enregistrés dans : ${label}`);
+  console.log(
+    services.persistent
+      ? `  Comptes et mots enregistrés dans : ${label}`
+      : '  Comptes et mots en mémoire seulement (base injoignable) : ils seront perdus au redémarrage.',
+  );
   console.log(
     admins.length
       ? `  Administrateur(s) : ${admins.join(', ')}`

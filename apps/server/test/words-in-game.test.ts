@@ -28,7 +28,7 @@ it('les mots ajoutés par l’administrateur sortent dans les parties en ligne',
   const { added } = await words.add('compass', custom, 'admin');
   expect(added).toHaveLength(1500);
 
-  server = await createArcadeServer({ corsOrigin: true, services: { store, accounts: new Accounts(store), words } });
+  server = await createArcadeServer({ corsOrigin: true, services: { store, accounts: new Accounts(store), words, persistent: true } });
   await new Promise<void>((resolve) => server!.http.listen(0, resolve));
   const url = `http://localhost:${(server.http.address() as AddressInfo).port}`;
 

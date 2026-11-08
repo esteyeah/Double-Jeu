@@ -67,6 +67,8 @@ export interface ApiDeps {
   accounts: Accounts;
   words: WordBank;
   corsOrigin: string[] | true;
+  /** Faux si la base est injoignable (les mots ajoutés seront perdus au redémarrage). */
+  persistent?: boolean;
 }
 
 /**
@@ -75,7 +77,7 @@ export interface ApiDeps {
  *   GET /api/words/:jeu (public) · POST /api/words/:jeu (admin) · DELETE /api/words/:jeu/:id (admin)
  * Renvoie false si l'URL ne commence pas par /api/.
  */
-export function createApi({ accounts, words, corsOrigin }: ApiDeps) {
+export function createApi({ accounts, words, corsOrigin, persistent = true }: ApiDeps) {
   const authLimit = ipLimiter(10, 10);
 
   function cors(req: IncomingMessage, res: ServerResponse): void {
@@ -123,7 +125,7 @@ export function createApi({ accounts, words, corsOrigin }: ApiDeps) {
       const [, game, id] = wordsMatch as unknown as [string, string, string | undefined];
       if (!words.supports(game)) throw new HttpError(404, 'Ce jeu n’accepte pas de mots ajoutés.');
       if (!id && method === 'GET') {
-        return send(res, 200, { ok: true, baseCount: words.baseCount(game), words: words.list(game) });
+        return send(res, 200, { ok: true, baseCount: words.baseCount(game), words: words.list(game), persistent });
       }
       if (!id && method === 'POST') {
         const user = await requireAdmin(req);

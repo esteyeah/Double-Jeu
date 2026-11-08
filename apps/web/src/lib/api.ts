@@ -92,5 +92,7 @@ export async function signOut(): Promise<void> {
 // ───────── Mots ajoutés aux jeux ─────────
 
 export async function fetchWords(gameId: string, timeoutMs?: number) {
-  return api<{ baseCount: number; words: ApiWord[] }>('GET', `/api/words/${gameId}`, undefined, { timeoutMs });
+  return api<{ baseCount: number; words: ApiWord[]; persistent?: boolean }>('GET', `/api/words/${gameId}`, undefined, {
+    timeoutMs,
+  });
 }

@@ -6,7 +6,16 @@ export class PostgresStore implements Store {
   private readonly pool: pg.Pool;
 
   constructor(connectionString: string) {
-    this.pool = new pg.Pool({ connectionString, ssl: sslFor(connectionString), max: 5 });
+    this.pool = new pg.Pool({
+      connectionString,
+      ssl: sslFor(connectionString),
+      max: 5,
+      // Une base qui ne répond pas ne doit jamais bloquer le serveur.
+      connectionTimeoutMillis: 10_000,
+      query_timeout: 15_000,
+    });
+    // Une connexion inactive qui tombe (base en veille, coupure réseau) ne doit pas faire planter le serveur.
+    this.pool.on('error', (err) => console.error('[postgres]', err.message));
   }
 
   async init(): Promise<void> {

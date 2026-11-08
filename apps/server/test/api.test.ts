@@ -20,6 +20,7 @@ beforeAll(async () => {
       store,
       accounts: new Accounts(store, ['Maître Mots']),
       words: await WordBank.load(store, { compass: ['plage', 'lune', 'château'] }),
+      persistent: true,
     },
   });
   await new Promise<void>((resolve) => server.http.listen(0, resolve));
@@ -183,5 +184,30 @@ describe('Connexion PostgreSQL', () => {
     expect(sslFor('postgresql://u:p@dpg-abc123-a/db')).toBe(false);
     expect(sslFor('postgresql://u:p@dpg-abc123-a.frankfurt-postgres.render.com/db')).toEqual({ rejectUnauthorized: false });
     expect(sslFor('postgresql://u:p@ep-x.eu-central-1.aws.neon.tech/db?sslmode=require')).toBeUndefined();
+  });
+});
+
+describe('Base injoignable', () => {
+  it('le serveur démarre quand même, comptes en mémoire', async () => {
+    const { createServicesOrFallback } = await import('../src/app');
+    const warnings: string[] = [];
+    // Port 1 : personne n'écoute, la connexion échoue tout de suite.
+    const services = await createServicesOrFallback(new PostgresStore('postgres://x:y@127.0.0.1:1/absente'), ['Admin'], {
+      warn: (m) => warnings.push(m),
+    });
+    expect(services.persistent).toBe(false);
+    expect(warnings[0]).toMatch(/injoignable/);
+    const reg = await services.accounts.register({ name: 'Admin', password: 'motdepasse1' });
+    expect(reg.ok && reg.user.admin).toBe(true);
+    expect((await services.words.add('compass', ['trottinette'], 'u')).added).toHaveLength(1);
+  });
+
+  it('une base qui ne répond pas du tout ne bloque pas le démarrage', async () => {
+    const { createServicesOrFallback } = await import('../src/app');
+    const hanging: Store = { ...new MemoryStore(), init: () => new Promise<void>(() => {}), close: async () => {} } as unknown as Store;
+    const started = Date.now();
+    const services = await createServicesOrFallback(hanging, [], { timeoutMs: 300, warn: () => {} });
+    expect(services.persistent).toBe(false);
+    expect(Date.now() - started).toBeLessThan(2000);
   });
 });

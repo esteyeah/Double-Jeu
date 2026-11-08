@@ -21,12 +21,40 @@ export interface ArcadeServices {
   store: Store;
   accounts: Accounts;
   words: WordBank;
+  /** Faux si la base est injoignable : comptes et mots ajoutés ne vivent alors qu'en mémoire. */
+  persistent: boolean;
 }
 
 /** Prépare le stockage durable puis les services qui s'en servent. */
-export async function createServices(store: Store, admins: string[] = []): Promise<ArcadeServices> {
+export async function createServices(store: Store, admins: string[] = [], persistent = true): Promise<ArcadeServices> {
   await store.init();
-  return { store, accounts: new Accounts(store, admins), words: await WordBank.load(store, wordBankGames()) };
+  return { store, accounts: new Accounts(store, admins), words: await WordBank.load(store, wordBankGames()), persistent };
+}
+
+const withTimeout = <T>(promise: Promise<T>, ms: number) =>
+  Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`pas de réponse en ${ms / 1000} s`)), ms).unref()),
+  ]);
+
+/**
+ * Comme `createServices`, mais si la base ne répond pas (supprimée, adresse fausse, panne),
+ * le site démarre quand même : les jeux marchent, comptes et mots ajoutés restent en mémoire.
+ */
+export async function createServicesOrFallback(
+  store: Store,
+  admins: string[] = [],
+  { timeoutMs = 15_000, warn = console.error }: { timeoutMs?: number; warn?: (msg: string) => void } = {},
+): Promise<ArcadeServices> {
+  try {
+    return await withTimeout(createServices(store, admins), timeoutMs);
+  } catch (err) {
+    warn(
+      `⚠ Base de données injoignable (${(err as Error).message}). Les jeux fonctionnent, mais les comptes et les mots ajoutés ne sont gardés qu'en mémoire jusqu'au prochain redémarrage.`,
+    );
+    void store.close().catch(() => {});
+    return createServices(new MemoryStore(), admins, false);
+  }
 }
 
 export interface ArcadeServer {
@@ -39,7 +67,12 @@ export interface ArcadeServer {
 export async function createArcadeServer(options: ArcadeServerOptions): Promise<ArcadeServer> {
   const sessions = new SessionStore();
   const services = options.services ?? (await createServices(new MemoryStore()));
-  const api = createApi({ accounts: services.accounts, words: services.words, corsOrigin: options.corsOrigin });
+  const api = createApi({
+    accounts: services.accounts,
+    words: services.words,
+    corsOrigin: options.corsOrigin,
+    persistent: services.persistent,
+  });
 
   const http = createServer((req, res) => {
     if (api(req, res)) return;
@@ -50,6 +83,7 @@ export async function createArcadeServer(options: ArcadeServerOptions): Promise<
           ok: true,
           rooms: rooms.size,
           sessions: sessions.size,
+          storage: services.persistent ? 'database' : 'memory',
           games: listGames().map((g) => g.meta.id),
         }),
       );

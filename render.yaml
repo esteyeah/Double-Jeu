@@ -1,6 +1,7 @@
 # Déploiement en un clic sur Render (https://render.com).
-# Un seul service web : le site et le serveur de jeu partagent la même adresse.
-# Une base PostgreSQL garde les comptes et les mots ajoutés depuis le site.
+# Un seul service web, gratuit : le site et le serveur de jeu partagent la même adresse.
+# Les comptes et les mots ajoutés vont dans une base PostgreSQL externe et gratuite (ex. Neon),
+# car les bases gratuites de Render expirent au bout de 30 jours.
 services:
   - type: web
     name: faux-semblants
@@ -16,16 +17,9 @@ services:
         value: same-origin
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
+      # Adresse de la base (postgresql://…), demandée au déploiement. Modifiable ensuite dans « Environment ».
       - key: DATABASE_URL
-        fromDatabase:
-          name: faux-semblants-db
-          property: connectionString
-      # Pseudo(s) administrateur(s), séparés par des virgules. Render le demande au déploiement.
+        sync: false
+      # Pseudo(s) administrateur(s), séparés par des virgules. Demandé au déploiement.
       - key: ADMIN_USERS
         sync: false
-
-databases:
-  - name: faux-semblants-db
-    plan: free
-    databaseName: fauxsemblants
-    user: fauxsemblants
