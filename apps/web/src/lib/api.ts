@@ -92,6 +92,11 @@ export async function signOut(): Promise<void> {
   refreshSocketAccount();
 }
 
+/** État du serveur, pour aider au diagnostic (stockage, administrateurs configurés). */
+export async function fetchStatus() {
+  return api<{ storage: 'database' | 'memory'; admins: number }>('GET', '/api/status');
+}
+
 // ───────── Mots ajoutés aux jeux ─────────
 
 export async function fetchWords(gameId: string, timeoutMs?: number) {

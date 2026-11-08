@@ -3,12 +3,16 @@
 import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ACCOUNT_NAME_MIN, NAME_MAX, PASSWORD_MIN } from '@arcade/protocol';
-import { loadAccount, signIn, signOut, useAccount } from '@/lib/api';
+import { fetchStatus, loadAccount, signIn, signOut, useAccount } from '@/lib/api';
 import { Button, ErrorNote, Panel } from '../ui/kit';
 
 export function AccountScreen() {
   const { status, user } = useAccount();
-  useEffect(() => void loadAccount(), []);
+  const [server, setServer] = useState<{ storage: 'database' | 'memory'; admins: number } | null>(null);
+  useEffect(() => {
+    void loadAccount();
+    void fetchStatus().then((res) => res.ok && setServer({ storage: res.storage, admins: res.admins }));
+  }, []);
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-4 px-4 py-6 sm:py-10">
@@ -42,6 +46,30 @@ export function AccountScreen() {
           )}
           <Button onClick={() => void signOut()}>Se déconnecter</Button>
         </Panel>
+      )}
+
+      {status === 'signedIn' && server?.storage === 'memory' && (
+        <p role="alert" className="rounded-xl border border-sabo/50 bg-sabo/10 px-4 py-3 text-sm text-sabo">
+          Le serveur n’arrive pas à joindre sa base de données : les comptes et les mots seront effacés au prochain
+          redémarrage. Si c’est ton site, vérifie la variable DATABASE_URL sur Render (onglet « Environment »).
+        </p>
+      )}
+      {status === 'signedIn' && user && !user.admin && server && (
+        <details className="rounded-xl border border-line bg-surface p-3 text-sm" open={server.admins === 0}>
+          <summary className="cursor-pointer select-none text-muted">Tu devrais être administrateur ?</summary>
+          <div className="mt-2 flex flex-col gap-2 text-muted">
+            <p>
+              {server.admins === 0
+                ? 'Aucun administrateur n’est configuré sur ce serveur.'
+                : 'Ton pseudo ne fait pas partie des administrateurs configurés sur ce serveur.'}
+            </p>
+            <p>
+              Sur Render : ouvre le service, onglet « Environment », mets <strong className="text-fg">{user.name}</strong>{' '}
+              dans la variable <code className="text-fg">ADMIN_USERS</code> (majuscules et accents sans importance), enregistre,
+              attends le redémarrage (une minute environ), puis recharge cette page.
+            </p>
+          </div>
+        </details>
       )}
 
       {status === 'anonymous' && <SignInForm />}

@@ -213,3 +213,20 @@ describe('Base injoignable', () => {
     expect(Date.now() - started).toBeLessThan(2000);
   });
 });
+
+describe('Diagnostic', () => {
+  it('statut public : type de stockage et nombre d’administrateurs, sans pseudo', async () => {
+    const res = await api('GET', '/api/status');
+    expect(res.data).toEqual({ ok: true, storage: 'database', admins: 1 });
+  });
+
+  it('ADMIN_USERS tolère guillemets et @', async () => {
+    const store = new MemoryStore();
+    const accounts = new Accounts(store, ['"Élodie"', '@sami ']);
+    expect(accounts.adminCount).toBe(2);
+    const a = await accounts.register({ name: 'elodie', password: 'motdepasse1' });
+    const b = await accounts.register({ name: 'Sami', password: 'motdepasse1' });
+    expect(a.ok && a.user.admin).toBe(true);
+    expect(b.ok && b.user.admin).toBe(true);
+  });
+});

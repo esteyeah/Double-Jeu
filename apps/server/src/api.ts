@@ -123,6 +123,11 @@ export function createApi({ accounts, words, corsOrigin, persistent = true, reco
       }
     }
 
+    if (path === '/api/status' && method === 'GET') {
+      // Aide au diagnostic depuis le site (aucune donnée sensible : ni pseudos ni adresses).
+      return send(res, 200, { ok: true, storage: persistent ? 'database' : 'memory', admins: accounts.adminCount });
+    }
+
     if (path === '/api/records' && method === 'GET') {
       const games = listGames()
         .filter((g) => g.meta.records?.length)

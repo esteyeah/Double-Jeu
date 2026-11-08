@@ -43,7 +43,15 @@ export class Accounts {
     /** Pseudos administrateurs (variable ADMIN_USERS). */
     admins: string[] = [],
   ) {
-    this.admins = new Set(admins.map(wordKey).filter(Boolean));
+    // Tolère les fautes de frappe courantes dans la variable : guillemets, @ devant le pseudo.
+    this.admins = new Set(
+      admins.map((a) => wordKey(a.trim().replace(/^["'`]+|["'`]+$/g, '').replace(/^@/, ''))).filter(Boolean),
+    );
+  }
+
+  /** Nombre d'administrateurs configurés (ADMIN_USERS). */
+  get adminCount(): number {
+    return this.admins.size;
   }
 
   private toApi(user: UserRecord): ApiUser {
