@@ -79,3 +79,16 @@ export function Flip({
     </div>
   );
 }
+
+/** Vrai quand la requête média correspond (ex. « (min-width: 1024px) »), mis à jour au redimensionnement. */
+export function useMediaQuery(query: string): boolean {
+  const [match, setMatch] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const sync = () => setMatch(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, [query]);
+  return match;
+}

@@ -16,7 +16,7 @@ export const PLUNDER_CSS = `
 .bt-num{font-family:'Times New Roman','Liberation Serif','Nimbus Roman',serif;font-weight:700;font-variant-numeric:lining-nums tabular-nums;letter-spacing:.01em}
 
 /* Bastingage : ciel de nuit, lune, mer, rambarde */
-.bt-sky{position:relative;height:196px;overflow:hidden;
+.bt-sky{position:relative;height:172px;overflow:hidden;
   background:radial-gradient(16px 16px at 84% 30%,#fffbe8 0 55%,rgba(255,250,220,.5) 70%,transparent 75%),
     radial-gradient(170px 120px at 84% 30%,rgba(255,240,200,.2),transparent 70%),
     linear-gradient(180deg,#040a16 0%,#0c1d35 50%,#183552 74%,#0a1d2e 100%)}
@@ -136,6 +136,67 @@ export const PLUNDER_CSS = `
 @keyframes bt-bang{0%{transform:scale(.2) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(-3deg);opacity:1}}
 .bt-shake{animation:bt-shake .5s ease-in-out}
 @keyframes bt-shake{0%,100%{transform:translate(0)}20%{transform:translate(-6px,2px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-4px,1px)}80%{transform:translate(3px,0)}}
+/* Étapes de la manche */
+.bt-steps{display:flex;justify-content:center;flex-wrap:wrap;gap:5px;margin:12px 0 0;padding:0;list-style:none}
+.bt-steps li{display:flex;align-items:center;gap:6px;padding:4px 11px 4px 4px;border-radius:999px;font-size:14px;color:#b39869;
+  background:rgba(12,6,2,.6);border:1px solid rgba(240,195,92,.18);white-space:nowrap}
+.bt-steps .n{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#2a1708;color:#a98d63}
+.bt-steps li.done{opacity:.6}.bt-steps li.done .n{background:#3d2a12;color:#d7b56a}
+.bt-steps li.now{color:#2a1505;background:linear-gradient(180deg,#f9e19a,#d9a440);border-color:#5e3f12;font-weight:700;box-shadow:0 0 18px rgba(240,195,92,.5)}
+.bt-steps li.now .n{background:#7a1d14;color:#ffe9b0}
+@media (max-width:639px){.bt-steps li:not(.now){padding:4px}.bt-steps li:not(.now) .t{display:none}}
+
+/* Consigne : ce qu'il faut faire maintenant */
+.bt-call{display:flex;align-items:center;gap:12px;margin-top:10px;padding:9px 16px 9px 9px;border-radius:14px;color:#f4e6c4;font-size:1.08rem;line-height:1.3;
+  background:linear-gradient(180deg,rgba(255,215,160,.14),rgba(0,0,0,.4)),url(/themes/plunder/plank.jpg) 0 0/260px;border:1px solid #1f1006;
+  box-shadow:inset 0 1px 0 rgba(255,220,160,.25),0 8px 18px rgba(0,0,0,.5)}
+.bt-call .ic{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#7a1d14;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35),0 2px 4px rgba(0,0,0,.45)}
+.bt-call strong{color:#ffe3a0;font-weight:400}
+.bt-call.is-mine{color:#ffe7a6;border-color:#d9a440;animation:bt-callpulse 2.2s ease-in-out infinite}
+@keyframes bt-callpulse{0%,100%{box-shadow:0 0 0 2px #c98f2c,0 0 18px rgba(240,195,92,.35),0 8px 18px rgba(0,0,0,.5)}50%{box-shadow:0 0 0 2px #f0c35c,0 0 34px rgba(240,195,92,.7),0 8px 18px rgba(0,0,0,.5)}}
+.bt-cloth.is-mine,section.is-mine{animation:bt-callpulse 2.2s ease-in-out infinite;border-radius:12px}
+
+/* Le pont : l'équipage autour du trésor */
+.bt-table{position:relative;margin-top:4px}
+.bt-table-under{position:absolute;inset:9% 7%;border-radius:50%;
+  background:radial-gradient(60% 55% at 50% 45%,rgba(255,200,120,.32),transparent 72%),url(/themes/plunder/canvas.jpg) center/320px;
+  box-shadow:0 0 0 8px #6b4a22,0 0 0 10px #241104,0 22px 50px rgba(0,0,0,.7),inset 0 0 60px rgba(60,30,5,.8)}
+.bt-table-under::before{content:'';position:absolute;inset:-9px;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg,#d8b67a 0 2.5deg,#8a6434 2.5deg 5deg);
+  -webkit-mask:radial-gradient(closest-side,transparent calc(100% - 9px),#000 calc(100% - 8px));mask:radial-gradient(closest-side,transparent calc(100% - 9px),#000 calc(100% - 8px))}
+.bt-table-under::after{content:'';position:absolute;inset:18%;border-radius:50%;pointer-events:none;border:1.5px dashed rgba(90,55,20,.35)}
+.bt-seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;border-radius:14px;text-align:center;transition:transform .2s}
+.bt-seat .bt-medal{transition:outline-color .2s}
+.bt-seat-plate{display:flex;align-items:baseline;justify-content:center;gap:4px;max-width:100%;padding:1px 8px 2px;border-radius:8px;
+  background:linear-gradient(180deg,rgba(45,25,9,.92),rgba(16,8,3,.94));border:1px solid rgba(240,195,92,.28);box-shadow:0 3px 8px rgba(0,0,0,.5)}
+.bt-seat-name{font-family:'Pirata One',Georgia,serif;font-size:17px;line-height:1.05;color:#f6e3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bt-seat-tag{font-size:10px;color:#9fd3df;flex:none}
+.bt-seat-score{position:absolute;right:-9px;bottom:-5px;min-width:27px;height:27px;padding:0 5px;border-radius:14px;display:grid;place-items:center;
+  font-family:'Bt Digits',Georgia,serif;font-weight:700;font-size:13px;color:#4a2c05;background:radial-gradient(circle at 35% 30%,#fff6cf,#f3cd6b 45%,#b47c1d);
+  box-shadow:0 2px 5px rgba(0,0,0,.65),inset 0 -2px 0 rgba(0,0,0,.2)}
+.bt-seat-status{position:absolute;top:-13px;left:50%;transform:translateX(-50%);z-index:2;white-space:nowrap;font-size:11.5px;line-height:1.35;padding:0 8px;
+  border-radius:999px;border:1px solid;background:rgba(14,7,2,.92);box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.tone-green{color:#c7ebb0;border-color:rgba(127,179,106,.7)}.tone-dim{color:#cdb48a;border-color:rgba(168,138,92,.45)}
+.tone-blue{color:#b5e3f3;border-color:rgba(90,162,192,.7)}.tone-red{color:#fff;border-color:#ff8a7a;background:#8e1b14}
+.tone-gold{color:#2a1505;border-color:#5e3f12;background:linear-gradient(180deg,#f9e19a,#d9a440)}
+.bt-seat.is-me .bt-seat-plate{border-color:rgba(159,211,223,.7)}
+.bt-seat.is-turn .bt-medal{outline:3px solid #f0c35c;outline-offset:2px;filter:drop-shadow(0 0 12px rgba(240,195,92,.85))}
+.bt-seat.is-threat .bt-medal{outline:3px solid #ff4d3d;outline-offset:2px;animation:bt-threat 1.1s ease-in-out infinite}
+@keyframes bt-threat{50%{filter:drop-shadow(0 0 14px rgba(255,77,61,.95))}}
+.bt-seat.is-aimed .bt-medal{outline:3px solid #ff4d3d;outline-offset:2px}
+.bt-seat.is-sunk{opacity:.55}
+button.bt-seat{cursor:crosshair}
+button.bt-seat:hover{transform:translateY(-3px)}
+button.bt-seat:hover .bt-medal{outline:2px dashed #ff8a7a;outline-offset:3px}
+
+/* Annonce d'étape */
+.bt-banner{position:relative;isolation:isolate;width:min(760px,100%);padding:22px 12px 20px;text-align:center;animation:bt-banner 1.7s cubic-bezier(.2,.8,.2,1) both}
+.bt-banner::before{content:'';position:absolute;inset:0 -40vw;z-index:-1;background:linear-gradient(90deg,transparent,rgba(12,6,2,.9) 22%,rgba(12,6,2,.9) 78%,transparent);
+  border-top:1px solid rgba(240,195,92,.4);border-bottom:1px solid rgba(240,195,92,.4)}
+.bt-banner .k{font-size:13px;letter-spacing:.4em;text-transform:uppercase;color:#d9bd8a}
+.bt-banner .s{margin-top:8px;color:#f1dfb8;font-style:italic;font-size:1.05rem}
+@keyframes bt-banner{0%{opacity:0;transform:scale(1.12)}14%{opacity:1;transform:none}78%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+
 /* Écrans communs (passage du téléphone, fin de partie, menus) */
 .bt-ui-panel{position:relative;padding:30px 22px 26px;border-radius:6px;color:#2a1b0b;font-family:'Bt Digits','IM Fell English',Georgia,serif;
   background:radial-gradient(130% 100% at 50% 50%,transparent 55%,rgba(110,60,15,.4)),url(/themes/plunder/paper.jpg) center/320px;
@@ -154,6 +215,6 @@ export const PLUNDER_CSS = `
   background:linear-gradient(180deg,rgba(24,13,5,.9),rgba(12,6,2,.95)),url(/themes/plunder/plank.jpg) 0 0/300px;box-shadow:-20px 0 60px rgba(0,0,0,.65)}
 .bt-ui-pill{font-family:'Bt Digits','IM Fell English',Georgia,serif;font-size:13px;color:#2a1b0b;padding:7px 14px;border-radius:999px;
   background:url(/themes/plunder/paper.jpg) center/200px;border:1px solid #8b6a33;box-shadow:0 6px 16px rgba(0,0,0,.5)}
-@media (min-width:640px){.bt-sky{height:168px}}
-@media (prefers-reduced-motion:reduce){.bt *,.bt-fight *{animation:none!important;transition:none!important}}
+@media (min-width:640px){.bt-sky{height:150px}}
+@media (prefers-reduced-motion:reduce){.bt *,.bt-fight *{animation:none!important;transition:none!important}.bt-banner{animation:bt-fade .2s both!important}}
 `;

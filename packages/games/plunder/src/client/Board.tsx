@@ -1,8 +1,20 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import { Icon, RichIcon, sfx, useAmbient, useOnChange, type GameIconName, type Metal } from '@arcade/tabletop';
+import {
+  Cinematic,
+  Icon,
+  RichIcon,
+  RoundTable,
+  sfx,
+  useAmbient,
+  useMediaQuery,
+  useOnChange,
+  type GameIconName,
+  type Metal,
+  type TableLink,
+} from '@arcade/tabletop';
 import {
   LOOT_LABEL,
   MAX_WOUNDS,
@@ -38,6 +50,7 @@ export default function PlunderBoard({ view, viewer, actingAs, mode, sendMove }:
   const self = view.pirates.find((p) => p.id === actingAs);
   const privateView = viewer !== null && viewer === actingAs;
   const canAct = !!self && !self.sunk;
+  const wide = useMediaQuery('(min-width: 1024px)');
 
   useAmbient('sea');
   const [fight, setFight] = useState<{ shots: Shot[]; divers: PlayerId[] } | null>(null);
@@ -53,8 +66,31 @@ export default function PlunderBoard({ view, viewer, actingAs, mode, sendMove }:
   });
   useOnChange(view.phase, () => {
     if (view.phase === 'over') sfx.fanfare(0.6);
+    else if (view.phase !== 'loot') sfx.whoosh(0.05, 0.12);
   });
 
+  // Cible choisie pendant la préparation : la flèche apparaît sur le pont avant même de confirmer.
+  const [aim, setAim] = useState<PlayerId | null>(null);
+  useEffect(() => setAim(null), [view.round, actingAs]);
+  const choosing = view.phase === 'prepare' && canAct && privateView && !!view.me && !view.me.prepared;
+
+  // Annonce de chaque étape (la fusillade a déjà son propre écran).
+  const bannerKey = useRef('');
+  if (view.phase === 'prepare' || view.phase === 'order' || view.phase === 'courage') bannerKey.current = `${view.round}-${view.phase}`;
+  const banner = BANNER[view.phase as keyof typeof BANNER];
+
+  const action = actionFor({ view, actingAs, privateView, canAct, nameOf, seatOf, sendMove, aim, setAim });
+  const treasure = <Treasure view={view} actingAs={actingAs} sendMove={sendMove} bare={wide} />;
+  const table = (
+    <DeckTable
+      view={view}
+      viewer={viewer}
+      wide={wide}
+      aim={choosing ? aim : null}
+      onAim={choosing ? setAim : undefined}
+      center={wide ? treasure : <TableHeart view={view} nameOf={nameOf} />}
+    />
+  );
 
   return (
     <div className="bt">
@@ -65,27 +101,400 @@ export default function PlunderBoard({ view, viewer, actingAs, mode, sendMove }:
       <div className="bt-light" />
 
       <Bastingage view={view} nameOf={nameOf} seatOf={seatOf} />
-      <div className="mx-auto mt-4 grid w-[min(1240px,calc(100%-20px))] gap-x-6 gap-y-2 pb-16 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="min-w-0">
-          <Treasure view={view} actingAs={actingAs} sendMove={sendMove} />
-          <div className="bt-dock">
-            <Dock view={view} actingAs={actingAs} privateView={privateView} canAct={canAct} mode={mode} nameOf={nameOf} seatOf={seatOf} sendMove={sendMove} />
-          </div>
-          {view.shots.length > 0 && <ShotReport view={view} nameOf={nameOf} seatOf={seatOf} />}
-          <div className="hidden lg:block">
-            <Journal lines={view.log} />
-          </div>
-        </div>
-        <div className="min-w-0">
-          <Crew view={view} viewer={viewer} nameOf={nameOf} seatOf={seatOf} />
-          <div className="lg:hidden">
-            <Journal lines={view.log} />
-          </div>
+      <div className="mx-auto w-[min(1240px,calc(100%-20px))]">
+        <StepTrack view={view} fighting={!!fight} />
+        <Instruction {...instructionFor({ view, viewer, actingAs, privateView, canAct, mode, nameOf })} />
+      </div>
+
+      <div className="mx-auto mt-3 grid w-[min(1240px,calc(100%-20px))] gap-x-6 gap-y-4 pb-16 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
+        {action && <div className="bt-dock lg:col-start-2 lg:row-start-1 lg:mt-2">{action}</div>}
+        {!wide && view.phase === 'loot' && treasure}
+        <div className="min-w-0 lg:col-start-1 lg:row-span-3 lg:row-start-1">{table}</div>
+        {!wide && view.phase !== 'loot' && treasure}
+        <div className="min-w-0 lg:col-start-2 lg:row-start-2">
+          {view.phase === 'over' && <Ranking view={view} viewer={viewer} seatOf={seatOf} />}
+          {!wide && <LootDetails view={view} seatOf={seatOf} />}
+          <Journal lines={view.log} open={wide} />
         </div>
       </div>
 
+      {banner && (
+        <Cinematic trigger={bannerKey.current} onMount={mode !== 'hotseat'}>
+          <div className="bt-banner">
+            <div className="k">
+              Manche {view.round} sur {view.rounds}
+            </div>
+            <div className="bt-title bt-gold text-[2.6rem] sm:text-6xl">{banner.title}</div>
+            <div className="s">{banner.sub}</div>
+          </div>
+        </Cinematic>
+      )}
       {fight && <Gunfight {...fight} nameOf={nameOf} seatOf={seatOf} captain={view.captain} onDone={() => setFight(null)} />}
     </div>
+  );
+}
+
+const BANNER = {
+  prepare: { title: 'Chargez vos pistolets', sub: 'Chacun choisit sa balle et sa cible, en secret.' },
+  order: { title: 'Le Capitaine a la main', sub: 'Visé, il peut détourner un pistolet.' },
+  courage: { title: 'Tenir bon… ou plonger ?', sub: 'Regardez les flèches : qui vise qui ?' },
+} as const;
+
+// ───────── Étapes de la manche et consigne ─────────
+
+const STEPS: { label: string; icon: GameIconName }[] = [
+  { label: 'Charger', icon: 'crossed-pistols' },
+  { label: 'Ordre', icon: 'pirate-hat' },
+  { label: 'Courage', icon: 'crossed-sabres' },
+  { label: 'Feu', icon: 'bright-explosion' },
+  { label: 'Partage', icon: 'open-treasure-chest' },
+];
+
+function StepTrack({ view, fighting }: { view: PlunderView; fighting: boolean }) {
+  const now = { prepare: 0, order: 1, courage: 2, loot: fighting ? 3 : 4, over: 5 }[view.phase];
+  return (
+    <ol className="bt-steps" aria-label="Étapes de la manche">
+      {STEPS.map((step, i) => (
+        <li key={step.label} className={i < now ? 'done' : i === now ? 'now' : ''} aria-current={i === now ? 'step' : undefined}>
+          <span className="n">
+            <Icon name={step.icon} size={14} />
+          </span>
+          <span className="t">{step.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function instructionFor({
+  view,
+  viewer,
+  actingAs,
+  privateView,
+  canAct,
+  mode,
+  nameOf,
+}: {
+  view: PlunderView;
+  viewer: PlayerId | null;
+  actingAs: PlayerId | null;
+  privateView: boolean;
+  canAct: boolean;
+  mode: Props['mode'];
+  nameOf: NameOf;
+}): { icon: GameIconName; mine: boolean; text: ReactNode } {
+  const afloat = view.pirates.filter((p) => !p.sunk);
+  const you = (rest: string) => (mode === 'hotseat' && actingAs ? `${nameOf(actingAs)}, ${rest}` : rest.charAt(0).toUpperCase() + rest.slice(1));
+  const me = view.pirates.find((p) => p.id === viewer);
+  switch (view.phase) {
+    case 'prepare': {
+      const ready = `${afloat.filter((p) => p.prepared).length}/${afloat.length} prêts`;
+      if (canAct && privateView && view.me && !view.me.prepared)
+        return { icon: 'crossed-pistols', mine: true, text: you('à toi : choisis ta balle (chargée ou à blanc), puis le pirate que tu vises.') };
+      if (view.me?.prepared)
+        return {
+          icon: 'crossed-pistols',
+          mine: false,
+          text: `${CHARGE_TEXT[view.me.prepared.charge].title}, braqué sur ${nameOf(view.me.prepared.target)}. On attend les autres : ${ready}.`,
+        };
+      return { icon: 'crossed-pistols', mine: false, text: `Chacun charge son pistolet et vise en secret… ${ready}.` };
+    }
+    case 'order':
+      if (canAct && actingAs === view.captain)
+        return { icon: 'pirate-hat', mine: true, text: you('tu es Capitaine et on te vise : tu peux obliger un tireur à viser quelqu’un d’autre.') };
+      return { icon: 'pirate-hat', mine: false, text: `Le Capitaine ${nameOf(view.captain)} est visé : il peut obliger un tireur à changer de cible.` };
+    case 'courage': {
+      if (view.config.courage === 'table')
+        return { icon: 'crossed-sabres', mine: false, text: 'À trois, chacun annonce à voix haute : tenir bon ou plonger dans la cale !' };
+      const decided = `${afloat.filter((p) => p.decided).length}/${afloat.length} ont décidé`;
+      if (canAct && privateView && view.me && view.me.courage === null) {
+        const threats = afloat.filter((p) => p.aim === actingAs).length;
+        return {
+          icon: 'crossed-sabres',
+          mine: true,
+          text: you(
+            threats
+              ? `${threats} pistolet${threats > 1 ? 's' : ''} te vise${threats > 1 ? 'nt' : ''} (flèches rouges). Tiens bon pour ta part du butin, ou plonge pour éviter les balles.`
+              : 'personne ne te vise ! Tiens bon pour prendre ta part du butin.',
+          ),
+        };
+      }
+      if (view.me && view.me.courage !== null)
+        return { icon: 'crossed-sabres', mine: false, text: `${view.me.courage ? 'Tu plonges dans la cale' : 'Tu tiens bon'}. On attend les autres : ${decided}.` };
+      return { icon: 'crossed-sabres', mine: false, text: `Tenir bon ou plonger dans la cale ? ${decided}.` };
+    }
+    case 'loot': {
+      if (canAct && view.picker === actingAs)
+        return { icon: 'open-treasure-chest', mine: true, text: you('à toi de te servir : touche un trésor sur le pont.') };
+      const next = view.pickers.filter((id) => id !== view.picker).map(nameOf);
+      const out = me && !view.pickers.includes(me.id) && !me.sunk ? (me.fled ? ' Toi, tu es resté dans la cale : rien pour toi.' : me.hit ? ' Toi, tu es blessé : pas de part cette manche.' : '') : '';
+      return {
+        icon: 'open-treasure-chest',
+        mine: false,
+        text: (
+          <>
+            <strong>{nameOf(view.picker)}</strong> se sert{next.length ? `, puis ${next.join(', ')}` : ''}.{out}
+          </>
+        ),
+      };
+    }
+    default:
+      return { icon: 'open-treasure-chest', mine: false, text: 'Fin du voyage : on compte les doublons !' };
+  }
+}
+
+function Instruction({ icon, mine, text }: { icon: GameIconName; mine: boolean; text: ReactNode }) {
+  return (
+    <div className={`bt-call ${mine ? 'is-mine' : ''}`}>
+      <span className="ic">
+        <RichIcon name={icon} metal="gold" size={28} />
+      </span>
+      <p>{text}</p>
+    </div>
+  );
+}
+
+// ───────── Le pont : l'équipage autour du trésor ─────────
+
+function DeckTable({
+  view,
+  viewer,
+  wide,
+  aim,
+  onAim,
+  center,
+}: {
+  view: PlunderView;
+  viewer: PlayerId | null;
+  wide: boolean;
+  aim: PlayerId | null;
+  onAim?: (id: PlayerId) => void;
+  center: ReactNode;
+}) {
+  const links: TableLink[] = [];
+  if (view.phase === 'order' || view.phase === 'courage') {
+    for (const p of view.pirates) {
+      if (!p.aim || p.sunk) continue;
+      const atMe = p.aim === viewer;
+      const ordered = view.order?.pirate === p.id;
+      links.push({
+        id: p.id,
+        from: p.id,
+        to: p.aim,
+        color: atMe ? '#ff4d3d' : ordered ? '#f0c35c' : '#ecdcb6',
+        width: atMe ? 4 : 3,
+        glow: atMe,
+        dash: ordered ? '9 6' : undefined,
+      });
+    }
+  } else if (view.phase === 'loot' || view.phase === 'over') {
+    for (const s of view.shots) {
+      links.push({
+        id: s.shooter,
+        from: s.shooter,
+        to: s.target,
+        color: s.charge === 'wet' ? '#9fb3bf' : s.hit ? '#ff4d3d' : '#f0c35c',
+        dash: s.charge === 'wet' ? '2 7' : s.hit ? undefined : '9 7',
+        width: 3,
+        opacity: view.phase === 'over' ? 0.35 : 0.6,
+      });
+    }
+  } else if (view.phase === 'prepare' && viewer) {
+    const target = aim ?? view.me?.prepared?.target ?? null;
+    if (target) links.push({ id: 'aim', from: viewer, to: target, color: '#ff4d3d', width: 3.5, flow: true, glow: true });
+  }
+
+  return (
+    <div className="bt-table pb-1" aria-label="L’équipage sur le pont">
+      <RoundTable
+        ids={view.pirates.map((p) => p.id)}
+        me={viewer}
+        seat={wide ? { w: 134, h: 150 } : { w: 88, h: 118 }}
+        className={wide ? 'aspect-[1.36] max-h-[calc(100dvh-300px)] min-h-[470px]' : 'aspect-[0.84]'}
+        links={links}
+        under={<div className="bt-table-under" />}
+        center={center}
+        renderSeat={(id) => {
+          const p = view.pirates.find((x) => x.id === id)!;
+          return (
+            <Seat
+              p={p}
+              seat={view.pirates.indexOf(p)}
+              view={view}
+              viewer={viewer}
+              wide={wide}
+              aimed={aim === id}
+              onAim={onAim && !p.sunk && id !== viewer ? () => onAim(id) : undefined}
+            />
+          );
+        }}
+      />
+    </div>
+  );
+}
+
+function seatStatus(view: PlunderView, p: PirateView): { text: string; tone: string } | null {
+  if (p.sunk) return { text: 'coulé', tone: 'dim' };
+  switch (view.phase) {
+    case 'prepare':
+      return p.prepared ? { text: 'prêt', tone: 'green' } : { text: 'charge…', tone: 'dim' };
+    case 'courage':
+      return view.config.courage === 'secret' ? (p.decided ? { text: 'a décidé', tone: 'green' } : { text: 'hésite…', tone: 'dim' }) : null;
+    case 'loot':
+      if (view.picker === p.id) return { text: 'se sert', tone: 'gold' };
+      if (p.fled) return { text: 'à l’abri', tone: 'blue' };
+      if (p.hit) return { text: 'touché', tone: 'red' };
+      return null;
+    default:
+      return null;
+  }
+}
+
+function Seat({
+  p,
+  seat,
+  view,
+  viewer,
+  wide,
+  aimed,
+  onAim,
+}: {
+  p: PirateView;
+  seat: number;
+  view: PlunderView;
+  viewer: PlayerId | null;
+  wide: boolean;
+  aimed: boolean;
+  onAim?: () => void;
+}) {
+  const over = view.phase === 'over';
+  const threat = (view.phase === 'order' || view.phase === 'courage') && !!viewer && p.aim === viewer && !p.sunk;
+  const turn = view.phase === 'loot' && view.picker === p.id;
+  const status = seatStatus(view, p);
+  const cls = `bt-seat ${turn ? 'is-turn' : ''} ${threat ? 'is-threat' : ''} ${aimed ? 'is-aimed' : ''} ${p.id === viewer ? 'is-me' : ''} ${p.sunk ? 'is-sunk' : ''}`;
+  const body = (
+    <>
+      {status && <span className={`bt-seat-status tone-${status.tone}`}>{status.text}</span>}
+      <span className="relative">
+        <Medal seat={seat} size={wide ? 64 : 50} captain={p.id === view.captain && !over} hurt={p.wounds > 0} sunk={p.sunk} />
+        <span className="bt-seat-score" title={`${p.score} doublons`}>
+          {p.score}
+        </span>
+        {aimed && (
+          <span className="pointer-events-none absolute -inset-3 grid place-items-center text-[#ff4d3d]">
+            <Icon name="crosshair" size={wide ? 90 : 74} />
+          </span>
+        )}
+      </span>
+      <span className="bt-seat-plate">
+        <span className="bt-seat-name">{p.name}</span>
+        {(p.id === viewer || p.isBot) && <span className="bt-seat-tag">{p.id === viewer ? 'toi' : 'bot'}</span>}
+      </span>
+      {!p.sunk && (
+        <span className="flex items-center gap-1" aria-label={`${MAX_WOUNDS - p.wounds} vie(s) sur ${MAX_WOUNDS}, ${p.charges} balles`}>
+          {Array.from({ length: MAX_WOUNDS }, (_, i) =>
+            i < MAX_WOUNDS - p.wounds ? <RichIcon key={i} name="hearts" metal="ruby" size={wide ? 15 : 12} /> : <span key={i} className="bt-socket" />,
+          )}
+          <span className="ml-0.5 flex items-center text-[11px] text-[#e9d3a8]" title="Balles restantes">
+            <RichIcon name="bullets" metal="brass" size={wide ? 15 : 12} />×{p.charges}
+          </span>
+        </span>
+      )}
+      {wide && (
+        <span className="flex flex-wrap justify-center gap-1">
+          <Loot loot={p.loot} pearlLeader={view.pearlLeaders.includes(p.id)} />
+        </span>
+      )}
+    </>
+  );
+  if (onAim) {
+    return (
+      <button
+        type="button"
+        className={cls}
+        style={{ width: wide ? 134 : 88 }}
+        aria-label={`Viser ${p.name}`}
+        aria-pressed={aimed}
+        onClick={() => {
+          sfx.click();
+          onAim();
+        }}
+      >
+        {body}
+      </button>
+    );
+  }
+  return (
+    <div className={cls} style={{ width: wide ? 134 : 88 }}>
+      {body}
+    </div>
+  );
+}
+
+/** Centre du pont sur téléphone (le trésor est posé juste à côté, avec ses légendes). */
+function TableHeart({ view, nameOf }: { view: PlunderView; nameOf: NameOf }) {
+  const afloat = view.pirates.filter((p) => !p.sunk);
+  const line =
+    view.phase === 'prepare'
+      ? `${afloat.filter((p) => p.prepared).length}/${afloat.length} prêts`
+      : view.phase === 'courage' && view.config.courage === 'secret'
+        ? `${afloat.filter((p) => p.decided).length}/${afloat.length} décidés`
+        : view.phase === 'loot'
+          ? `${nameOf(view.picker)} se sert`
+          : view.phase === 'over'
+            ? 'Fin du voyage'
+            : 'Le Capitaine décide';
+  return (
+    <div className="flex flex-col items-center text-center">
+      <span className="bt-obj">
+        <RichIcon name="open-treasure-chest" metal="gold" size={64} />
+      </span>
+      <span className="bt-label mt-1">
+        {view.board.length} trésor{view.board.length > 1 ? 's' : ''}
+      </span>
+      <span className="mt-1 text-[13px] italic text-[#3a2410]">{line}</span>
+    </div>
+  );
+}
+
+function Ranking({ view, viewer, seatOf }: { view: PlunderView; viewer: PlayerId | null; seatOf: (id: PlayerId | null) => number }) {
+  const ranked = [...view.pirates].sort((a, b) => Number(a.sunk) - Number(b.sunk) || b.score - a.score);
+  return (
+    <section className="bt-dock">
+      <h4 className="bt-title text-center text-[1.7rem]">Le partage final</h4>
+      <ol className="mt-2 flex flex-col gap-1.5">
+        {ranked.map((p, i) => (
+          <li key={p.id} className={`flex items-center gap-2 rounded-lg px-2 py-1 ${i === 0 && !p.sunk ? 'bg-[#f0c35c]/25' : ''}`}>
+            <span className="bt-num w-6 text-center text-lg text-[#7a1d14]">{i + 1}</span>
+            <Medal seat={seatOf(p.id)} size={30} sunk={p.sunk} />
+            <span className={`bt-title flex-1 truncate text-xl ${p.sunk ? 'line-through opacity-60' : ''}`}>
+              {p.name}
+              {p.id === viewer ? ' (toi)' : ''}
+            </span>
+            <span className="bt-num text-lg">{p.sunk ? 'coulé' : `${p.score} doublons`}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function LootDetails({ view, seatOf }: { view: PlunderView; seatOf: (id: PlayerId | null) => number }) {
+  if (!view.pirates.some((p) => p.loot.length > 0)) return null;
+  return (
+    <details className="mt-4 rounded-xl border border-[#3a2410] bg-black/45 px-4 py-2.5 backdrop-blur-[2px]">
+      <summary className="bt-title cursor-pointer select-none text-xl text-[#f0c35c]">Les coffres de l’équipage</summary>
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {view.pirates.map((p) => (
+          <li key={p.id} className="flex flex-wrap items-center gap-1.5">
+            <Medal seat={seatOf(p.id)} size={24} sunk={p.sunk} />
+            <span className="bt-title min-w-[4.5rem] text-lg text-[#f6e3b8]">{p.name}</span>
+            <Loot loot={p.loot} pearlLeader={view.pearlLeaders.includes(p.id)} />
+            <span className="bt-num ml-auto text-[#f3cd6b]">{p.score}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -137,14 +546,6 @@ function Medal({
 
 // ───────── Bastingage : ciel, mer, titre ─────────
 
-const PHASE_TITLE: Record<PlunderView['phase'], string> = {
-  prepare: 'Chargez vos pistolets',
-  order: 'Le Capitaine a la main',
-  courage: 'L’heure de vérité',
-  loot: 'Partage du butin',
-  over: 'Fin du voyage',
-};
-
 function Bastingage({ view, nameOf, seatOf }: { view: PlunderView; nameOf: NameOf; seatOf: (id: PlayerId | null) => number }) {
   const wave = 'M0 26 Q 25 12 50 26 T 100 26 T 150 26 T 200 26 V 60 H 0 Z';
   return (
@@ -167,10 +568,10 @@ function Bastingage({ view, nameOf, seatOf }: { view: PlunderView; nameOf: NameO
 
       <div className="absolute inset-x-0 top-12 flex justify-center px-3 sm:top-5">
         <div className="bt-plate bt-nails max-w-full text-center">
-          <span className="text-[11px] uppercase tracking-[0.32em] text-[#d9bd8a]">
-            {view.phase === 'over' ? 'Le trésor est partagé' : `Manche ${view.round} sur ${view.rounds}`}
-          </span>
-          <h3 className="bt-title bt-gold text-[1.9rem] sm:text-[2.4rem]">{PHASE_TITLE[view.phase]}</h3>
+          <span className="text-[11px] uppercase tracking-[0.32em] text-[#d9bd8a]">À bord du Vautour</span>
+          <div className="bt-title bt-gold text-[1.75rem] sm:text-[2.2rem]">
+            {view.phase === 'over' ? 'Fin du voyage' : `Manche ${view.round} sur ${view.rounds}`}
+          </div>
           {view.phase !== 'over' && (
             <span className="flex items-center gap-1.5 text-[13px] text-[#e9d3a8]">
               <Medal seat={seatOf(view.captain)} size={22} />
@@ -269,10 +670,21 @@ function LootObject({ item, size = 54 }: { item: Pick<LootItem, 'kind' | 'value'
   }
 }
 
-function Treasure({ view, actingAs, sendMove }: { view: PlunderView; actingAs: PlayerId | null; sendMove: (m: PlunderMove) => void }) {
+function Treasure({
+  view,
+  actingAs,
+  sendMove,
+  bare = false,
+}: {
+  view: PlunderView;
+  actingAs: PlayerId | null;
+  sendMove: (m: PlunderMove) => void;
+  /** Posé au centre du pont (grand écran) plutôt que sur sa propre toile. */
+  bare?: boolean;
+}) {
   const myTurn = view.phase === 'loot' && actingAs !== null && view.picker === actingAs;
   return (
-    <section className="bt-cloth" aria-label="Sur le pont">
+    <section className={`${bare ? 'w-full' : 'bt-cloth'} ${myTurn ? 'is-mine' : ''}`} aria-label="Sur le pont">
       <div className="mb-1 flex items-baseline justify-between px-2">
         <h3 className="bt-title text-[1.55rem] text-[#3a2410] [text-shadow:0_1px_0_rgba(255,235,190,.55)]">Sur le pont</h3>
         <span className="bt-label">
@@ -282,7 +694,7 @@ function Treasure({ view, actingAs, sendMove }: { view: PlunderView; actingAs: P
       {view.board.length === 0 ? (
         <p className="py-6 text-center italic text-[#3a2410]">Le pont est vide… pour l’instant.</p>
       ) : (
-        <ul className="grid grid-cols-4 gap-y-2 sm:grid-cols-8">
+        <ul className={`grid grid-cols-4 gap-y-2 ${bare ? '' : 'sm:grid-cols-8'}`}>
           {view.board.map((item, i) => {
             const inner = (
               <>
@@ -318,150 +730,6 @@ function Treasure({ view, actingAs, sendMove }: { view: PlunderView; actingAs: P
   );
 }
 
-// ───────── Rapport de la fusillade ─────────
-
-function shotResult(s: Shot): { text: string; tone: string } {
-  if (s.charge === 'wet') return { text: 'clic… à blanc', tone: 'text-[#9fb8c6] italic' };
-  if (s.hit) return { text: 'PAN ! touché', tone: 'text-[#ff7b6b] font-bold' };
-  return { text: 'PAN… dans le vide', tone: 'text-[#f3c75a]' };
-}
-
-function ShotReport({ view, nameOf, seatOf }: { view: PlunderView; nameOf: NameOf; seatOf: (id: PlayerId | null) => number }) {
-  const divers = view.pirates.filter((p) => p.fled);
-  return (
-    <section className="mt-6 rounded-xl border border-[#3a2410] bg-black/45 p-3 backdrop-blur-[2px]">
-      <h3 className="bt-title text-xl text-[#f0c35c]">{view.phase === 'prepare' ? 'La fusillade précédente' : 'La fusillade'}</h3>
-      <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
-        {view.shots.map((s) => {
-          const r = shotResult(s);
-          return (
-            <li key={s.shooter} className="flex items-center gap-1.5 rounded-lg bg-black/30 px-2 py-1">
-              <Medal seat={seatOf(s.shooter)} size={26} />
-              <RichIcon name="blunderbuss" metal="steel" size={24} />
-              <Medal seat={seatOf(s.target)} size={26} />
-              <span className="min-w-0 flex-1 truncate text-sm">
-                {nameOf(s.shooter)} → {nameOf(s.target)}
-              </span>
-              <span className={`shrink-0 text-sm ${r.tone}`}>{r.text}</span>
-            </li>
-          );
-        })}
-      </ul>
-      {view.phase !== 'prepare' && divers.length > 0 && (
-        <p className="mt-2 flex items-center gap-1.5 text-sm text-[#cfae7c]">
-          <RichIcon name="floor-hatch" metal="brass" size={20} /> Dans la cale : {divers.map((p) => p.name).join(', ')}
-        </p>
-      )}
-    </section>
-  );
-}
-
-// ───────── L'équipage ─────────
-
-function Crew({ view, viewer, nameOf, seatOf }: { view: PlunderView; viewer: PlayerId | null; nameOf: NameOf; seatOf: (id: PlayerId | null) => number }) {
-  const over = view.phase === 'over';
-  const ranked = over ? [...view.pirates].sort((a, b) => Number(a.sunk) - Number(b.sunk) || b.score - a.score) : view.pirates;
-  const showAims = view.phase === 'order' || view.phase === 'courage';
-  return (
-    <section className="mt-6 lg:mt-2">
-      <h3 className="bt-title bt-gold mb-2 text-2xl">{over ? 'Le partage final' : 'L’équipage'}</h3>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-        {ranked.map((p, rank) => {
-          const threat = showAims && !!viewer && p.aim === viewer;
-          const turn = view.phase === 'loot' && view.picker === p.id;
-          return (
-            <li key={p.id} className={`bt-plaque bt-nails ${threat ? 'is-threat' : turn ? 'is-turn' : ''} ${p.sunk ? 'is-sunk' : ''}`}>
-              <span className="bt-medal-abs">
-                <Medal seat={seatOf(p.id)} captain={p.id === view.captain && !over} hurt={p.wounds > 0} sunk={p.sunk} />
-                {over && !p.sunk && rank < 3 && (
-                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-xl" aria-label={`${rank + 1}e place`}>
-                    {['🥇', '🥈', '🥉'][rank]}
-                  </span>
-                )}
-              </span>
-              <div className="flex items-start gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className={`bt-title min-w-[3.5rem] truncate text-[1.4rem] text-[#f6e3b8] ${p.sunk ? 'line-through' : ''}`}>{p.name}</span>
-                    {p.id === viewer && <span className="text-xs text-[#9fd3df]">(toi)</span>}
-                    {p.isBot && <span className="text-xs text-[#c9ab7c]">· bot</span>}
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                    {p.sunk ? (
-                      <span className="bt-chip text-[#e7a097]">coulé par le fond</span>
-                    ) : (
-                      <span className="flex items-center gap-0.5" aria-label={`${MAX_WOUNDS - p.wounds} vie(s) sur ${MAX_WOUNDS}`}>
-                        {Array.from({ length: MAX_WOUNDS }, (_, i) =>
-                          i < MAX_WOUNDS - p.wounds ? <RichIcon key={i} name="hearts" metal="ruby" size={16} /> : <span key={i} className="bt-socket" />,
-                        )}
-                      </span>
-                    )}
-                    {!p.sunk && (
-                      <span className="bt-chip" title="Balles restantes">
-                        <RichIcon name="bullets" metal="brass" size={16} />×{p.charges}
-                      </span>
-                    )}
-                    <Loot loot={p.loot} pearlLeader={view.pearlLeaders.includes(p.id)} />
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                    {p.id === view.captain && !over && <Ribbon icon="pirate-hat">Capitaine</Ribbon>}
-                    {p.id === view.nextCaptain && <Ribbon icon="pirate-hat">prochain Capitaine</Ribbon>}
-                    <Status view={view} p={p} />
-                    {showAims && p.aim && !p.sunk && (
-                      <span
-                        className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs ${
-                          threat ? 'border-[#ff8a7a] bg-[#a3241a] text-white' : 'border-[#f0c35c]/30 bg-black/35 text-[#f1dfb8]'
-                        }`}
-                      >
-                        <RichIcon name="blunderbuss" metal="steel" size={16} />
-                        <Medal seat={seatOf(p.aim)} size={16} />
-                        {nameOf(p.aim)}
-                        {threat ? ' (toi !)' : ''}
-                        {view.order?.pirate === p.id ? ' · sur ordre' : ''}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <div className="bt-num bt-gold text-[1.8rem] leading-none">{p.score}</div>
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-[#cfae7c]">doublons</div>
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
-function Ribbon({ icon, children, tone = 'gold' }: { icon?: GameIconName; children: ReactNode; tone?: 'gold' | 'green' | 'blue' | 'red' | 'dim' }) {
-  const style = {
-    gold: 'border-[#f0c35c]/45 text-[#f6dc95]',
-    green: 'border-[#7fb36a]/50 text-[#bfe3a8]',
-    blue: 'border-[#5aa2c0]/50 text-[#a8dcef]',
-    red: 'border-[#e2604f]/60 text-[#ffb0a4]',
-    dim: 'border-[#a88a5c]/35 text-[#cdb48a]',
-  }[tone];
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full border bg-black/35 px-1.5 py-0.5 text-xs ${style}`}>
-      {icon && <Icon name={icon} size={13} />}
-      {children}
-    </span>
-  );
-}
-
-function Status({ view, p }: { view: PlunderView; p: PirateView }) {
-  if (p.sunk) return null;
-  if (view.phase === 'prepare') return <Ribbon tone={p.prepared ? 'green' : 'dim'}>{p.prepared ? 'pistolet prêt' : 'charge son arme…'}</Ribbon>;
-  if (view.phase === 'courage') return <Ribbon tone={p.decided ? 'green' : 'dim'}>{p.decided ? 'a décidé' : 'hésite…'}</Ribbon>;
-  if (view.phase === 'loot') {
-    if (p.fled) return <Ribbon tone="blue" icon="floor-hatch">dans la cale</Ribbon>;
-    if (p.hit) return <Ribbon tone="red" icon="bandage-roll">touché</Ribbon>;
-  }
-  return null;
-}
-
 function Loot({ loot, pearlLeader }: { loot: LootItem[]; pearlLeader: boolean }) {
   const coins = loot.reduce((s, l) => s + (l.kind === 'coin' ? (l.value ?? 0) : 0), 0);
   const count = (k: LootItem['kind']) => loot.filter((l) => l.kind === k).length;
@@ -488,90 +756,43 @@ function Loot({ loot, pearlLeader }: { loot: LootItem[]; pearlLeader: boolean })
   );
 }
 
-// ───────── Parchemin d'action ─────────
+// ───────── Parchemin d'action (seulement quand c'est à toi) ─────────
 
-function Dock({
+function actionFor({
   view,
   actingAs,
   privateView,
   canAct,
-  mode,
   nameOf,
   seatOf,
   sendMove,
+  aim,
+  setAim,
 }: {
   view: PlunderView;
   actingAs: PlayerId | null;
   privateView: boolean;
   canAct: boolean;
-  mode: Props['mode'];
   nameOf: NameOf;
   seatOf: (id: PlayerId | null) => number;
   sendMove: (m: PlunderMove) => void;
-}) {
-  const afloat = view.pirates.filter((p) => !p.sunk);
-  const call = (rest: string) => (mode === 'hotseat' && actingAs ? `${nameOf(actingAs)}, ${rest}` : rest.charAt(0).toUpperCase() + rest.slice(1));
-
-  if (view.phase === 'prepare' && canAct && privateView && view.me) {
-    if (view.me.prepared) {
-      const c = CHARGE_TEXT[view.me.prepared.charge];
-      return (
-        <Note icon="blunderbuss">
-          {c.title}, braqué sur <strong>{nameOf(view.me.prepared.target)}</strong>. Les autres chargent encore… (
-          {afloat.filter((p) => p.prepared).length}/{afloat.length})
-        </Note>
-      );
-    }
-    return <Prepare view={view} me={view.me} seatOf={seatOf} sendMove={sendMove} />;
+  aim: PlayerId | null;
+  setAim: (id: PlayerId | null) => void;
+}): ReactNode {
+  if (!canAct) return null;
+  if (view.phase === 'prepare' && privateView && view.me && !view.me.prepared) {
+    return <Prepare view={view} me={view.me} seatOf={seatOf} sendMove={sendMove} target={aim} setTarget={setAim} />;
   }
-  if (view.phase === 'order' && canAct && actingAs === view.captain) {
+  if (view.phase === 'order' && actingAs === view.captain) {
     return <CaptainOrder view={view} nameOf={nameOf} seatOf={seatOf} sendMove={sendMove} />;
   }
-  if (view.phase === 'courage' && canAct && view.config.courage === 'secret' && privateView) {
-    if (view.me?.courage !== null && view.me?.courage !== undefined) {
-      return <Note icon={view.me.courage ? 'floor-hatch' : 'crossed-sabres'}>{view.me.courage ? 'Tu plonges dans la cale.' : 'Tu tiens bon, sabre au clair.'} En attente des autres…</Note>;
-    }
+  if (view.phase === 'courage' && view.config.courage === 'secret' && privateView && view.me?.courage === null) {
     return <Courage view={view} me={actingAs!} seatOf={seatOf} sendMove={sendMove} />;
   }
-  if (view.phase === 'courage' && canAct && view.config.courage === 'table' && actingAs === view.reporter && view.toReport.length > 0) {
+  if (view.phase === 'courage' && view.config.courage === 'table' && actingAs === view.reporter && view.toReport.length > 0) {
     return <ReportCowards view={view} nameOf={nameOf} seatOf={seatOf} sendMove={sendMove} />;
   }
-
-  switch (view.phase) {
-    case 'prepare':
-      return <Note icon="blunderbuss">Chacun charge son pistolet et vise en secret… {afloat.filter((p) => p.prepared).length}/{afloat.length} prêts</Note>;
-    case 'order':
-      return <Note icon="pirate-hat">Le Capitaine {nameOf(view.captain)} peut forcer un pirate qui le vise à changer de cible.</Note>;
-    case 'courage':
-      return view.config.courage === 'table' ? (
-        <Note icon="crossed-sabres">À trois, chacun annonce à voix haute : tenir bon ou plonger dans la cale !</Note>
-      ) : (
-        <Note icon="crossed-sabres">Tenir bon ou plonger dans la cale ? {afloat.filter((p) => p.decided).length}/{afloat.length} décidés</Note>
-      );
-    case 'loot':
-      return view.picker === actingAs ? (
-        <Note icon="open-treasure-chest" strong>
-          {call('à toi de te servir : touche un trésor sur la toile.')}
-        </Note>
-      ) : (
-        <Note icon="open-treasure-chest">
-          <strong>{nameOf(view.picker)}</strong> se sert. Ordre : {view.pickers.map(nameOf).join(' → ')}
-        </Note>
-      );
-    default:
-      return <Note icon="open-treasure-chest">Fin du voyage : on compte les doublons !</Note>;
-  }
-}
-
-function Note({ icon, children, strong = false }: { icon: GameIconName; children: ReactNode; strong?: boolean }) {
-  return (
-    <p className={`flex items-center gap-3 text-[1.02rem] ${strong ? 'font-bold text-[#7a1d14]' : ''}`}>
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#7a1d14] shadow-[inset_0_-3px_0_rgba(0,0,0,.35),0_2px_4px_rgba(0,0,0,.4)]">
-        <RichIcon name={icon} metal="gold" size={26} />
-      </span>
-      <span>{children}</span>
-    </p>
-  );
+  return null;
 }
 
 function Prepare({
@@ -579,18 +800,18 @@ function Prepare({
   me,
   seatOf,
   sendMove,
+  target,
+  setTarget,
 }: {
   view: PlunderView;
   me: NonNullable<PlunderView['me']>;
   seatOf: (id: PlayerId | null) => number;
   sendMove: (m: PlunderMove) => void;
+  target: PlayerId | null;
+  setTarget: (id: PlayerId | null) => void;
 }) {
   const [charge, setCharge] = useState<Charge | null>(null);
-  const [target, setTarget] = useState<PlayerId | null>(null);
-  useEffect(() => {
-    setCharge(null);
-    setTarget(null);
-  }, [view.round, me.id]);
+  useEffect(() => setCharge(null), [view.round, me.id]);
   const targets = view.pirates.filter((p) => !p.sunk && p.id !== me.id);
   const left: Record<Charge, number> = { dry: me.dry, wet: me.wet };
 
@@ -633,7 +854,7 @@ function Prepare({
           );
         })}
       </div>
-      <div className="bt-muted mt-4 text-center text-sm italic">Qui vises-tu ?</div>
+      <div className="bt-muted mt-4 text-center text-sm italic">Qui vises-tu ? (tu peux aussi toucher un pirate sur le pont)</div>
       <div className="mt-1 flex flex-wrap justify-center gap-1.5" role="radiogroup" aria-label="Cible">
         {targets.map((p) => (
           <button
@@ -919,10 +1140,10 @@ function Gunfight({
 
 // ───────── Journal de bord ─────────
 
-function Journal({ lines }: { lines: string[] }) {
+function Journal({ lines, open = false }: { lines: string[]; open?: boolean }) {
   const recent = lines.slice(-8).reverse();
   return (
-    <details className="mt-6 rounded-xl border border-[#3a2410] bg-black/40 px-4 py-2.5 text-[0.95rem] backdrop-blur-[2px]">
+    <details open={open} className="mt-6 rounded-xl border border-[#3a2410] bg-black/40 px-4 py-2.5 text-[0.95rem] backdrop-blur-[2px]">
       <summary className="bt-title cursor-pointer select-none text-xl text-[#f0c35c]">Journal de bord</summary>
       <ol className="mt-1 flex flex-col gap-1">
         {recent.map((line, i) => (
