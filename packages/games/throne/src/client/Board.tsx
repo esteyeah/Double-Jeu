@@ -8,6 +8,7 @@ import {
   Icon,
   RichIcon,
   RoundTable,
+  Table3D,
   sfx,
   useAmbient,
   useMediaQuery,
@@ -499,9 +500,14 @@ function CouncilTable({
         className={wide ? 'aspect-[1.3] max-h-[calc(100dvh-120px)] min-h-[500px]' : 'aspect-[0.84]'}
         links={links}
         under={
-          <div className="tv-table-under">
-            <TableCloth />
-          </div>
+          <Table3D
+            scene={COUNCIL}
+            fallback={
+              <div className="tv-table-under">
+                <TableCloth />
+              </div>
+            }
+          />
         }
         center={<CouncilHeart view={view} nameOf={nameOf} />}
         renderSeat={(id) => {
@@ -522,6 +528,8 @@ function CouncilTable({
     </section>
   );
 }
+
+const COUNCIL = { kind: 'council' } as const;
 
 /** Tapis brodé au centre de la table : fleurs de lys de la Couronne et yeux de l'Ombre, en alternance. */
 function TableCloth() {

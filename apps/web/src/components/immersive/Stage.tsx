@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
-import { useSoundSetting, type StageSkin } from '@arcade/tabletop';
+import { setTable3DEnabled, table3DEnabled, useSoundSetting, type StageSkin } from '@arcade/tabletop';
 
 /**
  * Scène plein écran : le jeu occupe toute la fenêtre avec son propre décor, sans l'habillage du site.
@@ -114,6 +114,30 @@ export function SoundButton() {
     <HudButton label={on ? 'Couper le son' : 'Activer le son'} onClick={() => setOn(!on)}>
       <HudIcon name={on ? 'soundOn' : 'soundOff'} />
     </HudButton>
+  );
+}
+
+/** Interrupteur du menu : table en 3D ou décor simple (pour les appareils qui chauffent ou rament). */
+export function Table3DSetting() {
+  const [on, setOn] = useState(true);
+  useEffect(() => setOn(table3DEnabled()), []);
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-line px-3 py-2.5">
+      <span>
+        <span className="block font-semibold">Table en 3D</span>
+        <span className="block text-xs text-muted">À couper si ton téléphone chauffe ou rame.</span>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        className="h-5 w-5 accent-[var(--color-accent)]"
+        checked={on}
+        onChange={(e) => {
+          setOn(e.target.checked);
+          setTable3DEnabled(e.target.checked);
+        }}
+      />
+    </label>
   );
 }
 

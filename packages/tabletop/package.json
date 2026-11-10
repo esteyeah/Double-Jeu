@@ -11,17 +11,26 @@
     "icons": "node scripts/icons.mjs"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@iconify-json/game-icons": "^1.2.0",
     "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "0.187.0",
     "react": "^19.3.1",
+    "react-dom": "19.3.1",
     "typescript": "~5.9.3"
   },
   "dependencies": {
     "@dicebear/avataaars": "^9.4.2",
     "@dicebear/core": "^9.4.3",
-    "@dicebear/toon-head": "^9.4.2"
+    "@dicebear/toon-head": "^9.4.2",
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.2",
+    "@react-three/postprocessing": "3.2.2",
+    "postprocessing": "6.39.6",
+    "three": "0.187.0"
   }
 }

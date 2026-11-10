@@ -30,6 +30,8 @@ export interface ClientGame {
    * et les écrans communs (passage du téléphone, fin de partie, menus) prennent son habillage.
    */
   immersive?: StageSkin;
+  /** La table de ce jeu est dessinée en 3D (réglage proposé dans le menu). */
+  table3d?: boolean;
   /** Style des personnages des joueurs (aperçu au salon et à la préparation). */
   look?: AvatarLook;
 }
@@ -43,16 +45,17 @@ const games: Record<string, ClientGame> = {
     look: 'crew',
   },
   interrogation: { module: interrogation, Board: InterrogationBoard, immersive: interrogationSkin, look: 'suspect' },
-  throne: { module: throne, Board: ThroneBoard, immersive: throneSkin, look: 'council' },
+  throne: { module: throne, Board: ThroneBoard, immersive: throneSkin, look: 'council', table3d: true },
   plunder: {
     module: plunder,
     Board: PlunderBoard,
     immersive: plunderSkin,
+    table3d: true,
     look: 'pirate',
   },
   expedition: { module: expedition, Board: ExpeditionBoard, immersive: expeditionSkin, look: 'polar' },
   court: { module: court, Board: CourtBoard, immersive: courtSkin, look: 'masked' },
-  cauldron: { module: cauldron, Board: CauldronBoard, immersive: cauldronSkin, look: 'alchemist' },
+  cauldron: { module: cauldron, Board: CauldronBoard, immersive: cauldronSkin, look: 'alchemist', table3d: true },
   cups: { module: cups, Board: CupsBoard, immersive: cupsSkin, look: 'tavern' },
   compass: { module: compass, Board: CompassBoard, immersive: compassSkin, look: 'explorer' },
 };

@@ -32,7 +32,7 @@ export const skin: StageSkin = {
     secondary: 'bt-btn2',
     hud: 'bt-hud',
     drawer: 'bt-ui-drawer',
-    drawerTitle: "text-2xl text-[#f3cd6b] [font-family:'Pirata_One',Georgia,serif]",
+    drawerTitle: "text-2xl text-[#f3cd6b] [font-family:'Lilita_One',sans-serif]",
     pill: 'bt-ui-pill',
     toast: 'bt-ui-pill',
   },

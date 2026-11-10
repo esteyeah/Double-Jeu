@@ -6,7 +6,7 @@ import type { RoomState } from '@arcade/protocol';
 import { getClientGame, type ClientGame } from '@/games/registry';
 import { request, useOnline } from '@/lib/online';
 import { AvatarProvider } from '@arcade/tabletop';
-import { Drawer, FullscreenButton, HudButton, HudIcon, ResultOverlay, SoundButton, Stage, StageButton, Toast } from '../immersive/Stage';
+import { Drawer, FullscreenButton, HudButton, HudIcon, ResultOverlay, SoundButton, Stage, StageButton, Table3DSetting, Toast } from '../immersive/Stage';
 import { Button, ErrorNote, ResultBanner, Rules } from '../ui/kit';
 import { Chat } from './Chat';
 
@@ -236,6 +236,7 @@ function ImmersiveOnline({
               ))}
             </ul>
           </section>
+          {game.table3d && <Table3DSetting />}
           <Rules rules={game.module.meta.rules} />
           <div className="flex flex-col gap-2">
             {isHost && !result && (

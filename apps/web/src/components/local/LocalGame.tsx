@@ -23,6 +23,7 @@ import {
   StageButton,
   StagePill,
   Toast,
+  Table3DSetting,
 } from '../immersive/Stage';
 import { Button, ErrorNote, ResultBanner, Rules } from '../ui/kit';
 import { Handoff } from './Handoff';
@@ -413,6 +414,7 @@ function ImmersiveLocal({
               </div>
             </div>
           )}
+          {game.table3d && <Table3DSetting />}
           <Rules rules={mod.meta.rules} open />
           <Button
             onClick={() => {

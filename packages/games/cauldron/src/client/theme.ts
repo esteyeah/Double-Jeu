@@ -138,6 +138,37 @@ button:hover > .ch-card{transform:translateY(-5px)}
 .ch-ui-drawer{color:#e7efd9;font-family:'Ch Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:1.05rem;border-left:2px solid #3fbf5a;
   background:linear-gradient(180deg,rgba(10,14,8,.92),rgba(4,6,3,.97)),url(/themes/cauldron/stone.jpg) center/320px;box-shadow:-20px 0 60px rgba(0,0,0,.7)}
 .ch-ui-pill{font-family:'Uncial Antiqua',serif;font-size:13px;color:#1d3a20;padding:6px 14px;border-radius:999px;background:#f3ead2;border:1.5px solid #3fbf5a;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+
+/* ───── Interface moderne : verre fumé, cartes épurées, typo actuelle ───── */
+.ch{font-family:'Outfit',system-ui,sans-serif;font-weight:500}
+.ch-title{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:.01em}
+.ch-num{font-family:'Outfit',sans-serif;font-weight:800}
+.ch-stone::before{opacity:.18}
+.ch-shelf::after{border-radius:8px}
+.ch-call{background:linear-gradient(180deg,rgba(20,34,24,.72),rgba(6,12,8,.82));backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid rgba(150,255,170,.2);border-radius:20px;box-shadow:0 14px 34px rgba(0,0,0,.45),inset 0 1px 0 rgba(200,255,210,.12)}
+.ch-call .ic{background:linear-gradient(180deg,#3fd47a,#127a3c);box-shadow:0 6px 14px rgba(60,220,120,.4)}
+.ch-call strong{font-weight:700}
+.ch-dock,.ch-page{background:linear-gradient(180deg,#fffdf8,#f2e9da);border-radius:22px;box-shadow:0 26px 60px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.75),0 0 0 1px rgba(90,60,20,.22);padding:22px 18px 20px}
+.ch-dock h4,.ch-page h4{font-family:'Outfit',sans-serif;font-weight:800;color:#13703a;letter-spacing:.01em}
+.ch-dock .muted,.ch-page .muted{color:#6b6150}
+.ch-card{background:radial-gradient(70% 42% at 50% 34%,color-mix(in srgb,var(--tint,#a87a14) 30%,transparent),transparent 72%),linear-gradient(180deg,#ffffff,#f1ead9);border-radius:16px;
+  box-shadow:0 10px 22px rgba(30,40,20,.28),inset 0 0 0 1px color-mix(in srgb,var(--tint,#a87a14) 45%,#d8cbb0)}
+.ch-card::before{inset:6px;border-radius:11px}
+.ch-card .v{font-family:'Outfit',sans-serif;font-weight:800}
+.ch-card .n{font-family:'Outfit',sans-serif;font-weight:700;font-size:12px}
+.ch-btn{font-family:'Outfit',sans-serif;font-weight:800;border-radius:999px;padding:.72rem 1.5rem;border:0;color:#062a12;
+  background:linear-gradient(180deg,#9dffb8,#3fd47a 60%,#21a856);box-shadow:inset 0 2px 0 rgba(255,255,255,.55),0 4px 0 #157a3a,0 12px 24px rgba(60,220,120,.32)}
+.ch-btn.danger{color:#fff;background:linear-gradient(180deg,#ff6b5e,#c62828 60%,#8e1515);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 4px 0 #5e0c08,0 12px 24px rgba(198,40,40,.35)}
+.ch-btn2{font-family:'Outfit',sans-serif;font-weight:700;border-radius:999px;border-color:rgba(30,100,60,.3);background:rgba(255,255,255,.8)}
+.ch-opt{border-radius:16px;background:#fff;border-color:rgba(30,100,60,.2)}
+.ch-plate{border-radius:999px;background:rgba(6,12,8,.8);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);padding:2px 10px}
+.ch-name{font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;letter-spacing:.01em}
+.ch-role{font-family:'Outfit',sans-serif;font-weight:700}
+.ch-banner .k{font-family:'Outfit',sans-serif;font-weight:700}
+.ch-banner .s{font-style:normal}
+.ch-ui-panel{background:linear-gradient(180deg,#fffdf8,#f2e9da);border-radius:22px;box-shadow:0 26px 60px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.75),0 0 0 1px rgba(90,60,20,.22);font-family:'Outfit',sans-serif}
+.ch-ui-kicker,.ch-ui-title,.ch-ui-text,.ch-ui-pill,.ch-ui-drawer{font-family:'Outfit',sans-serif}
+.ch-ui-title,.ch-ui-kicker{font-weight:800}
 @media (prefers-reduced-motion:reduce){.ch *{animation:none!important;transition:none!important}.ch-banner{animation:ch-fade .2s both!important}}
 @keyframes ch-fade{from{opacity:0}to{opacity:1}}
 `;

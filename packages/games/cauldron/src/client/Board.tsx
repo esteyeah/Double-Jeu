@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import { Avatar, Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, type GameIconName, type Metal } from '@arcade/tabletop';
+import { Avatar, Cinematic, RichIcon, RoundTable, sfx, Table3D, useAmbient, useWebGL, useMediaQuery, useOnChange, type GameIconName, type Metal } from '@arcade/tabletop';
 import {
   ACTION_HELP,
   ACTION_LABEL,
@@ -296,7 +296,7 @@ function Lair({ view, viewer, wide, nameOf, splash }: { view: CauldronView; view
         me={viewer}
         seat={wide ? { w: 128, h: 176 } : { w: 84, h: 140 }}
         className={wide ? 'aspect-[1.32] max-h-[calc(100dvh-140px)] min-h-[480px]' : 'aspect-[0.86]'}
-        under={<RitualFloor brew={brewOf(view)} />}
+        under={<Table3D scene={{ kind: 'lair', brew: brewOf(view) }} inset={{ x: 0.04, y: 0.07 }} fallback={<RitualFloor brew={brewOf(view)} />} />}
         center={<Pot view={view} nameOf={nameOf} splash={splash} wide={wide} />}
         renderSeat={(id) => {
           const p = view.players.find((x) => x.id === id)!;
@@ -377,11 +377,16 @@ const LIQUID: Record<BrewTone, [string, string, string, string]> = {
 function Pot({ view, nameOf, splash, wide }: { view: CauldronView; nameOf: NameOf; splash: number; wide: boolean }) {
   const last = view.pours.at(-1);
   const brew = brewOf(view);
+  const gl = useWebGL();
   return (
     <div className="flex flex-col items-center text-center" style={{ '--brew': LIQUID[brew][3] } as CSSProperties}>
-      <span key={splash} className={`ch-pot ${splash ? 'ch-splash' : ''}`}>
-        <CauldronArt brew={brew} size={wide ? 164 : 124} />
-      </span>
+      {gl === false ? (
+        <span key={splash} className={`ch-pot ${splash ? 'ch-splash' : ''}`}>
+          <CauldronArt brew={brew} size={wide ? 164 : 124} />
+        </span>
+      ) : (
+        <span aria-hidden="true" style={{ display: 'block', height: wide ? 176 : 112 }} />
+      )}
       <span className="ch-title mt-1 text-[14px] text-[#e6ffd8] [text-shadow:0_2px_6px_rgba(0,0,0,.95)]">
         {view.pours.length} ingrédient{view.pours.length > 1 ? 's' : ''}
       </span>

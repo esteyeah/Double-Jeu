@@ -8,6 +8,7 @@ import {
   Icon,
   RichIcon,
   RoundTable,
+  Table3D,
   sfx,
   useAmbient,
   useMediaQuery,
@@ -335,7 +336,7 @@ function DeckTable({
         seat={wide ? { w: 140, h: 172 } : { w: 92, h: 132 }}
         className={wide ? 'aspect-[1.36] max-h-[calc(100dvh-300px)] min-h-[470px]' : 'aspect-[0.84]'}
         links={links}
-        under={<div className="bt-table-under" />}
+        under={<Table3D scene={DECK} inset={{ x: 0.06, y: 0.08 }} fallback={<div className="bt-table-under" />} />}
         center={center}
         renderSeat={(id) => {
           const p = view.pirates.find((x) => x.id === id)!;
@@ -769,6 +770,8 @@ function Treasure({
   );
 }
 
+const DECK = { kind: 'deck' } as const;
+
 /** Lanterne de pont qui se balance doucement et éclaire l'équipage. */
 function Lantern({ side }: { side: 'left' | 'right' }) {
   return (
@@ -1159,7 +1162,7 @@ function Gunfight({
   const shot = step >= 0 ? shots[step] : undefined;
   return (
     <div className="bt-fight" onClick={onDone} role="dialog" aria-label="La fusillade">
-      <div className="flex w-full flex-col items-center gap-6 px-4 text-center text-[#f4e6c4] [font-family:'Bt_Digits','IM_Fell_English',Georgia,serif]">
+      <div className="flex w-full flex-col items-center gap-6 px-4 text-center text-[#f4e6c4] [font-family:'Outfit',sans-serif]">
         {!shot ? (
           <div className="bt-bang">
             <div className="bt-title bt-gold text-5xl">Feu !</div>

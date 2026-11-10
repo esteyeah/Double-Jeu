@@ -184,6 +184,39 @@ button[aria-pressed=true] > .tv-edict{transform:translateY(-10px);box-shadow:0 0
   background:linear-gradient(180deg,rgba(20,12,6,.9),rgba(8,5,2,.96)),url(/themes/throne/wall.jpg) center/360px;box-shadow:-20px 0 60px rgba(0,0,0,.65)}
 .tv-ui-pill{font-family:'Tv Digits','Cormorant Garamond',Georgia,serif;font-size:14px;color:#2a1a0c;padding:6px 14px;border-radius:999px;
   background:url(/themes/throne/parchment.jpg) center/200px;border:1px solid #8b6a33;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+
+/* ───── Interface moderne : verre fumé, cartes épurées, typo actuelle ───── */
+.tv{font-family:'Outfit',system-ui,sans-serif;font-weight:500}
+.tv-num{font-family:'Outfit',sans-serif;font-weight:800}
+.tv-wall::before{opacity:.16}
+.tv-anger{font-weight:600}
+.tv-steps li{background:rgba(24,15,8,.58);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border-color:rgba(233,196,106,.16);color:#d6c29a;font-weight:600}
+.tv-steps li.now{background:linear-gradient(180deg,#ffe08a,#e2a93a);color:#2a1505;border-color:transparent;box-shadow:0 8px 22px rgba(233,180,70,.45)}
+.tv-call{background:linear-gradient(180deg,rgba(36,22,10,.72),rgba(12,7,3,.82));backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid rgba(233,196,106,.22);border-radius:20px;box-shadow:0 14px 34px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,230,180,.14)}
+.tv-call .ic{background:linear-gradient(180deg,#5b86ff,#2a49b8);box-shadow:0 6px 14px rgba(80,120,255,.45)}
+.tv-call strong{font-weight:700}
+.tv-letter,.tv-dock{background:linear-gradient(180deg,#fffdf8,#f2e9da);border-radius:22px;box-shadow:0 26px 60px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.75),0 0 0 1px rgba(90,60,20,.22);padding:22px 18px 20px}
+.tv-letter .muted,.tv-dock .muted{color:#7a6448}
+.tv-btn{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:.04em;text-transform:uppercase;font-size:.95rem;border-radius:999px;padding:.75rem 1.6rem;border:0;text-shadow:none;
+  background:linear-gradient(180deg,#ffe08a,#e2a93a 60%,#c58a1e);box-shadow:inset 0 2px 0 rgba(255,255,255,.55),0 4px 0 #8a5a12,0 12px 24px rgba(226,169,58,.35)}
+.tv-btn.danger{background:linear-gradient(180deg,#ff6b5e,#c62828 60%,#8e1515);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 4px 0 #5e0c08,0 12px 24px rgba(198,40,40,.35)}
+.tv-btn2{font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:.02em;border-radius:999px;border-color:rgba(110,80,30,.3);background:rgba(255,255,255,.75)}
+.tv-ballot{background:linear-gradient(180deg,#ffffff,#f1e7d6);border-radius:20px;box-shadow:0 14px 28px rgba(40,20,5,.3),inset 0 0 0 1px rgba(180,140,80,.35)}
+.tv-ballot::before{inset:7px;border:1px solid rgba(180,140,80,.3);border-radius:14px}
+.tv-edict{background:linear-gradient(180deg,#ffffff,#f1e7d6);border-radius:16px;box-shadow:0 10px 22px rgba(40,20,5,.3),inset 0 0 0 1px rgba(180,140,80,.35)}
+.tv-edict .lbl{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:.02em;text-transform:uppercase;font-size:11px}
+.tv-slot.filled{background:linear-gradient(180deg,#fffdf6,#efe3cc);box-shadow:0 4px 10px rgba(0,0,0,.5)}
+.tv-scroll{background:linear-gradient(180deg,#fffdf8,#f2e9da);border-radius:24px;box-shadow:0 30px 70px rgba(0,0,0,.8)}
+.tv-scroll::before,.tv-scroll::after{display:none}
+.tv-seat-plate{border-radius:999px;background:rgba(16,10,4,.8);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);padding:2px 10px}
+.tv-seat-name{font-family:'Outfit',sans-serif;font-weight:800;font-size:12.5px;letter-spacing:.02em}
+.tv-chip,.tv-role,.tv-ballot-chip{font-family:'Outfit',sans-serif;font-weight:700}
+.tv-banner .k{font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:.3em}
+.tv-banner .s{font-style:normal}
+.tv-ui-panel{background:linear-gradient(180deg,#fffdf8,#f2e9da);border-radius:22px;box-shadow:0 26px 60px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.75),0 0 0 1px rgba(90,60,20,.22);font-family:'Outfit',sans-serif}
+.tv-ui-panel::before{display:none}
+.tv-ui-kicker,.tv-ui-text{font-family:'Outfit',sans-serif}
+.tv-ui-drawer,.tv-ui-pill{font-family:'Outfit',sans-serif}
 @media (prefers-reduced-motion:reduce){.tv *{animation:none!important;transition:none!important}.tv-banner,.tv-scroll{animation:tv-fade .2s both!important}}
 @keyframes tv-fade{from{opacity:0}to{opacity:1}}
 `;

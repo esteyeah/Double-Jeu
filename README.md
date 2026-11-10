@@ -197,6 +197,12 @@ commissariat des années 70 (Garde à vue), table de cartographe (Boussole).
 - `RoundTable` (kit) assoit les joueurs autour d'un centre et relie les places par des flèches (visées, cordées,
   gouvernements…) ; `Cinematic` affiche les grands moments (manche, vote, carte retournée…) ; une consigne en clair
   dit toujours quoi faire maintenant.
+- Plateau 3D : `<Table3D scene={...} fallback={...} />` (kit, dossier `packages/tabletop/src/three/`) se pose en
+  `under` d'une `RoundTable` et dessine la table en 3D temps réel avec three.js / React Three Fiber : caméra
+  orthographique inclinée calée sur l'ellipse des places, lumière et ombres, reflets métalliques, flammes, halo
+  lumineux (post-traitement). Les places, le centre et les flèches restent en HTML par-dessus, donc tout reste
+  cliquable. Chargé à la demande ; sans WebGL, le décor CSS `fallback` s'affiche. Scènes : pont de Butin (`deck`),
+  table du Conseil (`council`), antre du Chaudron (`lair`, teinte de la potion).
 - Personnages : `<Avatar id name look />` (kit) dessine le visage de chaque joueur dans le costume du jeu (`look` dans
   le registre : pirate, explorateur polaire, suspect…). Le visage dépend du pseudo et du « skin » que le joueur choisit au
   salon (flèches sous son portrait) ou à la préparation d'une partie locale (touche son portrait).
@@ -220,7 +226,9 @@ commissariat des années 70 (Garde à vue), table de cartographe (Boussole).
   ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), générés avec [DiceBear](https://www.dicebear.com) (MIT) ;
   chapeaux et masques ajoutés par-dessus avec les icônes game-icons.net.
 - Polices : Pirata One, IM Fell English, Orbitron, Rajdhani, Share Tech Mono, Cinzel, Cormorant Garamond, Special Elite,
-  Uncial Antiqua, Outfit (SIL Open Font License ou Apache 2.0), servies par le site.
+  Uncial Antiqua, Outfit, Lilita One (SIL Open Font License ou Apache 2.0), servies par le site.
+- 3D : [three.js](https://threejs.org), [React Three Fiber](https://github.com/pmndrs/react-three-fiber) et
+  [drei](https://github.com/pmndrs/drei) (MIT), [postprocessing](https://github.com/pmndrs/postprocessing) (Zlib).
 
 ## Limites actuelles
 

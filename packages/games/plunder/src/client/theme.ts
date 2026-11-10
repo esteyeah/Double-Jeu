@@ -237,5 +237,42 @@ button.bt-seat:hover .bt-medal{outline:2px dashed #ff8a7a;outline-offset:3px}
 .bt-ui-pill{font-family:'Bt Digits','IM Fell English',Georgia,serif;font-size:13px;color:#2a1b0b;padding:7px 14px;border-radius:999px;
   background:url(/themes/plunder/paper.jpg) center/200px;border:1px solid #8b6a33;box-shadow:0 6px 16px rgba(0,0,0,.5)}
 @media (min-width:640px){.bt-sky{height:150px}}
+
+/* ───── Interface moderne : verre fumé, cartes épurées, typo actuelle ───── */
+.bt{font-family:'Outfit',system-ui,sans-serif;font-weight:500}
+.bt-title{font-family:'Lilita One','Outfit',sans-serif;letter-spacing:.01em}
+.bt-num{font-family:'Outfit',sans-serif;font-weight:800}
+.bt-deck::before{opacity:.3}
+.bt-plate{background:linear-gradient(180deg,rgba(44,26,12,.74),rgba(14,8,4,.84));backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid rgba(255,214,140,.26);border-radius:22px;box-shadow:0 18px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,230,180,.18)}
+.bt-nails::after{display:none}
+.bt-steps li{background:rgba(22,13,6,.58);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border-color:rgba(255,214,140,.16);color:#dcc7a3;font-weight:600}
+.bt-steps li.now{background:linear-gradient(180deg,#ffd970,#f0a92c);color:#2a1505;border-color:transparent;box-shadow:0 8px 22px rgba(240,170,40,.45)}
+.bt-call{background:linear-gradient(180deg,rgba(44,26,12,.72),rgba(14,8,4,.82));backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid rgba(255,214,140,.22);border-radius:20px;box-shadow:0 14px 34px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,230,180,.14)}
+.bt-call .ic{background:linear-gradient(180deg,#ef5350,#a01c1c);box-shadow:0 6px 14px rgba(229,72,77,.45)}
+.bt-call strong{font-weight:700}
+.bt-dock{background:linear-gradient(180deg,#fffdf8,#f2e9da);border-radius:22px;box-shadow:0 26px 60px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.75),0 0 0 1px rgba(90,60,20,.22);padding:22px 18px 20px;margin-top:0}
+.bt-dock::before,.bt-dock::after{display:none}
+.bt-dock h4{font-family:'Lilita One',sans-serif;color:#c0262b;letter-spacing:.01em}
+.bt-card{background:linear-gradient(180deg,#ffffff,#f4ead8);border-radius:18px;box-shadow:0 12px 26px rgba(60,30,5,.28),inset 0 0 0 1px rgba(180,140,80,.35)}
+.bt-card::before{inset:6px;border:1px solid rgba(180,140,80,.28);border-radius:13px;box-shadow:none}
+.bt-card[aria-pressed=true]{box-shadow:0 0 0 3px #ef5350,0 18px 34px rgba(229,72,77,.35)}
+.bt-card .bt-corner{font-family:'Lilita One',sans-serif;color:#c0262b}
+.bt-btn{font-family:'Lilita One',sans-serif;font-size:1.25rem;border-radius:999px;padding:.62rem 1.7rem;border:0;color:#2a1505;background:linear-gradient(180deg,#ffd970,#f0a92c 60%,#d9881a);text-shadow:none;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.55),0 4px 0 #a5620f,0 12px 24px rgba(240,160,40,.35)}
+.bt-btn2{border-radius:999px;font-family:'Outfit',sans-serif;font-weight:700;border-color:rgba(110,70,20,.3);background:rgba(255,255,255,.75)}
+.bt-label{font-family:'Outfit',sans-serif;font-weight:700;font-size:11px;letter-spacing:.02em;padding:2px 10px;border-radius:999px;background:rgba(255,252,244,.95);transform:none;box-shadow:0 4px 10px rgba(0,0,0,.35)}
+.bt-cloth{background:linear-gradient(180deg,rgba(255,250,238,.97),rgba(240,228,204,.97));border-radius:22px;transform:none;box-shadow:0 22px 44px rgba(0,0,0,.5)}
+.bt-cloth::before,.bt-cloth::after{display:none}
+.bt-seat-plate{border-radius:999px;background:rgba(18,10,4,.8);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border-color:rgba(255,214,140,.3);padding:2px 10px 2px}
+.bt-seat-name{font-family:'Lilita One',sans-serif;font-size:15px;letter-spacing:.01em}
+.bt-seat-status,.bt-chip{font-family:'Outfit',sans-serif;font-weight:600}
+.bt-plaque{background:linear-gradient(180deg,rgba(44,26,12,.7),rgba(14,8,4,.82));backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid rgba(255,214,140,.2);border-radius:20px}
+.bt-ui-panel{background:linear-gradient(180deg,#fffdf8,#f2e9da);border-radius:22px;box-shadow:0 26px 60px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.75),0 0 0 1px rgba(90,60,20,.22);font-family:'Outfit',sans-serif}
+.bt-ui-panel::before,.bt-ui-panel::after{display:none}
+.bt-ui-title{font-family:'Lilita One',sans-serif;letter-spacing:.01em}
+.bt-ui-kicker,.bt-ui-text{font-family:'Outfit',sans-serif}
+.bt-ui-kicker{font-weight:700}
+.bt-ui-drawer{font-family:'Outfit',sans-serif}
+.bt-ui-pill{font-family:'Outfit',sans-serif;font-weight:700}
 @media (prefers-reduced-motion:reduce){.bt *,.bt-fight *{animation:none!important;transition:none!important}.bt-banner{animation:bt-fade .2s both!important}}
 `;
