@@ -6,7 +6,7 @@ import CauldronBoard from '@arcade/cauldron/client';
 import { compass } from '@arcade/compass';
 import CompassBoard from '@arcade/compass/client';
 import { court } from '@arcade/court';
-import CourtBoard from '@arcade/court/client';
+import CourtBoard, { skin as courtSkin } from '@arcade/court/client';
 import { cups } from '@arcade/cups';
 import CupsBoard from '@arcade/cups/client';
 import { expedition } from '@arcade/expedition';
@@ -47,7 +47,7 @@ const games: Record<string, ClientGame> = {
     immersive: plunderSkin,
   },
   expedition: { module: expedition, Board: ExpeditionBoard },
-  court: { module: court, Board: CourtBoard },
+  court: { module: court, Board: CourtBoard, immersive: courtSkin },
   cauldron: { module: cauldron, Board: CauldronBoard },
   cups: { module: cups, Board: CupsBoard },
   compass: { module: compass, Board: CompassBoard },

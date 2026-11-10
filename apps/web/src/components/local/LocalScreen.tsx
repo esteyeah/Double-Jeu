@@ -37,8 +37,10 @@ export function LocalScreen({ gameId }: { gameId: string }) {
     );
   }
 
+  // Plateau immersif : la scène plein écran est elle-même l'élément principal de la page.
+  const Wrapper = players && game.immersive ? 'div' : 'main';
   return (
-    <main className="mx-auto max-w-4xl px-4 py-4 sm:py-6">
+    <Wrapper className="mx-auto max-w-4xl px-4 py-4 sm:py-6">
       <header className="mb-4 flex items-center gap-3">
         <Link
           href="/"
@@ -86,7 +88,7 @@ export function LocalScreen({ gameId }: { gameId: string }) {
           }}
         />
       )}
-    </main>
+    </Wrapper>
   );
 }
 

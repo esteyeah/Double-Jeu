@@ -47,7 +47,7 @@ export function Stage({ children, hud, skin }: { children: ReactNode; hud: React
           {skin.css.text}
         </style>
       )}
-      <div
+      <main
         className="fixed inset-0 z-40 overflow-x-hidden overflow-y-auto overscroll-contain bg-[#05070b]"
         style={skin ? { background: skin.backdrop } : undefined}
       >
@@ -55,7 +55,7 @@ export function Stage({ children, hud, skin }: { children: ReactNode; hud: React
         <div className="pointer-events-none fixed right-2 top-2 z-50 flex gap-1.5 sm:right-3 sm:top-3 [&>*]:pointer-events-auto">
           {hud}
         </div>
-      </div>
+      </main>
     </SkinContext.Provider>
   );
 }
