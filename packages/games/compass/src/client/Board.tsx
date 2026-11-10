@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
+import { RichIcon, useOnChange, sfx } from '@arcade/tabletop';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
 import {
   CLUE_MAX,
@@ -21,14 +22,54 @@ import {
   type Slot,
   type Wind,
 } from '../shared';
+import { COMPASS_CSS } from './theme';
 
 type Props = BoardProps<CompassView, CompassMove>;
+
+export { skin } from './skin';
 type NameOf = (id: PlayerId | null) => string;
 
 /** Côtés extérieurs de chaque emplacement (ceux que relient les indices). */
 const OUTER: Record<Slot, Side[]> = { 0: [0, 3], 1: [0, 1], 2: [1, 2], 3: [2, 3] };
 
-export default function CompassBoard({ view, viewer, actingAs, mode, sendMove }: Props) {
+/** La table du cartographe : une grande carte sur parchemin posée sur le chêne ciré. */
+export default function CompassBoard(props: Props) {
+  const { view } = props;
+  useOnChange(view.phase, () => sfx.whoosh(0, 0.12));
+  useOnChange(view.index, () => sfx.whoosh(0, 0.12));
+  return (
+    <div className="bs">
+      <style href="arcade-compass-v1" precedence="default">
+        {COMPASS_CSS}
+      </style>
+      <div className="bs-desk" />
+      <div className="bs-light" />
+      <header className="relative px-3 pb-3 pt-[3.6rem] text-center sm:pt-5">
+        <div className="flex items-center justify-center gap-3">
+          <RichIcon name="compass" metal="gold" size={46} />
+          <div className="text-left">
+            <div className="bs-title text-[2.1rem] leading-none text-[#f6e7c4] [text-shadow:0_2px_0_rgba(0,0,0,.6)]">Boussole</div>
+            <div className="text-[14px] italic text-[#e9d3a8]">Relier les idées deux à deux, ensemble</div>
+          </div>
+        </div>
+      </header>
+      <div className="bs-map mx-auto mb-16 w-[min(880px,calc(100%-20px))]">
+        <svg className="bs-rose" viewBox="0 0 100 100" aria-hidden="true">
+          <g fill="#6b4a22">
+            <polygon points="50,2 56,44 50,50 44,44" />
+            <polygon points="98,50 56,56 50,50 56,44" />
+            <polygon points="50,98 44,56 50,50 56,56" />
+            <polygon points="2,50 44,44 50,50 44,56" />
+          </g>
+          <circle cx="50" cy="50" r="30" fill="none" stroke="#6b4a22" strokeWidth="1.5" />
+        </svg>
+        <CompassTable {...props} />
+      </div>
+    </div>
+  );
+}
+
+function CompassTable({ view, viewer, actingAs, mode, sendMove }: Props) {
   const nameOf: NameOf = (id) => view.players.find((p) => p.id === id)?.name ?? '?';
   const privateView = viewer !== null && viewer === actingAs;
   const hotseatName = mode === 'hotseat' && actingAs ? `${nameOf(actingAs)}, ` : '';

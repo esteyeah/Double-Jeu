@@ -4,7 +4,7 @@ import type { StageSkin } from '@arcade/tabletop';
 import { cauldron } from '@arcade/cauldron';
 import CauldronBoard, { skin as cauldronSkin } from '@arcade/cauldron/client';
 import { compass } from '@arcade/compass';
-import CompassBoard from '@arcade/compass/client';
+import CompassBoard, { skin as compassSkin } from '@arcade/compass/client';
 import { court } from '@arcade/court';
 import CourtBoard, { skin as courtSkin } from '@arcade/court/client';
 import { cups } from '@arcade/cups';
@@ -50,7 +50,7 @@ const games: Record<string, ClientGame> = {
   court: { module: court, Board: CourtBoard, immersive: courtSkin },
   cauldron: { module: cauldron, Board: CauldronBoard, immersive: cauldronSkin },
   cups: { module: cups, Board: CupsBoard, immersive: cupsSkin },
-  compass: { module: compass, Board: CompassBoard },
+  compass: { module: compass, Board: CompassBoard, immersive: compassSkin },
 };
 
 export function getClientGame(id: string): ClientGame | undefined {

@@ -221,6 +221,9 @@ importers:
       '@arcade/protocol':
         specifier: workspace:*
         version: link:../../protocol
+      '@arcade/tabletop':
+        specifier: workspace:*
+        version: link:../../tabletop
       zod:
         specifier: ^4.6.7
         version: 4.6.7
