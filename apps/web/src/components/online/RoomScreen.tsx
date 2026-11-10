@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { NAME_MAX } from '@arcade/protocol';
+import { getClientGame } from '@/games/registry';
 import { getSocket, request, resetOnlineRoom, useOnline } from '@/lib/online';
 import { KEYS, storage } from '@/lib/storage';
 import { Button, ErrorNote, Panel } from '../ui/kit';
@@ -115,6 +116,11 @@ export function RoomScreen({ code }: { code: string }) {
         )}
       </Centered>
     );
+  }
+
+  // Jeux immersifs : en partie, le plateau occupe tout l'écran (chat et menu passent en panneaux).
+  if (room.status !== 'lobby' && getClientGame(room.gameId)?.immersive) {
+    return <OnlineGame room={room} snapshot={snapshot} me={playerId} onLeave={leave} />;
   }
 
   return (

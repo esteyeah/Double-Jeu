@@ -185,6 +185,10 @@ export function Home() {
           ))}
         </div>
       </section>
+      <footer className="mt-10 border-t border-line pt-4 text-xs leading-relaxed text-muted">
+        Icônes : <a className="underline underline-offset-2 hover:text-fg" href="https://game-icons.net" target="_blank" rel="noreferrer">game-icons.net</a>{' '}
+        (Lorc, Delapouite et contributeurs, CC BY 3.0). Textures : Poly Haven et ambientCG (CC0). Polices sous licence SIL OFL.
+      </footer>
     </main>
   );
 }

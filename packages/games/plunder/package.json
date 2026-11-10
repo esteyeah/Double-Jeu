@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@arcade/game-sdk": "workspace:*",
+    "@arcade/tabletop": "workspace:*",
     "zod": "^4.6.7"
   },
   "peerDependencies": {

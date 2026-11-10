@@ -11,7 +11,20 @@ import {
   type SetupExtras,
 } from '@arcade/game-sdk';
 import type { ClientGame } from '@/games/registry';
-import { Button, ErrorNote, ResultBanner } from '../ui/kit';
+import {
+  Drawer,
+  FullscreenButton,
+  HandoffScreen,
+  HudButton,
+  HudIcon,
+  ResultOverlay,
+  SoundButton,
+  Stage,
+  StageButton,
+  StagePill,
+  Toast,
+} from '../immersive/Stage';
+import { Button, ErrorNote, ResultBanner, Rules } from '../ui/kit';
 import { Handoff } from './Handoff';
 
 /**
@@ -96,6 +109,26 @@ export function LocalGame({
     setUnlockedFor(null); // après chaque action, l'écran privé se referme
   };
   const noop = () => {};
+
+  if (game.immersive) {
+    return (
+      <ImmersiveLocal
+        game={game}
+        state={state}
+        humans={humans}
+        expected={expected}
+        privacy={privacy}
+        pendingHuman={pendingHuman}
+        unlockedFor={unlockedFor}
+        onUnlock={setUnlockedFor}
+        error={error}
+        nameOf={nameOf}
+        play={play}
+        onReplay={onReplay}
+        onExit={onExit}
+      />
+    );
+  }
 
   // ── Un seul humain face à des bots : rien à lui cacher, il voit toujours ses informations. ──
   const solo = humans.length === 1 ? humans[0]! : null;
@@ -234,5 +267,162 @@ function PrivateBanner({ name }: { name: string }) {
     <div className="rounded-xl border border-accent/50 bg-accent/10 px-4 py-2 text-sm">
       Écran privé de <strong>{name}</strong> : ne le montre à personne.
     </div>
+  );
+}
+
+/** Partie sur un seul téléphone, en plein écran dans le décor du jeu. */
+function ImmersiveLocal({
+  game,
+  state,
+  humans,
+  expected,
+  privacy,
+  pendingHuman,
+  unlockedFor,
+  onUnlock,
+  error,
+  nameOf,
+  play,
+  onReplay,
+  onExit,
+}: {
+  game: ClientGame;
+  state: unknown;
+  humans: PlayerId[];
+  expected: PlayerId[];
+  privacy: boolean;
+  pendingHuman: PlayerId | null;
+  unlockedFor: PlayerId | null;
+  onUnlock: (id: PlayerId | null) => void;
+  error: string | null;
+  nameOf: (id: PlayerId) => string;
+  play: (by: PlayerId) => (move: unknown) => void;
+  onReplay: () => void;
+  onExit: () => void;
+}) {
+  const mod = game.module;
+  const { Board } = game;
+  const [menu, setMenu] = useState(false);
+  /** « Revoir mes informations secrètes » : qui, et a-t-il confirmé tenir le téléphone ? */
+  const [peek, setPeek] = useState<{ who: PlayerId; unlocked: boolean } | null>(null);
+  const result = mod.result(state);
+  const noop = () => {};
+  const solo = humans.length === 1 ? humans[0]! : null;
+
+  let handoff: { name: string; onReady: () => void; onCancel?: () => void } | null = null;
+  let board: { viewer: PlayerId | null; actingAs: PlayerId | null; send: (m: unknown) => void } | null = null;
+  let privateOf: PlayerId | null = null;
+
+  if (solo) {
+    const acting = !result && expected.includes(solo) ? solo : null;
+    board = { viewer: solo, actingAs: acting, send: acting ? play(solo) : noop };
+  } else if (peek) {
+    if (!peek.unlocked) {
+      handoff = { name: nameOf(peek.who), onReady: () => setPeek({ ...peek, unlocked: true }), onCancel: () => setPeek(null) };
+    } else {
+      board = { viewer: peek.who, actingAs: null, send: noop };
+      privateOf = peek.who;
+    }
+  } else if (privacy && pendingHuman) {
+    if (unlockedFor !== pendingHuman) {
+      handoff = { name: nameOf(pendingHuman), onReady: () => onUnlock(pendingHuman) };
+    } else {
+      board = { viewer: pendingHuman, actingAs: pendingHuman, send: play(pendingHuman) };
+      privateOf = pendingHuman;
+    }
+  } else {
+    const actor = result ? null : pendingHuman;
+    board = { viewer: null, actingAs: actor, send: actor ? play(actor) : noop };
+  }
+
+  return (
+    <Stage
+      skin={game.immersive}
+      hud={
+        <>
+          <HudButton label="Menu" onClick={() => setMenu(true)}>
+            <HudIcon name="menu" />
+          </HudButton>
+          <SoundButton />
+          <FullscreenButton />
+        </>
+      }
+    >
+      {handoff ? (
+        <HandoffScreen gameName={mod.meta.name} {...handoff} />
+      ) : (
+        board && (
+          <Board
+            view={mod.view(state, board.viewer)}
+            viewer={board.viewer}
+            actingAs={board.actingAs}
+            mode="hotseat"
+            sendMove={board.send}
+          />
+        )
+      )}
+
+      {privateOf && (
+        <StagePill>
+          Écran privé de <strong>{nameOf(privateOf)}</strong>
+        </StagePill>
+      )}
+      {peek?.unlocked && (
+        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2">
+          <StageButton onClick={() => setPeek(null)} className="whitespace-nowrap px-6 shadow-2xl">
+            Cacher et rendre le téléphone
+          </StageButton>
+        </div>
+      )}
+
+      {result && !handoff && (
+        <ResultOverlay
+          title={result.title}
+          detail={result.detail}
+          winners={result.winners.map(nameOf)}
+          outcome={solo ? (result.winners.includes(solo) ? 'win' : 'lose') : null}
+          actions={
+            <>
+              <StageButton onClick={onReplay}>Rejouer</StageButton>
+              <StageButton tone="secondary" onClick={onExit}>
+                Changer les joueurs
+              </StageButton>
+            </>
+          }
+        />
+      )}
+      {error && !handoff && <Toast tone="error">{error}</Toast>}
+
+      <Drawer title={mod.meta.name} open={menu} onClose={() => setMenu(false)}>
+        <div className="flex flex-col gap-4 p-4 text-sm">
+          {!solo && !result && !privacy && humans.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <div className="text-xs uppercase tracking-wide text-muted">Revoir mes informations secrètes</div>
+              <div className="flex flex-wrap gap-2">
+                {humans.map((id) => (
+                  <Button
+                    key={id}
+                    onClick={() => {
+                      setMenu(false);
+                      setPeek({ who: id, unlocked: false });
+                    }}
+                  >
+                    {nameOf(id)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+          <Rules rules={mod.meta.rules} open />
+          <Button
+            onClick={() => {
+              if (result || window.confirm('Quitter la partie en cours ?')) onExit();
+            }}
+          >
+            Quitter la partie
+          </Button>
+        </div>
+      </Drawer>
+    </Stage>
   );
 }

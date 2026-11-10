@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
+import type { StageSkin } from '@arcade/tabletop';
 import { cauldron } from '@arcade/cauldron';
 import CauldronBoard from '@arcade/cauldron/client';
 import { compass } from '@arcade/compass';
@@ -13,9 +14,9 @@ import ExpeditionBoard from '@arcade/expedition/client';
 import { interrogation } from '@arcade/interrogation';
 import InterrogationBoard from '@arcade/interrogation/client';
 import { plunder } from '@arcade/plunder';
-import PlunderBoard from '@arcade/plunder/client';
+import PlunderBoard, { skin as plunderSkin } from '@arcade/plunder/client';
 import { reactor } from '@arcade/reactor';
-import ReactorBoard from '@arcade/reactor/client';
+import ReactorBoard, { skin as reactorSkin } from '@arcade/reactor/client';
 import { throne } from '@arcade/throne';
 import ThroneBoard from '@arcade/throne/client';
 
@@ -24,14 +25,27 @@ export interface ClientGame {
   module: AnyGameModule;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Board: ComponentType<BoardProps<any, any>>;
+  /**
+   * Plateau immersif : le jeu occupe tout l'écran avec son propre décor (le site s'efface),
+   * et les écrans communs (passage du téléphone, fin de partie, menus) prennent son habillage.
+   */
+  immersive?: StageSkin;
 }
 
 /** Jeux jouables. Ajouter un jeu = une entrée ici + une dans le registre du serveur. */
 const games: Record<string, ClientGame> = {
-  reactor: { module: reactor, Board: ReactorBoard },
+  reactor: {
+    module: reactor,
+    Board: ReactorBoard,
+    immersive: reactorSkin,
+  },
   interrogation: { module: interrogation, Board: InterrogationBoard },
   throne: { module: throne, Board: ThroneBoard },
-  plunder: { module: plunder, Board: PlunderBoard },
+  plunder: {
+    module: plunder,
+    Board: PlunderBoard,
+    immersive: plunderSkin,
+  },
   expedition: { module: expedition, Board: ExpeditionBoard },
   court: { module: court, Board: CourtBoard },
   cauldron: { module: cauldron, Board: CauldronBoard },
@@ -114,7 +128,7 @@ export const catalog: CatalogEntry[] = [
   {
     id: 'plunder',
     name: 'Butin',
-    tagline: 'Poudre sèche ou mouillée : les pirates se partagent le trésor, pistolet au poing.',
+    tagline: 'Pistolet chargé ou balle à blanc : les pirates se partagent le trésor, arme au poing.',
     players: '3–8',
     ready: true,
     accent: 'from-good/30',

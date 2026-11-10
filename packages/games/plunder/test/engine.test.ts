@@ -43,7 +43,7 @@ function lootCount(s: PlunderState): number {
 }
 
 describe('Butin — mise en place et secrets', () => {
-  it('64 objets, 8 sur le pont, 3 charges sèches et 5 mouillées par pirate', () => {
+  it('64 objets, 8 sur le pont, 3 balles réelles et 5 à blanc par pirate', () => {
     const s = setup(5);
     expect(DECK_SIZE).toBe(64);
     expect(s.deckOnBoard).toHaveLength(8);

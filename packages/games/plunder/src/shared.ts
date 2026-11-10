@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { LogEntry, PlayerId, PlayerInfo } from '@arcade/game-sdk';
 
+/** `dry` : pistolet chargé (balle réelle) ; `wet` : balle à blanc. */
 export type Charge = 'dry' | 'wet';
 export type LootKind = 'coin' | 'pearl' | 'map' | 'rum' | 'powder' | 'bicorne';
 export type Phase = 'prepare' | 'order' | 'courage' | 'loot' | 'over';
@@ -86,7 +87,7 @@ export interface PlunderState {
   turn: number;
   deck: LootItem[];
   deckOnBoard: LootItem[];
-  /** Objets consommés (rhum bu, poudre ajoutée, bicorne porté). */
+  /** Objets consommés (rhum bu, munitions ajoutées, bicorne porté). */
   used: LootItem[];
   log: LogEntry[];
 }
@@ -99,7 +100,7 @@ export interface PirateView {
   isBot: boolean;
   wounds: number;
   sunk: boolean;
-  /** Charges restantes (le nombre est public, pas leur nature). */
+  /** Balles restantes (le nombre est public, pas leur nature). */
   charges: number;
   loot: LootItem[];
   score: number;
@@ -148,7 +149,7 @@ export const LOOT_LABEL: Record<LootKind, string> = {
   pearl: 'Perle',
   map: 'Fragment de carte',
   rum: 'Rhum',
-  powder: 'Poudre sèche',
+  powder: 'Munitions',
   bicorne: 'Bicorne',
 };
 

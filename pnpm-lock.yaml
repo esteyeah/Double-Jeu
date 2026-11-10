@@ -107,9 +107,27 @@ importers:
       '@arcade/reactor':
         specifier: workspace:*
         version: link:../../packages/games/reactor
+      '@arcade/tabletop':
+        specifier: workspace:*
+        version: link:../../packages/tabletop
       '@arcade/throne':
         specifier: workspace:*
         version: link:../../packages/games/throne
+      '@fontsource/im-fell-english':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/orbitron':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/pirata-one':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/rajdhani':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/share-tech-mono':
+        specifier: ^5.3.0
+        version: 5.3.0
       next:
         specifier: ^16.4.5
         version: 16.4.5(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -298,6 +316,9 @@ importers:
       '@arcade/game-sdk':
         specifier: workspace:*
         version: link:../../game-sdk
+      '@arcade/tabletop':
+        specifier: workspace:*
+        version: link:../../tabletop
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -320,6 +341,9 @@ importers:
       '@arcade/game-sdk':
         specifier: workspace:*
         version: link:../../game-sdk
+      '@arcade/tabletop':
+        specifier: workspace:*
+        version: link:../../tabletop
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -368,6 +392,21 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+
+  packages/tabletop:
+    devDependencies:
+      '@iconify-json/game-icons':
+        specifier: ^1.2.0
+        version: 1.2.4
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -692,6 +731,27 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource/im-fell-english@5.3.0':
+    resolution: {integrity: sha512-FcgdWfY9WeUM2gQkfmwhn4Ed9LVtlll8LSSZvHfbsUrnHK5tHHnGg6BgwAfHogp52adU3eE89J/3B52qV3b+Vw==}
+
+  '@fontsource/orbitron@5.3.0':
+    resolution: {integrity: sha512-+BhPsbUAo/AF7sRcf+TEexm+EWWkgTiR9Zwb7AhYIPkc5oplfvw0C45Oc2xlKPhwVEmxG8hHuA6/Ansbl+Bc6w==}
+
+  '@fontsource/pirata-one@5.3.0':
+    resolution: {integrity: sha512-qeaDy+F+TcCVdODaIvD4U0ZoaWPejpkXwHAAHIBtauwP/9mf+Sj8ORX5UYcnBpnyhd7ihYPpW+WWPbz9FryrJQ==}
+
+  '@fontsource/rajdhani@5.3.0':
+    resolution: {integrity: sha512-oBJgSIibWJvVBKseme1JczqPLoDHN97LHti4uh0LjfcJqQoVmnQQlRKIpEjTJV559rmVQ6qbVZZwKwk2wkBTtw==}
+
+  '@fontsource/share-tech-mono@5.3.0':
+    resolution: {integrity: sha512-hVEzVCzEid/fBfhggMyvkfDzn9ODrMihxC0EiOeQK3BuQNvdjmith2ERnoDNUkbW8zhufbKNuCgaSoT8LUNpuQ==}
+
+  '@iconify-json/game-icons@1.2.4':
+    resolution: {integrity: sha512-/HDDZxowXgDJcOEwPspUCq5RuDdl25OyZKdtxqqiPJQNTrWIym7r4StLzIVs77DyNzOWWhH5wDqwYR3WHeDfkg==}
+
+  '@iconify/types@2.0.0':
+    resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -2110,6 +2170,22 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@fontsource/im-fell-english@5.3.0': {}
+
+  '@fontsource/orbitron@5.3.0': {}
+
+  '@fontsource/pirata-one@5.3.0': {}
+
+  '@fontsource/rajdhani@5.3.0': {}
+
+  '@fontsource/share-tech-mono@5.3.0': {}
+
+  '@iconify-json/game-icons@1.2.4':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify/types@2.0.0': {}
 
   '@img/colour@1.1.0':
     optional: true

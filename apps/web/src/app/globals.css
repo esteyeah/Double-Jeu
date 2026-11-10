@@ -39,6 +39,15 @@
   }
 }
 
+@keyframes drawer {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
 @keyframes pop {
   from {
     transform: scale(0.96);

@@ -15,6 +15,7 @@ const config: NextConfig = {
     '@arcade/cauldron',
     '@arcade/cups',
     '@arcade/compass',
+    '@arcade/tabletop',
   ],
 };
 

@@ -24,7 +24,7 @@ export const plunderMeta: GameMeta = {
   records: [{ key: 'loot', label: 'Plus gros butin en une partie', unit: 'doublons' }],
   id: 'plunder',
   name: 'Butin',
-  tagline: 'Pistolets chargés ou poudre mouillée : les pirates se partagent le trésor.',
+  tagline: 'Pistolet chargé ou balle à blanc : les pirates se partagent le trésor, arme au poing.',
   minPlayers: 3,
   maxPlayers: 8,
   durationMinutes: [20, 35],
@@ -43,11 +43,11 @@ export const plunderMeta: GameMeta = {
   hotseatDefaults: { courage: 'table' },
   rules: [
     'Abordage réussi ! Les pirates se partagent le trésor… mais personne n’a envie de partager. À chaque manche, un nouveau butin est déposé sur le pont.',
-    `Chaque pirate possède ${START_DRY + START_WET} charges de poudre : ${START_DRY} sèches (le coup part) et ${START_WET} mouillées (pschitt). Au début de chaque manche, chacun choisit en secret une charge et le pirate qu’il vise.`,
-    'Les visées sont révélées. Le Capitaine peut forcer un pirate qui le vise à viser quelqu’un d’autre. Puis chacun décide : tenir bon ou plonger dans la cale. Ceux qui plongent ne risquent rien… mais ne prennent rien, et leur charge reste secrète.',
-    `On tire ! Chaque charge sèche blesse sa cible ; un pirate touché ne participe pas au partage. À ${MAX_WOUNDS} blessures, il est coulé et ne peut plus gagner.`,
+    `Chaque pirate possède ${START_DRY + START_WET} balles : ${START_DRY} réelles et ${START_WET} à blanc. Au début de chaque manche, chacun charge en secret son pistolet (pistolet chargé ou balle à blanc) et choisit le pirate qu’il vise.`,
+    'Les visées sont révélées. Le Capitaine peut forcer un pirate qui le vise à viser quelqu’un d’autre. Puis chacun décide : tenir bon ou plonger dans la cale. Ceux qui plongent ne risquent rien… mais ne prennent rien, et leur balle reste secrète.',
+    `On tire ! Chaque pistolet chargé blesse sa cible (une balle à blanc ne fait que du bruit) ; un pirate touché ne participe pas au partage. À ${MAX_WOUNDS} blessures, il est coulé et ne peut plus gagner.`,
     'Les pirates indemnes se servent un objet chacun à leur tour, en commençant par le Capitaine, jusqu’à ce que le pont soit vide. Ce que personne ne prend reste pour la manche suivante.',
-    `Doublons (5, 10 ou 20) ; perles (${PEARL_VALUE} chacune, +${PEARL_BONUS} pour le plus gros collier) ; fragments de carte (1 : 5, 2 : 15, 3 : 30, 4 : 50, puis +25 chacun) ; rhum (soigne une blessure, sinon vaut ${RUM_VALUE}) ; poudre sèche (une charge sèche en plus) ; bicorne (tu seras Capitaine à la manche suivante). Après ${ROUNDS} manches, le pirate encore à flot le plus riche gagne.`,
+    `Doublons (5, 10 ou 20) ; perles (${PEARL_VALUE} chacune, +${PEARL_BONUS} pour le plus gros collier) ; fragments de carte (1 : 5, 2 : 15, 3 : 30, 4 : 50, puis +25 chacun) ; rhum (soigne une blessure, sinon vaut ${RUM_VALUE}) ; munitions (une balle réelle en plus) ; bicorne (tu seras Capitaine à la manche suivante). Après ${ROUNDS} manches, le pirate encore à flot le plus riche gagne.`,
   ],
 };
 
@@ -121,13 +121,13 @@ function revealAims(s: PlunderState): void {
   s.phase = aimedAtCaptain && standing(s).length >= 3 ? 'order' : 'courage';
 }
 
-/** On tire : charges sèches des pirates restés debout, sur des cibles restées debout. */
+/** On tire : balles réelles des pirates restés debout, sur des cibles restées debout. */
 function resolve(s: PlunderState): void {
   s.shots = [];
   s.hit = [];
   const wounds: Record<PlayerId, number> = {};
   for (const shooter of fromSeat(s, s.captain, (id) => afloat(s, id))) {
-    if (s.fled[shooter]) continue; // sa charge reste secrète
+    if (s.fled[shooter]) continue; // sa balle reste secrète
     const target = s.aims[shooter] as PlayerId;
     const charge = s.prepared[shooter]!.charge;
     const hit = charge === 'dry' && !s.fled[target];
@@ -140,7 +140,7 @@ function resolve(s: PlunderState): void {
     log(
       s,
       `${nameOf(s, shot.shooter)} tire sur ${nameOf(s, shot.target)} : ${
-        shot.charge === 'wet' ? 'pschitt…' : shot.hit ? 'PAN !' : 'PAN… dans le vide !'
+        shot.charge === 'wet' ? 'clic… balle à blanc' : shot.hit ? 'PAN !' : 'PAN… dans le vide !'
       }`,
     );
   }
@@ -260,8 +260,8 @@ export const plunder = defineGame<PlunderState, PlunderMove, PlunderView, Plunde
         if (s.phase !== 'prepare') return "Ce n'est pas le moment de charger.";
         if (Object.hasOwn(s.prepared, by)) return 'Tu as déjà chargé.';
         const pirate = s.pirates[by]!;
-        if (move.charge === 'dry' && pirate.dry === 0) return 'Plus de poudre sèche.';
-        if (move.charge === 'wet' && pirate.wet === 0) return 'Plus de poudre mouillée.';
+        if (move.charge === 'dry' && pirate.dry === 0) return 'Plus de balle réelle.';
+        if (move.charge === 'wet' && pirate.wet === 0) return 'Plus de balle à blanc.';
         if (move.target === by || !afloat(s, move.target)) return 'Vise un autre pirate encore à flot.';
         return null;
       }
@@ -334,7 +334,7 @@ export const plunder = defineGame<PlunderState, PlunderMove, PlunderView, Plunde
         } else if (item.kind === 'powder') {
           pirate.dry++;
           s.used.push(item);
-          note = ' : une charge sèche de plus';
+          note = ' : une balle réelle de plus';
         } else if (item.kind === 'bicorne') {
           s.nextCaptain = by;
           s.used.push(item);

@@ -129,6 +129,7 @@ apps/
   server/     Node + Socket.io : seule source de vérité des parties en ligne
 packages/
   game-sdk/   Contrat GameModule, hasard (crypto / graine), runtime commun, simulateur
+  tabletop/   Kit des plateaux immersifs : icônes, sons de synthèse, ambiances, habillage des écrans communs
   protocol/   Événements Socket.io typés + schémas Zod
   games/
     reactor/        Moteur pur, bot, plateau React, tests
@@ -182,11 +183,31 @@ Dans `meta` : `supportsBots: false` pour un jeu de parole (le lobby masque alors
 
 Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `text-muted`, `text-tech`…) définis dans `apps/web/src/app/globals.css`.
 
+### Plateau immersif
+
+Un jeu peut occuper tout l'écran dans son propre univers (Butin, Réacteur) : le site s'efface, il ne reste que
+quatre boutons flottants (discussion, menu, son, plein écran).
+
+- `client/theme.ts` : la feuille de style du jeu (décor, matières, animations), injectée avec `<style href precedence>`.
+- `client/skin.tsx` : un `StageSkin` (`@arcade/tabletop`) qui habille aussi les écrans communs : passage du
+  téléphone, fin de partie (victoire ou défaite du joueur), discussion et menu (les jetons de couleur du site y sont
+  redéfinis), messages. L'exporter depuis `client/Board.tsx` et le déclarer dans le registre : `immersive: skin`.
+- Textures dans `apps/web/public/themes/<id>/`, icônes de [game-icons.net](https://game-icons.net)
+  (`pnpm --filter @arcade/tabletop icons` après avoir complété la liste dans `packages/tabletop/scripts/icons.mjs`),
+  sons et ambiances synthétisés en direct (`sfx`, `useAmbient`) : aucun fichier audio.
+
 ## Déploiement
 
 - **Tout-en-un (Render ou tout hébergeur Node)** : build avec `NEXT_PUBLIC_SERVER_URL=same-origin pnpm build`, puis `node scripts/play.mjs --no-build`. Le service écoute sur `PORT`. Voir `render.yaml`.
 - **Serveur** : `pnpm --filter @arcade/server build` puis `node apps/server/dist/index.js`. Variables : `PORT`, `CORS_ORIGIN` (origines autorisées, séparées par des virgules ; obligatoire en production), `DATABASE_URL` (PostgreSQL), `ADMIN_USERS` (pseudos administrateurs). Il faut un hébergeur qui garde les WebSockets ouverts : Fly.io, Railway, Render, VPS…
 - **Front** : Vercel ou `next start`. Variable : `NEXT_PUBLIC_SERVER_URL`, l'URL publique du serveur de jeu.
+
+## Crédits
+
+- Icônes : [game-icons.net](https://game-icons.net), par Lorc, Delapouite et leurs contributeurs, sous licence
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) (colorées et mises en relief pour les plateaux).
+- Textures : [Poly Haven](https://polyhaven.com) et [ambientCG](https://ambientcg.com), domaine public (CC0), retouchées.
+- Polices : Pirata One, IM Fell English, Orbitron, Rajdhani, Share Tech Mono (SIL Open Font License), servies par le site.
 
 ## Limites actuelles
 
