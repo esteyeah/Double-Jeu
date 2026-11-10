@@ -104,5 +104,14 @@ button.rx-hatch[aria-pressed=true]{transform:translateY(-5px);box-shadow:inset 0
   background:linear-gradient(180deg,rgba(6,14,19,.93),rgba(3,8,12,.97)),url(/themes/reactor/panel.jpg) center/420px;box-shadow:-20px 0 60px rgba(0,0,0,.65)}
 .rx-ui-pill{font-family:'Share Tech Mono',ui-monospace,monospace;font-size:12.5px;letter-spacing:.05em;color:#bff7ff;padding:8px 12px;border-radius:8px;
   background:radial-gradient(120% 120% at 50% 0%,#0d2a33,#03090c);box-shadow:inset 0 0 0 1px rgba(88,243,255,.4),0 0 18px rgba(88,243,255,.18),0 6px 16px rgba(0,0,0,.5)}
+/* Annonces plein écran */
+.rx-banner{position:relative;isolation:isolate;width:min(780px,100%);padding:20px 12px 18px;text-align:center;animation:rx-banner 2s cubic-bezier(.2,.8,.2,1) both;font-family:'Rajdhani','Segoe UI',system-ui,sans-serif}
+.rx-banner::before{content:'';position:absolute;inset:0 -40vw;z-index:-1;background:linear-gradient(90deg,transparent,rgba(3,8,12,.92) 22%,rgba(3,8,12,.92) 78%,transparent);
+  border-top:1px solid rgba(88,243,255,.45);border-bottom:1px solid rgba(88,243,255,.45);box-shadow:0 0 40px rgba(88,243,255,.15)}
+.rx-banner .k{font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:#9fdfe8}
+.rx-banner .s{margin-top:6px;color:#dfe8f2;font-size:1.15rem}
+.rx-bigcard{display:inline-block;transform:scale(1.9);margin:30px 0 22px;animation:rx-slam .55s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes rx-slam{from{transform:scale(3) rotateY(90deg);opacity:0}to{transform:scale(1.9);opacity:1}}
+@keyframes rx-banner{0%{opacity:0;transform:scale(1.08)}12%{opacity:1;transform:none}82%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
 @media (prefers-reduced-motion:reduce){.rx *{animation:none!important;transition:none!important}}
 `;

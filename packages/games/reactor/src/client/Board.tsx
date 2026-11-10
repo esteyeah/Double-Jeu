@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import { RichIcon, sfx, useAmbient, useOnChange } from '@arcade/tabletop';
+import { Cinematic, RichIcon, sfx, useAmbient, useOnChange } from '@arcade/tabletop';
 import {
   ROLE_LABEL,
   type CardKind,
@@ -148,6 +148,10 @@ export default function ReactorBoard({ view, viewer, actingAs, mode, sendMove }:
         </div>
       )}
 
+      <Cinematic trigger={bannerKey(view)} onMount={mode !== 'hotseat'} duration={view.reveals.length && view.phase !== 'reveal' ? 2000 : 2200}>
+        <ReactorBanner view={view} nameOf={nameOf} />
+      </Cinematic>
+
       {flash && (
         <div
           className="rx-flash"
@@ -161,6 +165,51 @@ export default function ReactorBoard({ view, viewer, actingAs, mode, sendMove }:
           }}
         />
       )}
+    </div>
+  );
+}
+
+// ───────── Annonces ─────────
+
+/** Une nouvelle trappe ouverte, ou une nouvelle manche (le reste du temps, la clé ne change rien). */
+function bannerKey(view: ReactorView): string {
+  if (view.phase === 'reveal') return `round-${view.round}`;
+  return view.reveals.length ? `cut-${view.reveals.length}` : `round-${view.round}`;
+}
+
+function ReactorBanner({ view, nameOf }: { view: ReactorView; nameOf: (id: PlayerId) => string }) {
+  const last = view.reveals.at(-1);
+  if (view.phase === 'reveal' || !last || last.round !== view.round || view.cutsThisRound === 0) {
+    if (view.phase !== 'reveal') return null;
+    return (
+      <div className="rx-banner">
+        <div className="k">
+          Manche {view.round} sur {view.rounds}
+        </div>
+        <div className="rx-title rx-glow text-[2rem] sm:text-5xl">{view.round === 1 ? 'Démarrage du cœur' : 'Nouvelles trappes'}</div>
+        <div className="s">{view.round === 1 ? 'Chacun découvre son rôle et ses trappes, en secret.' : 'Les trappes encore fermées sont mélangées et redistribuées.'}</div>
+      </div>
+    );
+  }
+  const tone = last.kind === 'overload' ? 'rx-redglow' : last.kind === 'rod' ? 'rx-glow' : 'text-[#c9d3de]';
+  return (
+    <div className="rx-banner">
+      <div className="k">
+        {nameOf(last.by)} ouvre une trappe de {nameOf(last.target)}
+      </div>
+      <div className="my-3 flex justify-center">
+        <span className="rx-bigcard">
+          <OpenHatch kind={last.kind} />
+        </span>
+      </div>
+      <div className={`rx-title text-[2rem] sm:text-5xl ${tone}`}>{last.kind === 'overload' ? 'Surcharge !' : last.kind === 'rod' ? 'Barre de contrôle !' : 'Conduit vide'}</div>
+      <div className="s">
+        {last.kind === 'rod'
+          ? `${view.rodsFound} barre${view.rodsFound > 1 ? 's' : ''} sur ${view.rodsTotal} : le cœur se stabilise.`
+          : last.kind === 'overload'
+            ? 'Le cœur entre en fusion !'
+            : `Ouverture ${view.cutsThisRound} sur ${view.cutsPerRound} de la manche.`}
+      </div>
     </div>
   );
 }
