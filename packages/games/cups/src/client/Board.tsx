@@ -1,19 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import {
-  FACES,
-  FACE_NAME,
-  bidText,
-  countFace,
-  minQuantity,
-  wild,
-  type CupsMove,
-  type CupsView,
-  type Face,
-  type Reveal,
-} from '../shared';
+import { Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, type GameIconName } from '@arcade/tabletop';
+import { FACES, FACE_NAME, bidText, countFace, minQuantity, wild, type CupsMove, type CupsPlayerView, type CupsView, type Face, type Reveal } from '../shared';
+import { CUPS_CSS } from './theme';
+
+export { skin } from './skin';
 
 type Props = BoardProps<CupsView, CupsMove>;
 type NameOf = (id: PlayerId | null) => string;
@@ -24,30 +17,85 @@ export default function CupsBoard({ view, viewer, actingAs, mode, sendMove }: Pr
   const privateView = viewer !== null && viewer === actingAs;
   const actor = view.players.find((p) => p.id === actingAs);
   const hotseatName = mode === 'hotseat' && actor ? `${actor.name}, ` : '';
+  const wide = useMediaQuery('(min-width: 1024px)');
+  useAmbient('hearth');
+
+  // Nouvelle manche : on secoue les gobelets.
+  const [shake, setShake] = useState(0);
+  useOnChange(view.round, () => {
+    sfx.dice(0, 0.7);
+    setShake((n) => n + 1);
+  });
+  useOnChange(view.history.length, (prev) => {
+    if (view.history.length > prev) sfx.knock(0, 0.35);
+  });
+  // Gobelets levés : on crie, on frappe la table.
+  const shout = useRef('');
+  if (view.reveal) shout.current = `${view.round}-${view.reveal.caller}-${view.reveal.call}`;
+  useOnChange(view.phase, (prev) => {
+    if (view.phase === 'reveal' || (view.phase === 'over' && prev === 'bid')) {
+      sfx.knock(0, 0.6);
+      sfx.knock(0.15, 0.6);
+      sfx.drum(0.45, 1);
+    }
+  });
+
+  let action: ReactNode = null;
+  if (view.phase === 'bid' && actor && !actor.out && actingAs === view.active && privateView && me)
+    action = <BidPanel view={view} title={`${hotseatName}à toi d’enchérir`} sendMove={sendMove} />;
+  else if (view.reveal && view.phase !== 'bid')
+    action = <RevealPanel view={view} reveal={view.reveal} nameOf={nameOf} canContinue={view.phase === 'reveal' && actingAs === view.starter} onNext={() => sendMove({ type: 'next' })} />;
 
   return (
-    <div className="flex flex-col gap-4">
-      <Header view={view} nameOf={nameOf} />
-      <Banner view={view} nameOf={nameOf} actingAs={actingAs} />
-      {view.phase === 'bid' && <CurrentBid view={view} nameOf={nameOf} />}
+    <div className="go">
+      <style href="arcade-cups-v1" precedence="default">
+        {CUPS_CSS}
+      </style>
+      <div className="go-wall" />
+      <div className="go-light" />
 
-      {me && privateView && view.phase === 'bid' && <MyCup dice={me.dice} view={view} />}
-      {view.phase === 'bid' && actor && !actor.out && actingAs === view.active && privateView && me && (
-        <BidPanel view={view} title={`${hotseatName}à toi d’enchérir`} sendMove={sendMove} />
-      )}
-      {view.reveal && view.phase !== 'bid' && (
-        <RevealPanel
-          view={view}
-          reveal={view.reveal}
-          nameOf={nameOf}
-          canContinue={view.phase === 'reveal' && actingAs === view.starter}
-          onNext={() => sendMove({ type: 'next' })}
-        />
-      )}
+      <header className="relative px-3 pt-[3.6rem] text-center sm:pt-4">
+        <div className="go-sign">
+          <span className="flex items-center gap-2">
+            <RichIcon name="beer-stein" metal="brass" size={wide ? 34 : 26} />
+            <span className="go-title go-amber text-[2rem] leading-none sm:text-[2.5rem]">Gobelets</span>
+            <RichIcon name="rolling-dice-cup" metal="copper" size={wide ? 34 : 26} />
+          </span>
+          <span className="mt-1 flex gap-4 text-[14px] text-[#e9d3a8]">
+            <span>
+              <span>Manche</span> <strong className="go-num">{view.round}</strong>
+            </span>
+            <span>
+              <strong className="go-num">{view.totalDice}</strong> dés en jeu
+            </span>
+          </span>
+        </div>
+      </header>
+      <div className="mx-auto w-[min(1240px,calc(100%-20px))]">
+        <Instruction {...instructionFor(view, actingAs, privateView, mode, nameOf)} />
+        {view.dry && view.phase === 'bid' && (
+          <div className="go-dry">Manche sèche : les As ne sont pas jokers{view.bid ? ` et la valeur reste ${FACE_NAME[view.bid.face]}` : ''}.</div>
+        )}
+      </div>
 
-      <Table view={view} viewer={viewer} nameOf={nameOf} />
-      <Reference view={view} />
-      <Journal lines={view.log} />
+      <div className="mx-auto mt-4 grid w-[min(1240px,calc(100%-20px))] gap-x-6 gap-y-4 pb-16 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
+        <div className="flex flex-col gap-4 lg:col-start-2 lg:row-start-1">
+          {me && privateView && view.phase === 'bid' && <MyCup dice={me.dice} view={view} shake={shake} />}
+          {action}
+        </div>
+        <div className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+          <Tavern view={view} viewer={viewer} wide={wide} nameOf={nameOf} shake={shake} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-2">
+          {view.phase === 'bid' && view.history.length > 1 && <Bids view={view} nameOf={nameOf} />}
+          <Reference view={view} />
+          <Journal lines={view.log} open={wide} />
+        </div>
+      </div>
+
+      <Cinematic trigger={shout.current || 'calm'} onMount={false} duration={2200}>
+        {view.reveal && <ShoutBanner reveal={view.reveal} nameOf={nameOf} />}
+      </Cinematic>
     </div>
   );
 }
@@ -62,124 +110,187 @@ const PIPS: Record<Face, number[]> = {
   5: [0, 2, 4, 6, 8],
   6: [0, 2, 3, 5, 6, 8],
 };
-const DIE_SIZE = { sm: 'h-6 w-6 p-[3px] rounded-md', md: 'h-10 w-10 p-1.5 rounded-lg', lg: 'h-12 w-12 p-2 rounded-xl' };
-const PIP_SIZE = { sm: 'h-1 w-1', md: 'h-1.5 w-1.5', lg: 'h-2 w-2' };
 
-function Die({ face, size = 'md', hit = false, dim = false }: { face: Face; size?: keyof typeof DIE_SIZE; hit?: boolean; dim?: boolean }) {
-  const ace = face === 1;
+function Die({ face, size = 40, hit = false, dim = false, roll = false, delay = 0 }: { face: Face; size?: number; hit?: boolean; dim?: boolean; roll?: boolean; delay?: number }) {
   return (
     <span
       role="img"
       aria-label={FACE_NAME[face]}
-      className={`inline-grid shrink-0 grid-cols-3 grid-rows-3 border-2 transition ${DIE_SIZE[size]} ${
-        hit ? 'border-good bg-good/15' : ace ? 'border-key/70 bg-key/10' : 'border-line bg-fg/90'
-      } ${dim ? 'opacity-35' : ''}`}
+      className={`go-die ${face === 1 ? 'ace' : ''} ${hit ? 'hit' : ''} ${dim ? 'dim' : ''} ${roll ? 'go-roll' : ''}`}
+      style={{ width: size, height: size, padding: size * 0.14, '--pip': `${Math.max(3, size * (face === 1 ? 0.26 : 0.18))}px`, animationDelay: `${delay}s` } as CSSProperties}
     >
-      {Array.from({ length: 9 }, (_, i) => (
-        <span key={i} className="flex items-center justify-center">
-          {PIPS[face].includes(i) && (
-            <span className={`rounded-full ${PIP_SIZE[size]} ${hit ? 'bg-good' : ace ? 'bg-key' : 'bg-bg'} ${ace && size !== 'sm' ? 'scale-150' : ''}`} />
-          )}
-        </span>
-      ))}
+      {Array.from({ length: 9 }, (_, i) => (PIPS[face].includes(i) ? <i key={i} style={{ gridArea: `${Math.floor(i / 3) + 1} / ${(i % 3) + 1}` }} /> : null))}
     </span>
   );
 }
 
-/** Un dé caché sous un gobelet. */
-function Hidden({ size = 'sm' }: { size?: keyof typeof DIE_SIZE }) {
-  return <span className={`inline-block shrink-0 border border-line bg-[linear-gradient(135deg,#1d2640,#151c30)] ${DIE_SIZE[size]}`} />;
-}
+// ───────── Consigne ─────────
 
-// ───────── En-tête ─────────
-
-function Header({ view, nameOf }: { view: CupsView; nameOf: NameOf }) {
-  return (
-    <div className="grid grid-cols-3 gap-2">
-      <Stat label="Manche" value={`${view.round}`} />
-      <Stat label="Dés en jeu" value={`${view.totalDice}`} />
-      <Stat label={view.phase === 'bid' ? 'Au tour de' : 'Relance'} value={view.phase === 'over' ? '—' : nameOf(view.phase === 'bid' ? view.active : view.starter)} />
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-xl border border-line bg-surface px-3 py-2">
-      <div className="truncate text-[11px] uppercase tracking-wide text-muted">{label}</div>
-      <div className="truncate font-semibold tabular-nums">{value}</div>
-    </div>
-  );
-}
-
-function Banner({ view, nameOf, actingAs }: { view: CupsView; nameOf: NameOf; actingAs: PlayerId | null }) {
-  let text: string;
+function instructionFor(view: CupsView, actingAs: PlayerId | null, privateView: boolean, mode: Props['mode'], nameOf: NameOf): { icon: GameIconName; mine: boolean; text: ReactNode } {
+  const you = (rest: string) => (mode === 'hotseat' && actingAs ? `${nameOf(actingAs)}, ${rest}` : rest.charAt(0).toUpperCase() + rest.slice(1));
   if (view.phase === 'bid') {
-    const who = actingAs === view.active ? 'À toi' : nameOf(view.active);
-    text = view.bid
-      ? `${who} : surenchérir${view.config.exact ? ', crier « Menteur ! » ou « Pile ! »' : ' ou crier « Menteur ! »'}.`
-      : `${who} : ouvre la manche avec une première enchère.`;
-  } else if (view.phase === 'reveal') {
-    text = 'Gobelets levés ! Regardez les dés avant la manche suivante.';
-  } else {
-    text = `${nameOf(view.winner)} est le dernier à garder des dés.`;
+    const mine = actingAs === view.active && privateView;
+    if (!view.bid)
+      return mine
+        ? { icon: 'rolling-dice-cup', mine: true, text: you('ouvre la manche : annonce combien de dés d’une valeur il y a sous TOUS les gobelets.') }
+        : { icon: 'rolling-dice-cup', mine: false, text: `${nameOf(view.active)} ouvre la manche avec une première enchère.` };
+    return mine
+      ? {
+          icon: 'rolling-dice-cup',
+          mine: true,
+          text: you(`${nameOf(view.bid.by)} annonce ${bidText(view.bid)}. Monte l’enchère, ou crie « Menteur ! »${view.config.exact ? ' ou « Pile ! »' : ''}.`),
+        }
+      : { icon: 'rolling-dice-cup', mine: false, text: `${nameOf(view.active)} doit surenchérir sur ${bidText(view.bid)}… ou crier « Menteur ! ».` };
   }
+  if (view.phase === 'reveal') return { icon: 'hand', mine: false, text: 'Gobelets levés ! Regardez les dés sur la table avant la manche suivante.' };
+  return { icon: 'beer-stein', mine: false, text: `${nameOf(view.winner)} est le dernier à garder des dés : tournée générale !` };
+}
+
+function Instruction({ icon, mine, text }: { icon: GameIconName; mine: boolean; text: ReactNode }) {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="rounded-xl border border-key/40 bg-key/5 px-4 py-3 text-sm">{text}</div>
-      {view.dry && view.phase === 'bid' && (
-        <div className="rounded-xl border border-sabo/50 bg-sabo/5 px-4 py-2 text-sm text-sabo">
-          Manche sèche : les As ne sont pas jokers{view.bid ? ` et la valeur reste ${FACE_NAME[view.bid.face]}` : ''}.
-        </div>
+    <div className={`go-call ${mine ? 'is-mine' : ''}`}>
+      <span className="ic">
+        <RichIcon name={icon} metal="gold" size={26} />
+      </span>
+      <p>{text}</p>
+    </div>
+  );
+}
+
+// ───────── La table de la taverne ─────────
+
+function Tavern({ view, viewer, wide, nameOf, shake }: { view: CupsView; viewer: PlayerId | null; wide: boolean; nameOf: NameOf; shake: number }) {
+  return (
+    <section className="relative pb-7 lg:pb-3" aria-label="La table">
+      <h3 className="sr-only">La table</h3>
+      <RoundTable
+        ids={view.players.map((p) => p.id)}
+        me={viewer}
+        seat={wide ? { w: 132, h: 166 } : { w: 88, h: 132 }}
+        className={wide ? 'aspect-[1.3] max-h-[calc(100dvh-140px)] min-h-[500px]' : 'aspect-[0.84]'}
+        under={<div className="go-table" />}
+        center={<Slate view={view} nameOf={nameOf} />}
+        renderSeat={(id) => {
+          const p = view.players.find((x) => x.id === id)!;
+          return <Seat p={p} view={view} viewer={viewer} wide={wide} shake={shake} />;
+        }}
+      />
+    </section>
+  );
+}
+
+function Seat({ p, view, viewer, wide, shake }: { p: CupsPlayerView; view: CupsView; viewer: PlayerId | null; wide: boolean; shake: number }) {
+  const last = view.phase === 'bid' ? [...view.history].reverse().find((b) => b.by === p.id) : undefined;
+  const revealed = view.phase !== 'bid' ? view.reveal?.dice[p.id] : undefined;
+  const bid = view.reveal?.bid;
+  const hit = (d: Face) => !!bid && (d === bid.face || (d === 1 && wild(bid.face, view.reveal!.dry)));
+  const cup = wide ? 58 : 44;
+  const tiny = wide ? 18 : 14;
+  let chip: { text: string; tone: string } | null = null;
+  if (p.out) chip = { text: 'éliminé', tone: 'dim' };
+  else if (p.id === view.winner) chip = { text: 'vainqueur', tone: 'green' };
+  else if (view.reveal && view.phase === 'reveal' && view.reveal.loser === p.id) chip = { text: '−1 dé', tone: 'red' };
+  else if (view.reveal && view.phase === 'reveal' && view.reveal.gainer === p.id) chip = { text: '+1 dé', tone: 'green' };
+  else if (p.id === view.active && view.phase === 'bid') chip = { text: 'enchérit…', tone: 'gold' };
+  return (
+    <div className={`go-seat ${p.id === view.active && view.phase === 'bid' ? 'is-active' : ''} ${p.id === viewer ? 'is-me' : ''} ${p.out ? 'is-out' : ''}`} style={{ width: wide ? 132 : 88 }}>
+      {chip && <span className={`go-chip tone-${chip.tone}`}>{chip.text}</span>}
+      <span className="relative flex items-end justify-center" style={{ height: cup * 1.05 }}>
+        {!p.out && <span key={shake} className={`go-cup ${revealed ? 'lift' : shake ? 'shake' : ''}`} style={{ width: cup, height: cup }} />}
+      </span>
+      <span className="go-plate">
+        <span className="go-name">{p.name}</span>
+        {(p.id === viewer || p.isBot) && <span className="go-tag">{p.id === viewer ? 'toi' : 'bot'}</span>}
+      </span>
+      {revealed ? (
+        <span className="flex max-w-full flex-wrap justify-center gap-[3px]">
+          {revealed.map((d, i) => (
+            <Die key={i} face={d} size={tiny} hit={hit(d)} dim={!hit(d)} roll delay={i * 0.05} />
+          ))}
+        </span>
+      ) : (
+        !p.out && (
+          <span className="flex flex-wrap justify-center gap-[3px]" aria-label={`${p.dice} dé${p.dice > 1 ? 's' : ''}`}>
+            {Array.from({ length: p.dice }, (_, i) => (
+              <span key={i} className="go-hidden" style={{ width: tiny - 2, height: tiny - 2 }} />
+            ))}
+          </span>
+        )
+      )}
+      {last && (
+        <span className="go-bubble">
+          {last.quantity} × <Die face={last.face} size={14} />
+        </span>
       )}
     </div>
   );
 }
 
-function CurrentBid({ view, nameOf }: { view: CupsView; nameOf: NameOf }) {
+function Slate({ view, nameOf }: { view: CupsView; nameOf: NameOf }) {
+  if (view.phase === 'over') {
+    return (
+      <div className="go-slate">
+        <RichIcon name="beer-stein" metal="brass" size={48} />
+        <span className="chalk text-[1.1rem]">{nameOf(view.winner)} l’emporte</span>
+      </div>
+    );
+  }
+  if (view.phase === 'reveal' && view.reveal) {
+    const r = view.reveal;
+    const held = r.bid.quantity <= r.count;
+    return (
+      <div className="go-slate">
+        <span className="chalk text-[13px]">Il y en avait</span>
+        <span className="flex items-center gap-2">
+          <span className="go-num text-[2rem]" style={{ color: held ? '#9ff0bd' : '#ff8a7a' }}>
+            {r.count}
+          </span>
+          <Die face={r.bid.face} size={30} />
+        </span>
+        <span className="chalk text-[13px]">pour {r.bid.quantity} annoncés</span>
+      </div>
+    );
+  }
   const bid = view.bid;
   return (
-    <section className="rounded-2xl border border-line bg-surface p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Enchère en cours</div>
+    <div className="go-slate">
+      <span className="chalk text-[13px]">{bid ? 'Enchère en cours' : 'Nouvelle manche'}</span>
       {bid ? (
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <span className="text-3xl font-bold tabular-nums">{bid.quantity} ×</span>
-          <Die face={bid.face} size="lg" />
-          <span className="min-w-0 text-sm text-muted">
-            par {nameOf(bid.by)}
-            {wild(bid.face, view.dry) && <span className="block text-xs">As compris</span>}
+        <>
+          <span className="flex items-center gap-2">
+            <span className="go-num text-[2.1rem] leading-none">{bid.quantity} ×</span>
+            <Die face={bid.face} size={38} />
           </span>
-        </div>
+          <span className="chalk text-[13px]">
+            par {nameOf(bid.by)}
+            {wild(bid.face, view.dry) ? ' · As compris' : ''}
+          </span>
+        </>
       ) : (
-        <p className="mt-2 text-sm text-muted">Pas encore d’enchère dans cette manche.</p>
+        <span className="chalk text-[1.05rem]">{nameOf(view.active)} ouvre</span>
       )}
-      {view.history.length > 1 && (
-        <p className="mt-2 text-xs text-muted">
-          Avant : {view.history.slice(0, -1).map((b) => `${nameOf(b.by)} ${bidText(b)}`).join(' · ')}
-        </p>
-      )}
-    </section>
+    </div>
   );
 }
 
 // ───────── Mon gobelet ─────────
 
-function MyCup({ dice, view }: { dice: Face[]; view: CupsView }) {
+function MyCup({ dice, view, shake }: { dice: Face[]; view: CupsView; shake: number }) {
   const bid = view.bid;
   const matches = (d: Face) => !!bid && (d === bid.face || (d === 1 && wild(bid.face, view.dry)));
   return (
-    <section className="animate-pop rounded-2xl border border-accent/40 bg-surface-2 p-4">
-      <div className="text-sm text-muted">Sous ton gobelet (secret) :</div>
-      <div className="mt-2 flex flex-wrap gap-2">
+    <section className="go-mycup">
+      <div className="text-center text-[15px] text-[#e9d3a8]">Sous ton gobelet (secret) :</div>
+      <div key={shake} className="mt-2 flex flex-wrap justify-center gap-2.5">
         {dice.map((d, i) => (
-          <Die key={i} face={d} size="lg" hit={matches(d)} />
+          <Die key={i} face={d} size={50} hit={matches(d)} roll delay={i * 0.08} />
         ))}
       </div>
-      {bid && (
-        <p className="mt-2 text-xs text-muted">
-          Tu en as {countFace(dice, bid.face, view.dry)} pour l’enchère en cours ; {view.totalDice - dice.length} dés sont cachés chez les autres.
-        </p>
-      )}
+      <p className="mt-2 text-center text-[14px] text-[#d9c3a0]">
+        {bid
+          ? `Tu en as ${countFace(dice, bid.face, view.dry)} pour l’enchère en cours ; ${view.totalDice - dice.length} dés sont cachés chez les autres.`
+          : `Les As (dorés) sont jokers. ${view.totalDice - dice.length} dés sont cachés chez les autres.`}
+      </p>
     </section>
   );
 }
@@ -204,89 +315,56 @@ function BidPanel({ view, title, sendMove }: { view: CupsView; title: string; se
   const pick = (f: Face) => {
     const m = minQuantity(bid, f, view.dry);
     if (m === null || m > view.totalDice) return;
+    sfx.click();
     setFace(f);
     setQuantity((q) => Math.min(view.totalDice, Math.max(q, m)));
   };
 
   return (
-    <section className="animate-pop rounded-2xl border border-accent/40 bg-surface-2 p-4">
-      <h4 className="font-semibold first-letter:uppercase">{title}</h4>
-      <div className="mt-3 text-xs text-muted">Valeur :</div>
-      <div className="mt-1 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Valeur">
+    <section className="go-dock">
+      <h4 className="first-letter:uppercase">{title}</h4>
+      <div className="muted mt-2 text-center text-[15px] italic">Quelle valeur ?</div>
+      <div className="mt-1 flex flex-wrap justify-center gap-1.5" role="radiogroup" aria-label="Valeur">
         {FACES.map((f) => {
           const m = minQuantity(bid, f, view.dry);
           const disabled = m === null || m > view.totalDice;
           return (
-            <button
-              key={f}
-              type="button"
-              role="radio"
-              aria-checked={face === f}
-              aria-label={FACE_NAME[f]}
-              disabled={disabled}
-              onClick={() => pick(f)}
-              className={`rounded-xl p-1 disabled:opacity-25 ${face === f ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg' : ''}`}
-            >
-              <Die face={f} />
+            <button key={f} type="button" role="radio" aria-checked={face === f} aria-label={FACE_NAME[f]} disabled={disabled} onClick={() => pick(f)} className="go-face">
+              <Die face={f} size={42} />
             </button>
           );
         })}
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <span className="text-xs text-muted">Quantité :</span>
-        <button
-          type="button"
-          aria-label="Moins"
-          disabled={face === null || min === null || quantity <= min}
-          onClick={() => setQuantity((q) => q - 1)}
-          className="h-10 w-10 rounded-xl border border-line text-lg font-bold disabled:opacity-30"
-        >
+      <div className="mt-3 flex items-center justify-center gap-3">
+        <span className="muted text-[15px] italic">Combien ?</span>
+        <button type="button" aria-label="Moins" disabled={face === null || min === null || quantity <= min} onClick={() => setQuantity((q) => q - 1)} className="go-step">
           −
         </button>
-        <span className="w-10 text-center text-2xl font-bold tabular-nums" aria-live="polite">
+        <span className="go-num w-12 text-center text-[2rem]" aria-live="polite">
           {face === null ? '–' : quantity}
         </span>
-        <button
-          type="button"
-          aria-label="Plus"
-          disabled={face === null || quantity >= view.totalDice}
-          onClick={() => setQuantity((q) => q + 1)}
-          className="h-10 w-10 rounded-xl border border-line text-lg font-bold disabled:opacity-30"
-        >
+        <button type="button" aria-label="Plus" disabled={face === null || quantity >= view.totalDice} onClick={() => setQuantity((q) => q + 1)} className="go-step">
           +
         </button>
       </div>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-3">
-        <button
-          type="button"
-          disabled={!legal}
-          onClick={() => face && sendMove({ type: 'bid', quantity, face })}
-          className="rounded-xl bg-accent px-4 py-3 font-semibold text-bg hover:brightness-110 disabled:opacity-40"
-        >
+      <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <button type="button" className="go-btn" disabled={!legal} onClick={() => face && sendMove({ type: 'bid', quantity, face })}>
           {face ? `Annoncer ${bidText({ quantity, face })}` : 'Choisis une valeur'}
         </button>
         {bid && (
-          <button
-            type="button"
-            onClick={() => sendMove({ type: 'liar' })}
-            className="rounded-xl bg-sabo px-4 py-3 font-bold text-bg hover:brightness-110"
-          >
+          <button type="button" className="go-btn liar" onClick={() => sendMove({ type: 'liar' })}>
             Menteur !
           </button>
         )}
         {bid && view.config.exact && (
-          <button
-            type="button"
-            onClick={() => sendMove({ type: 'exact' })}
-            className="rounded-xl border border-good/60 px-4 py-3 font-bold text-good hover:bg-good/10"
-          >
+          <button type="button" className="go-btn exact" onClick={() => sendMove({ type: 'exact' })}>
             Pile !
           </button>
         )}
       </div>
-      <p className="mt-2 text-xs text-muted">
+      <p className="muted mt-2 text-center text-[14px] italic">
         {!bid
           ? view.dry
             ? 'Manche sèche : la valeur choisie à l’ouverture ne changera plus.'
@@ -295,27 +373,28 @@ function BidPanel({ view, title, sendMove }: { view: CupsView; title: string; se
             ? 'Manche sèche : on ne peut que monter la quantité.'
             : bid.face === 1
               ? `Quitter les As : il faut au moins ${bid.quantity * 2 + 1} dés.`
-              : `Passer aux As : ${Math.ceil(bid.quantity / 2)} suffisent.`}
+              : `Monter : plus de dés, ou autant d’une valeur plus forte. Passer aux As : ${Math.ceil(bid.quantity / 2)} suffisent.`}
       </p>
     </section>
   );
 }
 
-// ───────── Révélation ─────────
+// ───────── Gobelets levés ─────────
 
-function RevealPanel({
-  view,
-  reveal,
-  nameOf,
-  canContinue,
-  onNext,
-}: {
-  view: CupsView;
-  reveal: Reveal;
-  nameOf: NameOf;
-  canContinue: boolean;
-  onNext: () => void;
-}) {
+function ShoutBanner({ reveal, nameOf }: { reveal: Reveal; nameOf: NameOf }) {
+  return (
+    <div className="go-banner">
+      <div className="shout" style={{ color: reveal.call === 'liar' ? '#ff6a5a' : '#9ff0bd', textShadow: '0 4px 0 #2a0805, 0 0 30px rgba(0,0,0,.6)' }}>
+        {reveal.call === 'liar' ? 'Menteur !' : 'Pile !'}
+      </div>
+      <div className="s">
+        {nameOf(reveal.caller)} conteste {bidText(reveal.bid)} de {nameOf(reveal.bid.by)}… on lève les gobelets !
+      </div>
+    </div>
+  );
+}
+
+function RevealPanel({ view, reveal, nameOf, canContinue, onNext }: { view: CupsView; reveal: Reveal; nameOf: NameOf; canContinue: boolean; onNext: () => void }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!view.revealUntil) return;
@@ -326,54 +405,51 @@ function RevealPanel({
   const bid = reveal.bid;
   const hit = (d: Face) => d === bid.face || (d === 1 && wild(bid.face, reveal.dry));
   const held = bid.quantity <= reveal.count;
-
-  let verdict: string;
-  if (reveal.call === 'liar') {
-    verdict = held
-      ? `L’enchère tenait : ${nameOf(reveal.caller)} perd un dé.`
-      : `${nameOf(bid.by)} bluffait : un dé de perdu.`;
-  } else {
-    verdict =
-      reveal.count === bid.quantity
+  const verdict =
+    reveal.call === 'liar'
+      ? held
+        ? `L’enchère tenait : ${nameOf(reveal.caller)} perd un dé.`
+        : `${nameOf(bid.by)} bluffait : un dé de perdu.`
+      : reveal.count === bid.quantity
         ? `Pile ! ${nameOf(reveal.caller)} gagne un dé.`
         : `Raté : ${nameOf(reveal.caller)} perd un dé.`;
-  }
 
   return (
-    <section className="animate-pop rounded-2xl border border-key/50 bg-surface-2 p-4">
-      <h4 className="font-semibold">
-        {nameOf(reveal.caller)} : « {reveal.call === 'liar' ? 'Menteur !' : 'Pile !'} » sur {bidText(bid)} de {nameOf(bid.by)}
+    <section className="go-dock">
+      <h4>
+        {nameOf(reveal.caller)} : « {reveal.call === 'liar' ? 'Menteur !' : 'Pile !'} »
       </h4>
-      <ul className="mt-3 flex flex-col gap-1.5">
+      <p className="muted text-center">
+        sur {bidText(bid)} de {nameOf(bid.by)}
+      </p>
+      <ul className="mt-2 flex flex-col gap-1.5">
         {view.players
           .filter((p) => reveal.dice[p.id]?.length)
           .map((p) => (
             <li key={p.id} className="flex items-center gap-2">
-              <span className="w-20 shrink-0 truncate text-sm">{p.name}</span>
+              <span className="w-20 shrink-0 truncate text-[15px] font-semibold">{p.name}</span>
               <span className="flex flex-wrap gap-1">
                 {reveal.dice[p.id]!.map((d, i) => (
-                  <Die key={i} face={d} size="sm" hit={hit(d)} dim={!hit(d)} />
+                  <Die key={i} face={d} size={22} hit={hit(d)} dim={!hit(d)} />
                 ))}
               </span>
             </li>
           ))}
       </ul>
-      <p className="mt-3 text-lg font-semibold">
-        Il y en avait <span className={held ? 'text-good' : 'text-sabo'}>{reveal.count}</span> pour {bid.quantity} annoncés
+      <p className="mt-3 text-center text-[1.15rem] font-semibold">
+        Il y en avait <span style={{ color: held ? '#1f7a46' : '#9c1b14' }}>{reveal.count}</span> pour {bid.quantity} annoncés
         {wild(bid.face, reveal.dry) ? ' (As compris)' : ''}.
       </p>
-      <p className="text-sm">{verdict}</p>
+      <p className="text-center">{verdict}</p>
       {view.phase === 'reveal' &&
         (canContinue ? (
-          <button
-            type="button"
-            onClick={onNext}
-            className="mt-3 w-full rounded-xl bg-accent px-4 py-3 font-semibold text-bg hover:brightness-110 sm:w-auto"
-          >
-            Secouer les gobelets : manche suivante
-          </button>
+          <div className="mt-3 flex justify-center">
+            <button type="button" className="go-btn" onClick={onNext}>
+              Secouer les gobelets : manche suivante
+            </button>
+          </div>
         ) : (
-          <p className="mt-3 text-xs text-muted">
+          <p className="muted mt-3 text-center text-[14px] italic">
             {nameOf(view.starter)} ouvre la manche suivante{left !== null ? ` (dans ${left} s)` : '…'}
           </p>
         ))}
@@ -381,59 +457,32 @@ function RevealPanel({
   );
 }
 
-// ───────── Table ─────────
+// ───────── Enchères, aide, journal ─────────
 
-function Table({ view, viewer, nameOf }: { view: CupsView; viewer: PlayerId | null; nameOf: NameOf }) {
-  const lastBid = (id: PlayerId) => [...view.history].reverse().find((b) => b.by === id);
+function Bids({ view, nameOf }: { view: CupsView; nameOf: NameOf }) {
   return (
-    <section className="rounded-2xl border border-line bg-surface p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">La table</div>
-      <ul className="mt-2 flex flex-col gap-2">
-        {view.players.map((p) => {
-          const b = view.phase === 'bid' ? lastBid(p.id) : undefined;
-          return (
-            <li
-              key={p.id}
-              className={`flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-sm ${
-                p.id === view.active && view.phase === 'bid' ? 'border-key/60 bg-key/5' : 'border-line'
-              } ${p.out ? 'opacity-50' : ''}`}
-            >
-              <span className={`min-w-[5rem] flex-1 truncate font-semibold ${p.out ? 'line-through' : ''}`}>
-                {p.name}
-                {p.id === viewer && <span className="font-normal text-accent"> (toi)</span>}
-                {p.isBot && <span className="font-normal text-muted"> · bot</span>}
-              </span>
-              {b && <span className="shrink-0 text-xs text-muted">{bidText(b)}</span>}
-              {p.out ? (
-                <span className="shrink-0 text-xs text-muted">éliminé</span>
-              ) : (
-                <span className="flex shrink-0 gap-0.5" aria-label={`${p.dice} dé${p.dice > 1 ? 's' : ''}`}>
-                  {Array.from({ length: p.dice }, (_, i) => (
-                    <Hidden key={i} size="sm" />
-                  ))}
-                </span>
-              )}
-              {p.id === view.winner && <span className="shrink-0 text-xs font-semibold text-good">vainqueur</span>}
-            </li>
-          );
-        })}
-      </ul>
-      {view.phase === 'over' && view.winner && (
-        <p className="mt-2 text-sm text-muted">{nameOf(view.winner)} remporte la partie.</p>
-      )}
+    <section className="rounded-xl border border-[rgba(255,208,122,.3)] bg-[rgba(14,6,2,.72)] px-4 py-3">
+      <h3 className="go-title text-[1.35rem] text-[#ffd07a]">Les enchères de la manche</h3>
+      <ol className="mt-1 flex flex-col gap-1">
+        {view.history.map((b, i) => (
+          <li key={i} className="flex items-center gap-2 text-[15px]">
+            <span className="w-20 truncate">{nameOf(b.by)}</span>
+            <span className="go-num">{b.quantity} ×</span>
+            <Die face={b.face} size={18} />
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
 
 function Reference({ view }: { view: CupsView }) {
   return (
-    <details className="rounded-xl border border-line bg-surface p-3 text-sm">
-      <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted">
-        Aide-mémoire
-      </summary>
-      <ul className="mt-2 flex list-disc flex-col gap-1 pl-4 text-muted">
+    <details className="rounded-xl border border-[rgba(255,208,122,.3)] bg-[rgba(14,6,2,.72)] px-4 py-3">
+      <summary className="go-title cursor-pointer select-none text-[1.35rem] text-[#ffd07a]">Les règles de la maison</summary>
+      <ul className="mt-2 flex list-disc flex-col gap-1 pl-4 text-[#d9c3a0]">
         <li>Une enchère porte sur tous les dés de la table : « au moins N dés de cette valeur ».</li>
-        <li>Les As sont jokers (sauf en manche sèche ou quand on parie sur les As).</li>
+        <li>Les As (dorés) sont jokers, sauf en manche sèche ou quand on parie sur les As.</li>
         <li>Monter : plus de dés, ou autant d’une valeur plus forte.</li>
         <li>Vers les As : la moitié (arrondie au-dessus) ; depuis les As : le double plus un.</li>
         <li>« Menteur ! » : celui qui a tort perd un dé.</li>
@@ -444,16 +493,14 @@ function Reference({ view }: { view: CupsView }) {
   );
 }
 
-function Journal({ lines }: { lines: string[] }) {
+function Journal({ lines, open = false }: { lines: string[]; open?: boolean }) {
   const recent = lines.slice(-10).reverse();
   return (
-    <details className="rounded-xl border border-line bg-surface p-3 text-sm" open>
-      <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted">
-        Journal
-      </summary>
-      <ol className="mt-2 flex flex-col gap-1">
+    <details open={open} className="rounded-xl border border-[rgba(255,208,122,.3)] bg-[rgba(14,6,2,.72)] px-4 py-3">
+      <summary className="go-title cursor-pointer select-none text-[1.35rem] text-[#ffd07a]">Ragots de comptoir</summary>
+      <ol className="mt-1 flex flex-col gap-1">
         {recent.map((line, i) => (
-          <li key={lines.length - i} className={i === 0 ? 'text-fg' : 'text-muted'}>
+          <li key={lines.length - i} className={i === 0 ? 'text-[#f6e7cc]' : 'text-[#bfa780]'}>
             {line}
           </li>
         ))}
