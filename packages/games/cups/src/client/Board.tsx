@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import { Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, type GameIconName } from '@arcade/tabletop';
+import { Avatar, Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, type GameIconName } from '@arcade/tabletop';
 import { FACES, FACE_NAME, bidText, countFace, minQuantity, wild, type CupsMove, type CupsPlayerView, type CupsView, type Face, type Reveal } from '../shared';
 import { CUPS_CSS } from './theme';
 
@@ -185,6 +185,7 @@ function Seat({ p, view, viewer, wide, shake }: { p: CupsPlayerView; view: CupsV
   const bid = view.reveal?.bid;
   const hit = (d: Face) => !!bid && (d === bid.face || (d === 1 && wild(bid.face, view.reveal!.dry)));
   const cup = wide ? 58 : 44;
+  const face = wide ? 56 : 40;
   const tiny = wide ? 18 : 14;
   let chip: { text: string; tone: string } | null = null;
   if (p.out) chip = { text: 'éliminé', tone: 'dim' };
@@ -196,7 +197,10 @@ function Seat({ p, view, viewer, wide, shake }: { p: CupsPlayerView; view: CupsV
     <div className={`go-seat ${p.id === view.active && view.phase === 'bid' ? 'is-active' : ''} ${p.id === viewer ? 'is-me' : ''} ${p.out ? 'is-out' : ''}`} style={{ width: wide ? 132 : 88 }}>
       {chip && <span className={`go-chip tone-${chip.tone}`}>{chip.text}</span>}
       <span className="relative flex items-end justify-center" style={{ height: cup * 1.05 }}>
-        {!p.out && <span key={shake} className={`go-cup ${revealed ? 'lift' : shake ? 'shake' : ''}`} style={{ width: cup, height: cup }} />}
+        <span className="go-mug" style={{ width: face, height: face }}>
+          <Avatar id={p.id} name={p.name} look="tavern" size={face} round zoom={1.3} />
+        </span>
+        {!p.out && <span key={shake} className={`go-cup ${revealed ? 'lift' : shake ? 'shake' : ''}`} style={{ width: cup, height: cup, marginLeft: -cup * 0.18 }} />}
       </span>
       <span className="go-plate">
         <span className="go-name">{p.name}</span>

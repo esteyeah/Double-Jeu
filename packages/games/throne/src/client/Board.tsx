@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
 import {
+  Avatar,
   Cinematic,
   Icon,
   RichIcon,
@@ -446,12 +447,12 @@ function CouncilTable({
   if (view.phase === 'power' && pick) links.push({ id: 'power', from: view.regent, to: pick, color: view.pendingPower === 'execute' ? '#ff5a4a' : '#a9c4ff', width: 3.5, flow: true, glow: true });
 
   return (
-    <section className="relative pb-7 lg:pb-3" aria-label="Le Conseil">
+    <section className="relative pb-12 lg:pb-8" aria-label="Le Conseil">
       <h3 className="sr-only">Le Conseil</h3>
       <RoundTable
         ids={view.players.map((p) => p.id)}
         me={viewer}
-        seat={wide ? { w: 128, h: 150 } : { w: 84, h: 118 }}
+        seat={wide ? { w: 128, h: 182 } : { w: 84, h: 138 }}
         className={wide ? 'aspect-[1.3] max-h-[calc(100dvh-120px)] min-h-[500px]' : 'aspect-[0.84]'}
         links={links}
         under={<div className="tv-table-under" />}
@@ -475,20 +476,31 @@ function CouncilTable({
   );
 }
 
-function Crest({ seat, size, dead = false }: { seat: number; size: number; dead?: boolean }) {
+/** Portrait peint du conseiller dans un cadre doré en arche, son blason accroché en bas. */
+function Crest({ id, name, seat, size, dead = false }: { id: PlayerId; name: string; seat: number; size: number; dead?: boolean }) {
   const c = TINCTURE[seat % TINCTURE.length]!;
+  const w = Math.round(size * 1.12);
+  const h = Math.round(size * 1.36);
   return (
-    <span className="tv-crest-wrap">
+    <span className="tv-crest-wrap" style={{ paddingBottom: size * 0.2 }}>
+      <span className="tv-frame" style={{ width: w, height: h }}>
+        <span
+          className="tv-canvas"
+          style={{ background: `radial-gradient(90% 70% at 50% 28%, color-mix(in srgb, ${c} 50%, #f4dfb0), ${c} 58%, color-mix(in srgb, ${c} 40%, black))` }}
+        >
+          <Avatar id={id} name={name} look="council" size={Math.round(w * 1.04)} className="tv-sitter" />
+        </span>
+      </span>
       <span
-        className="tv-crest"
+        className="tv-blazon"
         style={{
-          width: size,
-          height: size * 1.12,
+          width: size * 0.44,
+          height: size * 0.5,
           background: `radial-gradient(120% 90% at 35% 20%, color-mix(in srgb, ${c} 45%, white), ${c} 50%, color-mix(in srgb, ${c} 55%, black))`,
         }}
       >
-        <span style={{ marginTop: -size * 0.12 }}>
-          <RichIcon name={dead ? 'tombstone' : CHARGE[seat % CHARGE.length]!} metal={dead ? 'iron' : 'gold'} size={size * 0.56} />
+        <span style={{ marginTop: -size * 0.06 }}>
+          <RichIcon name={dead ? 'tombstone' : CHARGE[seat % CHARGE.length]!} metal={dead ? 'iron' : 'gold'} size={size * 0.28} />
         </span>
       </span>
     </span>
@@ -525,7 +537,7 @@ function Seat({
   const over = view.phase === 'over';
   const regent = p.id === view.regent && !over;
   const nominee = p.id === view.nominee && !over && view.phase !== 'nomination';
-  const size = wide ? 62 : 48;
+  const size = wide ? 70 : 52;
   const chip = seatChip(view, p);
   const ballot = view.phase !== 'vote' && view.lastVote && Object.hasOwn(view.lastVote.votes, p.id) ? view.lastVote.votes[p.id] : null;
   const cls = `tv-seat ${regent ? 'is-regent' : ''} ${nominee ? 'is-nominee' : ''} ${picked ? 'is-picked' : ''} ${p.id === viewer ? 'is-me' : ''} ${p.alive ? '' : 'is-dead'}`;
@@ -533,7 +545,7 @@ function Seat({
     <>
       {chip && <span className={`tv-chip tone-${chip.tone}`}>{chip.text}</span>}
       <span className="relative">
-        <Crest seat={seat} size={size} dead={!p.alive} />
+        <Crest id={p.id} name={p.name} seat={seat} size={size} dead={!p.alive} />
         {regent && (
           <span className="tv-token -right-3 -top-1" style={{ width: size * 0.5, height: size * 0.5, background: '#1d1206' }} title="Régent">
             <RichIcon name="banging-gavel" metal="gold" size={size * 0.34} />
@@ -939,7 +951,7 @@ function PickPlayer({
       <div className="flex flex-wrap justify-center gap-1" role="radiogroup" aria-label={title}>
         {options.map((p) => (
           <button key={p.id} type="button" role="radio" aria-checked={picked === p.id} onClick={() => onChange(p.id)} className="tv-pick">
-            <Crest seat={seatOf(p.id)} size={40} />
+            <Crest id={p.id} name={p.name} seat={seatOf(p.id)} size={40} />
             <span className="tv-title text-[13px]">{p.name}</span>
           </button>
         ))}
@@ -965,7 +977,7 @@ function HandsVote({ view, seatOf, onSubmit }: { view: ThroneView; seatOf: (id: 
         {alive.map((p) => (
           <button key={p.id} type="button" aria-pressed={yes.includes(p.id)} onClick={() => toggle(p.id)} className="tv-pick" style={yes.includes(p.id) ? { background: 'rgba(42,63,122,.16)', boxShadow: '0 0 0 2px #2a3f7a' } : undefined}>
             <span className="relative">
-              <Crest seat={seatOf(p.id)} size={38} />
+              <Crest id={p.id} name={p.name} seat={seatOf(p.id)} size={38} />
               {yes.includes(p.id) && (
                 <span className="absolute -bottom-1 -right-2">
                   <RichIcon name="thumb-up" metal="gold" size={22} />

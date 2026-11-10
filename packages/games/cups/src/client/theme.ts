@@ -55,6 +55,9 @@ export const CUPS_CSS = `
   background:radial-gradient(120% 100% at 40% 30%,#4a4f52,#26292b 70%);box-shadow:0 0 0 6px #6b4422,0 0 0 8px #2a1608,0 10px 20px rgba(0,0,0,.6),inset 0 0 20px rgba(0,0,0,.5)}
 .go-slate .chalk{font-family:'IM Fell English',Georgia,serif;font-style:italic;color:#f4f1ea;text-shadow:0 0 1px rgba(255,255,255,.6)}
 .go-seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;text-align:center}
+.go-mug{position:relative;display:inline-block;flex:none;align-self:center;border-radius:50%;background:radial-gradient(circle at 40% 30%,#7a5030,#2a1508);box-shadow:0 0 0 2px #c58b3f,0 0 0 4px #2a1508,0 6px 10px rgba(0,0,0,.6)}
+.go-seat.is-active .go-mug{box-shadow:0 0 0 2px #ffe0a0,0 0 0 4px #8a5a12,0 0 18px rgba(255,200,100,.9)}
+.go-seat.is-out .go-mug{filter:grayscale(1)}
 .go-seat.is-active .go-cup{filter:drop-shadow(0 0 12px rgba(255,200,100,.95)) drop-shadow(0 6px 6px rgba(0,0,0,.6))}
 .go-seat.is-out{opacity:.45}
 .go-plate{display:flex;align-items:baseline;justify-content:center;gap:4px;max-width:150px;white-space:nowrap;padding:1px 8px 2px;border-radius:7px;

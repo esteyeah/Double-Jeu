@@ -63,13 +63,20 @@ export const THRONE_CSS = `
   box-shadow:0 0 0 10px #3a2210,0 0 0 12px #140a03,0 0 0 13px rgba(233,196,106,.4),0 26px 60px rgba(0,0,0,.78),inset 0 0 80px rgba(18,8,2,.88)}
 .tv-table-under::after{content:'';position:absolute;inset:15%;border-radius:50%;border:2px solid rgba(233,196,106,.25);box-shadow:inset 0 0 0 7px rgba(0,0,0,.14),0 0 0 7px rgba(0,0,0,.12)}
 .tv-seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;text-align:center;transition:transform .2s}
-.tv-crest{position:relative;display:grid;place-items:center;clip-path:polygon(0 0,100% 0,100% 60%,50% 100%,0 60%);
-  box-shadow:inset 0 0 0 3px rgba(233,196,106,.7);transition:filter .2s}
-.tv-crest-wrap{position:relative;filter:drop-shadow(0 4px 5px rgba(0,0,0,.7))}
-.tv-seat.is-regent .tv-crest-wrap{filter:drop-shadow(0 0 2px #f0cd6e) drop-shadow(0 0 10px rgba(240,205,110,.85))}
-.tv-seat.is-nominee .tv-crest-wrap{filter:drop-shadow(0 0 2px #9fc0ff) drop-shadow(0 0 10px rgba(130,170,255,.8))}
-.tv-seat.is-picked .tv-crest-wrap{filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 12px rgba(255,236,170,1))}
-.tv-seat.is-dead{opacity:.5}.tv-seat.is-dead .tv-crest{filter:grayscale(1)}
+.tv-crest-wrap{position:relative;display:inline-block;filter:drop-shadow(0 5px 6px rgba(0,0,0,.75));transition:filter .2s}
+.tv-frame{position:relative;display:block;border-radius:999px 999px 9px 9px;padding:4px;
+  background:linear-gradient(145deg,#fff2bf 0%,#d8a948 22%,#6d4b12 48%,#f0cd6e 70%,#8a6418 100%);
+  box-shadow:0 0 0 1px #241404,inset 0 0 0 1px rgba(255,240,190,.55)}
+.tv-canvas{position:absolute;inset:4px;overflow:hidden;border-radius:999px 999px 6px 6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),inset 0 -14px 18px rgba(0,0,0,.35)}
+.tv-canvas::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(160deg,rgba(255,255,255,.22),transparent 38%),radial-gradient(120% 90% at 50% 40%,transparent 55%,rgba(20,10,2,.5));mix-blend-mode:soft-light}
+.tv-sitter{position:absolute!important;left:50%;bottom:-4%;transform:translateX(-50%)}
+.tv-blazon{position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:grid;place-items:center;z-index:1;
+  clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%);box-shadow:inset 0 0 0 2px rgba(240,205,110,.9)}
+.tv-seat.is-regent .tv-crest-wrap{filter:drop-shadow(0 0 2px #f0cd6e) drop-shadow(0 0 12px rgba(240,205,110,.9))}
+.tv-seat.is-nominee .tv-crest-wrap{filter:drop-shadow(0 0 2px #9fc0ff) drop-shadow(0 0 12px rgba(130,170,255,.85))}
+.tv-seat.is-picked .tv-crest-wrap{filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 14px rgba(255,236,170,1))}
+.tv-seat.is-dead{opacity:.55}.tv-seat.is-dead .tv-canvas{filter:grayscale(1) sepia(.35) brightness(.7)}
 .tv-seat-plate{display:flex;align-items:baseline;justify-content:center;gap:4px;max-width:150px;white-space:nowrap;padding:1px 8px 2px;border-radius:7px;
   background:linear-gradient(180deg,rgba(40,24,10,.94),rgba(14,8,3,.96));border:1px solid rgba(233,196,106,.32);box-shadow:0 3px 8px rgba(0,0,0,.5)}
 .tv-seat-name{font-family:'Cinzel',serif;font-weight:700;font-size:13px;line-height:1.2;color:#f6e7c4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

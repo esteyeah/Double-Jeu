@@ -50,6 +50,7 @@ export const CAULDRON_CSS = `
 @keyframes ch-splash{30%{transform:scale(1.12) rotate(-3deg)}100%{transform:none}}
 .ch-seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;text-align:center}
 .ch-medal{position:relative;display:grid;place-items:center;border-radius:50%;box-shadow:inset 0 -5px 10px rgba(0,0,0,.5),inset 0 4px 8px rgba(255,255,255,.2),0 0 0 3px #a88a4a,0 0 0 5px #1a1208,0 6px 12px rgba(0,0,0,.7)}
+.ch-emblem{position:absolute;right:-6%;bottom:-6%;z-index:2;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a2c14,#120c05);box-shadow:0 0 0 2px #a88a4a,0 3px 6px rgba(0,0,0,.7)}
 .ch-seat.is-active .ch-medal{box-shadow:inset 0 -5px 10px rgba(0,0,0,.5),0 0 0 3px #b6ff9e,0 0 0 5px #1d6b33,0 0 24px rgba(110,255,140,.9)}
 .ch-seat.is-out{opacity:.45}.ch-seat.is-out .ch-medal{filter:grayscale(1)}
 .ch-plate{display:flex;align-items:baseline;justify-content:center;gap:4px;max-width:150px;white-space:nowrap;padding:1px 8px 2px;border-radius:7px;
@@ -57,7 +58,7 @@ export const CAULDRON_CSS = `
 .ch-name{font-family:'Uncial Antiqua',serif;font-size:13px;line-height:1.3;color:#eef6dd;overflow:hidden;text-overflow:ellipsis}
 .ch-tag{font-size:11px;color:#c9ffb8;flex:none}
 .ch-seat.is-me .ch-plate{border-color:#c9ffb8}
-.ch-chip{position:absolute;top:-13px;left:50%;transform:translateX(-50%);z-index:2;white-space:nowrap;font-size:12px;line-height:1.35;padding:0 8px;border-radius:999px;border:1px solid;background:rgba(8,10,6,.92);box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.ch-chip{position:absolute;top:-30px;left:50%;transform:translateX(-50%);z-index:2;white-space:nowrap;font-size:12px;line-height:1.35;padding:0 8px;border-radius:999px;border:1px solid;background:rgba(8,10,6,.92);box-shadow:0 2px 6px rgba(0,0,0,.5)}
 .tone-green{color:#d5f7c2;border-color:rgba(130,220,120,.7)}.tone-dim{color:#c3cbb4;border-color:rgba(170,190,150,.45)}
 .tone-red{color:#fff;border-color:#ff8a7a;background:#7d150f}.tone-gold{color:#0b1d0e;border-color:#3fbf5a;background:linear-gradient(180deg,#d9ffc9,#7ee08f)}
 .ch-skull{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#1b1610;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}

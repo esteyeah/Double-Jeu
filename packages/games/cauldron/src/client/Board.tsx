@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import { Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, type GameIconName, type Metal } from '@arcade/tabletop';
+import { Avatar, Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, type GameIconName, type Metal } from '@arcade/tabletop';
 import {
   ACTION_HELP,
   ACTION_LABEL,
@@ -284,12 +284,12 @@ function Instruction({ icon, mine, text }: { icon: GameIconName; mine: boolean; 
 
 function Lair({ view, viewer, wide, nameOf, splash }: { view: CauldronView; viewer: PlayerId | null; wide: boolean; nameOf: NameOf; splash: number }) {
   return (
-    <section className="relative pb-7 lg:pb-3" aria-label="La guilde">
+    <section className="relative pb-16 lg:pb-10" aria-label="La guilde">
       <h3 className="sr-only">La guilde</h3>
       <RoundTable
         ids={view.players.map((p) => p.id)}
         me={viewer}
-        seat={wide ? { w: 128, h: 140 } : { w: 84, h: 112 }}
+        seat={wide ? { w: 128, h: 176 } : { w: 84, h: 140 }}
         className={wide ? 'aspect-[1.32] max-h-[calc(100dvh-140px)] min-h-[480px]' : 'aspect-[0.86]'}
         under={<div className="ch-floor" />}
         center={<Pot view={view} nameOf={nameOf} splash={splash} />}
@@ -302,11 +302,17 @@ function Lair({ view, viewer, wide, nameOf, splash }: { view: CauldronView; view
   );
 }
 
-function Medal({ seat, size }: { seat: number; size: number }) {
+/** Portrait de l'alchimiste (chapeau pointu qui dépasse du médaillon), son emblème en pendentif. */
+function Medal({ id, name, seat, size }: { id: PlayerId; name: string; seat: number; size: number }) {
   const c = TINT[seat % TINT.length]!;
   return (
     <span className="ch-medal" style={{ width: size, height: size, background: `radial-gradient(circle at 35% 28%, color-mix(in srgb, ${c} 55%, white), ${c} 55%, color-mix(in srgb, ${c} 50%, black))` }}>
-      <RichIcon name={EMBLEM[seat % EMBLEM.length]!} metal="brass" size={size * 0.6} />
+      <Avatar id={id} name={name} look="alchemist" size={size} round zoom={1.3} />
+      {size >= 50 && (
+        <span className="ch-emblem" style={{ width: size * 0.36, height: size * 0.36 }}>
+          <RichIcon name={EMBLEM[seat % EMBLEM.length]!} metal="brass" size={size * 0.24} />
+        </span>
+      )}
     </span>
   );
 }
@@ -322,12 +328,12 @@ function seatChip(view: CauldronView, p: CauldronPlayerView): { text: string; to
 
 function Seat({ p, seat, view, viewer, wide }: { p: CauldronPlayerView; seat: number; view: CauldronView; viewer: PlayerId | null; wide: boolean }) {
   const chip = seatChip(view, p);
-  const size = wide ? 60 : 48;
+  const size = wide ? 70 : 54;
   const ballot = view.phase !== 'vote' && view.lastVote && Object.hasOwn(view.lastVote.votes, p.id) ? view.lastVote.votes[p.id] : null;
   return (
     <div className={`ch-seat ${p.id === view.active && view.phase !== 'over' && !p.expelled ? 'is-active' : ''} ${p.id === viewer ? 'is-me' : ''} ${p.expelled ? 'is-out' : ''}`} style={{ width: wide ? 128 : 84 }}>
       {chip && <span className={`ch-chip tone-${chip.tone}`}>{chip.text}</span>}
-      <Medal seat={seat} size={size} />
+      <Medal id={p.id} name={p.name} seat={seat} size={size} />
       <span className="ch-plate">
         <span className="ch-name">{p.name}</span>
         {(p.id === viewer || p.isBot) && <span className="ch-tag">{p.id === viewer ? 'toi' : 'bot'}</span>}
@@ -536,7 +542,7 @@ function TurnPanel({
             <div className="mt-2 flex flex-wrap justify-center gap-1" role="radiogroup" aria-label="Joueur visé">
               {targets.map((p) => (
                 <button key={p.id} type="button" role="radio" aria-checked={target === p.id} onClick={() => setTarget(p.id)} className="ch-pick">
-                  <Medal seat={seatOf(p.id)} size={38} />
+                  <Medal id={p.id} name={p.name} seat={seatOf(p.id)} size={44} />
                   <span className="ch-name !text-[#2a1d0e]">{p.id === me ? 'Moi' : p.name}</span>
                   <span className="text-[12px] text-[#5f4a2a]">
                     {p.suspicion}/{EXPEL_AT} soupçons
@@ -647,7 +653,7 @@ function HandsVote({ view, seatOf, onSubmit }: { view: CauldronView; seatOf: (id
       <div className="mt-2 flex flex-wrap justify-center gap-1">
         {members.map((p) => (
           <button key={p.id} type="button" aria-pressed={yes.includes(p.id)} onClick={() => toggle(p.id)} className="ch-pick">
-            <Medal seat={seatOf(p.id)} size={38} />
+            <Medal id={p.id} name={p.name} seat={seatOf(p.id)} size={44} />
             <span className="ch-name !text-[#2a1d0e]">
               {p.name} {yes.includes(p.id) ? '✓' : ''}
             </span>

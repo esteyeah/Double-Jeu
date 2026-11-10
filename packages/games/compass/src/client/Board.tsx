@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { RichIcon, useOnChange, sfx } from '@arcade/tabletop';
+import { Avatar, RichIcon, useOnChange, sfx } from '@arcade/tabletop';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
 import {
   CLUE_MAX,
@@ -284,13 +284,18 @@ function Waiting({ view, nameOf }: { view: CompassView; nameOf: NameOf }) {
   return (
     <section className="rounded-2xl border border-line bg-surface p-4 text-sm">
       <p>Chacun écrit ses indices en secret…</p>
-      <ul className="mt-2 flex flex-wrap gap-1.5">
+      <ul className="mt-3 flex flex-wrap gap-3">
         {view.players.map((p) => (
-          <li
-            key={p.id}
-            className={`rounded-lg border px-2 py-1 text-xs ${p.wrote ? 'border-good/60 text-good' : 'border-line text-muted'}`}
-          >
-            {nameOf(p.id)} {p.wrote ? '✓' : '…'}
+          <li key={p.id} className={`flex w-[72px] flex-col items-center gap-1 text-center text-xs ${p.wrote ? 'text-good' : 'text-muted'}`}>
+            <span
+              className="relative rounded-full"
+              style={{ background: 'var(--color-surface-2)', boxShadow: p.wrote ? '0 0 0 2px var(--color-good), 0 4px 10px rgba(0,0,0,.35)' : '0 0 0 2px var(--color-line), 0 4px 10px rgba(0,0,0,.25)', opacity: p.wrote ? 1 : 0.75 }}
+            >
+              <Avatar id={p.id} name={p.name} look="explorer" size={52} round zoom={1.25} />
+            </span>
+            <span className="w-full truncate">
+              {nameOf(p.id)} {p.wrote ? '✓' : '…'}
+            </span>
           </li>
         ))}
       </ul>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
 import {
+  Avatar,
   Cinematic,
   RichIcon,
   RoundTable,
@@ -57,7 +58,6 @@ const ACTION_ICON: Record<ActionKind, GameIconName> = {
   escort: 'duel',
 };
 /** Masques des invités du bal (dans l'ordre des places). */
-const MASK: GameIconName[] = ['carnival-mask', 'domino-mask', 'bird-mask', 'curly-mask', 'iron-mask', 'duality-mask', 'drama-masks', 'jester-hat'];
 const VELVET = ['#7a1d2a', '#1f3f6b', '#1d5a3a', '#5b2a73', '#8a5a12', '#155f66', '#3b3b3b', '#7a3b12'];
 
 export default function CourtBoard({ view, viewer, actingAs, mode, sendMove }: Props) {
@@ -329,12 +329,12 @@ function Ballroom({
   if (preview?.target && viewer) links.push({ id: 'preview', from: viewer, to: preview.target, color: colorOf(preview.kind), width: 3.5, flow: true, glow: true });
 
   return (
-    <section className="relative pb-7 lg:pb-3" aria-label="La cour">
+    <section className="relative pb-10 lg:pb-6" aria-label="La cour">
       <h3 className="sr-only">La cour</h3>
       <RoundTable
         ids={view.players.map((p) => p.id)}
         me={viewer}
-        seat={wide ? { w: 132, h: 150 } : { w: 86, h: 120 }}
+        seat={wide ? { w: 132, h: 164 } : { w: 86, h: 128 }}
         className={wide ? 'aspect-[1.32] max-h-[calc(100dvh-150px)] min-h-[500px]' : 'aspect-[0.84]'}
         links={links}
         under={<div className="ct-floor" />}
@@ -358,11 +358,12 @@ function Ballroom({
   );
 }
 
-function Mask({ seat, size }: { seat: number; size: number }) {
+/** Portrait de l'invité, loup sur les yeux, dans un médaillon de velours. */
+function Mask({ id, name, seat, size }: { id: PlayerId; name: string; seat: number; size: number }) {
   const c = VELVET[seat % VELVET.length]!;
   return (
     <span className="ct-mask" style={{ width: size, height: size, background: `radial-gradient(circle at 35% 28%, color-mix(in srgb, ${c} 50%, white), ${c} 55%, color-mix(in srgb, ${c} 50%, black))` }}>
-      <RichIcon name={MASK[seat % MASK.length]!} metal="gold" size={size * 0.66} />
+      <Avatar id={id} name={name} look="masked" size={size} round zoom={1.32} />
     </span>
   );
 }
@@ -397,13 +398,13 @@ function Seat({
 }) {
   const chip = seatChip(view, p);
   const claims = [...new Set(p.claimed)];
-  const size = wide ? 60 : 48;
+  const size = wide ? 72 : 56;
   const cls = `ct-seat ${p.id === view.active && view.phase !== 'over' ? 'is-active' : ''} ${p.id === viewer ? 'is-me' : ''} ${p.alive ? '' : 'is-dead'}`;
   const body = (
     <>
       {chip && <span className={`ct-chip tone-${chip.tone}`}>{chip.text}</span>}
       <span className="relative">
-        <Mask seat={seat} size={size} />
+        <Mask id={p.id} name={p.name} seat={seat} size={size} />
         {picked && <span className="pointer-events-none absolute -inset-1 rounded-full shadow-[0_0_0_3px_#ff5a4a,0_0_18px_rgba(255,90,74,.9)]" />}
       </span>
       <span className="ct-plate">
@@ -618,7 +619,7 @@ function ActionPicker({
           <div className="mt-1 flex flex-wrap justify-center gap-1" role="radiogroup" aria-label="Cible">
             {targets.map((p) => (
               <button key={p.id} type="button" role="radio" aria-checked={picked === p.id} onClick={() => setTarget(p.id)} className="ct-pick">
-                <Mask seat={seatOf(p.id)} size={40} />
+                <Mask id={p.id} name={p.name} seat={seatOf(p.id)} size={46} />
                 <span className="ct-title text-[13px]">{p.name}</span>
                 <span className="text-[12px] text-[#6b4f2a]">{ecus(p.coins)}</span>
               </button>

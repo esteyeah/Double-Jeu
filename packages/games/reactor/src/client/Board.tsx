@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import { Cinematic, RichIcon, sfx, useAmbient, useOnChange } from '@arcade/tabletop';
+import { Avatar, Cinematic, RichIcon, sfx, useAmbient, useOnChange } from '@arcade/tabletop';
 import {
   ROLE_LABEL,
   type CardKind,
@@ -112,6 +112,8 @@ export default function ReactorBoard({ view, viewer, actingAs, mode, sendMove }:
         <div className="order-1 min-w-0 lg:order-2">
           {me && (
             <Badge
+              id={me.id}
+              name={view.players.find((p) => p.id === me.id)?.name ?? ''}
               view={view}
               role={me.role}
               hand={me.hand}
@@ -378,6 +380,8 @@ function Terminal({
 // ───────── Badge d'accès (informations secrètes) ─────────
 
 function Badge({
+  id,
+  name,
   view,
   role,
   hand,
@@ -386,6 +390,8 @@ function Badge({
   showClaims,
   sendMove,
 }: {
+  id: PlayerId;
+  name: string;
   view: ReactorView;
   role: Role;
   hand: HandCounts;
@@ -407,13 +413,16 @@ function Badge({
     <section className="rx-panel rx-rivets p-4">
       <div className="flex items-center gap-3">
         <div
-          className="grid h-16 w-16 shrink-0 place-items-center rounded-xl"
+          className="relative grid h-16 w-16 shrink-0 place-items-center rounded-xl"
           style={{
             background: tech ? 'radial-gradient(circle at 40% 30%, #1d6b7a, #071a20)' : 'radial-gradient(circle at 40% 30%, #7a1d14, #1d0605)',
             boxShadow: `inset 0 0 0 2px ${tech ? '#58f3ff' : '#ff4433'}, 0 0 18px ${tech ? 'rgba(88,243,255,.4)' : 'rgba(255,68,51,.45)'}`,
           }}
         >
-          <RichIcon name={tech ? 'astronaut-helmet' : 'hooded-figure'} metal={tech ? 'silver' : 'ruby'} size={46} />
+          <Avatar id={id} name={name} look="crew" size={64} round zoom={1.25} />
+          <span className="rx-badge-role" style={{ boxShadow: `0 0 0 2px ${tech ? '#58f3ff' : '#ff4433'}, 0 2px 6px rgba(0,0,0,.7)` }}>
+            <RichIcon name={tech ? 'astronaut-helmet' : 'hooded-figure'} metal={tech ? 'silver' : 'ruby'} size={20} />
+          </span>
         </div>
         <div className="min-w-0">
           <div className="rx-mono text-[11px] tracking-[0.2em] text-white/50">BADGE D’ACCÈS · CONFIDENTIEL</div>
@@ -529,6 +538,9 @@ function Station({
     <li className={`rx-panel rx-rivets rx-station p-3 ${isHolder ? 'is-key' : isViewer ? 'is-me' : ''}`}>
       {isHolder && <div className="rx-hazard absolute inset-x-6 top-0 h-1.5 rounded-b-sm opacity-90" />}
       <div className="flex min-w-0 items-center gap-2">
+        <span className="rx-face" style={{ width: 40, height: 40 }}>
+          <Avatar id={p.id} name={p.name} look="crew" size={40} round zoom={1.25} />
+        </span>
         <span className={`rx-led ${led}`} />
         <span className="rx-mono shrink-0 text-[10px] text-white/40">P{String(index + 1).padStart(2, '0')}</span>
         <span className="rx-title truncate text-[13px] text-white">{p.name}</span>

@@ -113,5 +113,9 @@ button.rx-hatch[aria-pressed=true]{transform:translateY(-5px);box-shadow:inset 0
 .rx-bigcard{display:inline-block;transform:scale(1.9);margin:30px 0 22px;animation:rx-slam .55s cubic-bezier(.2,1.6,.4,1) both}
 @keyframes rx-slam{from{transform:scale(3) rotateY(90deg);opacity:0}to{transform:scale(1.9);opacity:1}}
 @keyframes rx-banner{0%{opacity:0;transform:scale(1.08)}12%{opacity:1;transform:none}82%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+.rx-face{position:relative;display:inline-block;flex:none;border-radius:10px;overflow:hidden;background:radial-gradient(circle at 40% 30%,#1d4a5a,#05121a);box-shadow:inset 0 0 0 1px rgba(88,243,255,.55),0 0 10px rgba(88,243,255,.25)}
+.rx-face::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(88,243,255,.07) 0 1px,transparent 1px 3px);pointer-events:none}
+.rx-station.is-key .rx-face{box-shadow:inset 0 0 0 1px #ffb547,0 0 12px rgba(255,181,71,.5)}
+.rx-badge-role{position:absolute;right:-8px;bottom:-8px;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#0a141a}
 @media (prefers-reduced-motion:reduce){.rx *{animation:none!important;transition:none!important}}
 `;
