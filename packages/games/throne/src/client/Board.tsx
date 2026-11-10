@@ -1,7 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
+import {
+  Cinematic,
+  Icon,
+  RichIcon,
+  RoundTable,
+  sfx,
+  useAmbient,
+  useMediaQuery,
+  type GameIconName,
+  type TableLink,
+} from '@arcade/tabletop';
 import {
   CROWN_TO_WIN,
   EDICT_LABEL,
@@ -13,212 +24,625 @@ import {
   USURPER_DANGER,
   VETO_AT,
   type Edict,
-  type Role,
+  type Power,
   type ThroneMove,
+  type ThronePlayerView,
   type ThroneView,
 } from '../shared';
+import { THRONE_CSS } from './theme';
+
+export { skin } from './skin';
 
 type Props = BoardProps<ThroneView, ThroneMove>;
+type NameOf = (id: PlayerId | null) => string;
 
-const ROLE_STYLE: Record<Role, string> = {
-  loyal: 'border-key/60 text-key',
-  conspirator: 'border-sabo/60 text-sabo',
-  usurper: 'border-sabo bg-sabo/15 text-sabo',
+/** Blason de chaque siège : émaux et meubles neutres (ni bleu royal, ni rouge de l'Ombre). */
+const TINCTURE = ['#1d5a3a', '#5b2a73', '#2b2b2b', '#9a7418', '#5f6b74', '#7a3b12', '#155f66', '#4a5a1d', '#6b2a3a', '#3f3a66'];
+const CHARGE: GameIconName[] = ['castle', 'rose', 'heraldic-sun', 'scales', 'torch', 'knight-banner', 'candle-holder', 'tied-scroll', 'chess-queen', 'tattered-banner'];
+
+const POWER_ICON: Record<Power, GameIconName> = {
+  investigate: 'magnifying-glass',
+  peek: 'crystal-ball',
+  special: 'chess-king',
+  execute: 'executioner-hood',
 };
 
 export default function ThroneBoard({ view, viewer, actingAs, mode, sendMove }: Props) {
-  const nameOf = (id: PlayerId | null) => view.players.find((p) => p.id === id)?.name ?? '?';
+  const nameOf: NameOf = (id) => view.players.find((p) => p.id === id)?.name ?? '?';
+  const seatOf = (id: PlayerId | null) => Math.max(0, view.players.findIndex((p) => p.id === id));
   const me = view.me && view.me.id === viewer ? view.me : null;
   const actor = view.players.find((p) => p.id === actingAs) ?? null;
-  const ctx = { view, nameOf, sendMove, mode, actingAs };
+  const privateView = viewer !== null && viewer === actingAs;
+  const wide = useMediaQuery('(min-width: 1024px)');
+  useAmbient('hearth');
+
+  // Choix d'un joueur (proposition, pouvoir) : aussi possible en touchant son blason sur la table.
+  const [pick, setPick] = useState<PlayerId | null>(null);
+  useEffect(() => setPick(null), [view.phase, view.regent, view.history.length, actingAs]);
+  const picking = pickingFor(view, actingAs, actor?.alive ?? false);
+
+  const event = useCouncilEvents(view);
+  const action = actor?.alive ? (
+    <Actions view={view} nameOf={nameOf} seatOf={seatOf} sendMove={sendMove} actingAs={actingAs} privateView={privateView} pick={pick} setPick={setPick} />
+  ) : null;
 
   return (
-    <div className="flex flex-col gap-4">
-      <Tracks view={view} />
-      <Government view={view} nameOf={nameOf} />
-      <Instruction {...ctx} />
+    <div className="tv">
+      <style href="arcade-throne-v1" precedence="default">
+        {THRONE_CSS}
+      </style>
+      <div className="tv-wall" />
+      <div className="tv-light" />
 
-      {me && <SecretPanel view={view} me={me} nameOf={nameOf} />}
+      <Header view={view} wide={wide} />
+      <div className="mx-auto w-[min(1240px,calc(100%-20px))]">
+        <StepTrack view={view} />
+        <Instruction {...instructionFor(view, actingAs, privateView, mode, nameOf)} />
+      </div>
 
-      {actor?.alive && <Actions {...ctx} viewer={viewer} />}
+      <div className="mx-auto mt-4 grid w-[min(1240px,calc(100%-20px))] gap-x-6 gap-y-4 pb-16 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
+        <div className="flex flex-col gap-4 lg:col-start-2 lg:row-start-1">
+          {action}
+          {me && <Letter view={view} me={me} nameOf={nameOf} />}
+        </div>
+        <div className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+          <CouncilTable view={view} viewer={viewer} wide={wide} nameOf={nameOf} picking={picking} pick={pick} setPick={setPick} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-2">
+          <History view={view} nameOf={nameOf} />
+          <Journal lines={view.log} open={wide} />
+        </div>
+      </div>
 
-      <Players view={view} viewer={viewer} />
-      <History view={view} nameOf={nameOf} />
-      <Journal lines={view.log} />
+      <Cinematic trigger={event.key} onMount={mode !== 'hotseat'} duration={event.kind === 'edict' ? 2600 : 2000}>
+        <EventBanner view={view} kind={event.kind} nameOf={nameOf} />
+      </Cinematic>
     </div>
   );
 }
 
-// ───────── Pistes ─────────
+// ───────── Événements du Conseil (annonces et sons) ─────────
 
-function Tracks({ view }: { view: ThroneView }) {
-  return (
-    <section className="grid gap-3 rounded-2xl border border-line bg-surface p-4">
-      <div>
-        <div className="mb-1.5 flex justify-between text-[11px] font-semibold uppercase tracking-wide">
-          <span className="text-key">Édits royaux</span>
-          <span className="text-muted tabular-nums">
-            {view.crown} / {CROWN_TO_WIN}
-          </span>
+type EventKind = 'phase' | 'vote' | 'edict' | 'execute';
+
+function useCouncilEvents(view: ThroneView): { key: string; kind: EventKind } {
+  const dead = view.players.filter((p) => !p.alive).length;
+  const voteKey = view.lastVote ? `${view.history.length}-${view.agitation}-${view.lastVote.regent}-${view.lastVote.nominee}-${view.lastVote.passed}` : '';
+  const prev = useRef({ hist: view.history.length, dead, voteKey, phase: view.phase });
+  const event = useRef<{ key: string; kind: EventKind }>({ key: `phase-${view.phase}-${view.history.length}`, kind: 'phase' });
+  const p = prev.current;
+  if (view.history.length > p.hist) event.current = { key: `edict-${view.history.length}`, kind: 'edict' };
+  else if (dead > p.dead) event.current = { key: `dead-${dead}`, kind: 'execute' };
+  else if (voteKey && voteKey !== p.voteKey) event.current = { key: `vote-${voteKey}`, kind: 'vote' };
+  else if (view.phase !== p.phase && ['nomination', 'vote', 'power'].includes(view.phase))
+    event.current = { key: `phase-${view.phase}-${view.history.length}-${view.agitation}-${view.regent}`, kind: 'phase' };
+  prev.current = { hist: view.history.length, dead, voteKey, phase: view.phase };
+
+  // Sons, une seule fois par événement.
+  const played = useRef(event.current.key);
+  useEffect(() => {
+    const e = event.current;
+    if (played.current === e.key) return;
+    played.current = e.key;
+    if (e.kind === 'edict') {
+      const last = view.history.at(-1);
+      sfx.seal(0.1);
+      if (last?.edict === 'crown') sfx.fanfare(0.5);
+      else sfx.drum(0.4, 2);
+    } else if (e.kind === 'execute') sfx.drum(0, 3);
+    else if (e.kind === 'vote') {
+      [0, 0.18, 0.36].forEach((d) => sfx.knock(d, 0.4));
+      if (view.lastVote?.passed) sfx.chime(0.6);
+    } else sfx.whoosh(0, 0.12);
+  });
+  return event.current;
+}
+
+function EventBanner({ view, kind, nameOf }: { view: ThroneView; kind: EventKind; nameOf: NameOf }) {
+  if (kind === 'edict') {
+    const last = view.history.at(-1);
+    if (!last) return null;
+    const crown = last.edict === 'crown';
+    return (
+      <div className="tv-scroll">
+        <div className="tv-title text-[13px] uppercase tracking-[0.3em] text-[#7a2a14]">{last.regent ? 'Le Conseil promulgue' : 'Émeute ! Le peuple impose'}</div>
+        <div className="tv-title mt-2 text-[1.9rem] leading-tight" style={{ color: crown ? '#1f3f86' : '#7a120c' }}>
+          {EDICT_LABEL[last.edict]}
         </div>
-        <div className="grid grid-cols-5 gap-1.5">
-          {Array.from({ length: CROWN_TO_WIN }, (_, i) => (
-            <Slot key={i} filled={i < view.crown} tone="crown" label={i === CROWN_TO_WIN - 1 ? 'Victoire' : ''} />
-          ))}
+        <div className="mt-4 flex justify-center">
+          <Seal team={last.edict} size={78} />
         </div>
-      </div>
-      <div>
-        <div className="mb-1.5 flex justify-between text-[11px] font-semibold uppercase tracking-wide">
-          <span className="text-sabo">Édits de l’Ombre</span>
-          <span className="text-muted tabular-nums">
-            {view.shadow} / {SHADOW_TO_WIN}
-          </span>
-        </div>
-        <div className="grid grid-cols-6 gap-1.5">
-          {view.track.map((power, i) => (
-            <Slot
-              key={i}
-              filled={i < view.shadow}
-              tone="shadow"
-              label={i === SHADOW_TO_WIN - 1 ? 'Victoire' : power ? POWER_LABEL[power] : ''}
-              mark={i + 1 === USURPER_DANGER ? '⚠' : i + 1 === VETO_AT ? 'veto' : undefined}
-            />
-          ))}
-        </div>
-        <p className="mt-1.5 text-[11px] text-muted">
-          ⚠ Dès le {USURPER_DANGER}e édit de l’Ombre, élire l’Usurpateur Sénéchal le couronne.
+        <p className="mt-3 text-[1.05rem] italic text-[#4a3418]">
+          {crown ? `${view.crown} sur ${CROWN_TO_WIN} pour la Couronne` : `${view.shadow} sur ${SHADOW_TO_WIN} pour l’Ombre`}
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted">
-        <span className="flex items-center gap-1.5">
-          Agitation
-          {Array.from({ length: MAX_AGITATION }, (_, i) => (
-            <span
-              key={i}
-              className={`h-2.5 w-2.5 rounded-full ${i < view.agitation ? 'bg-sabo' : 'bg-line'}`}
-            />
-          ))}
-        </span>
-        <span>Pile : {view.deckCount}</span>
-        <span>Défausse : {view.discardCount}</span>
+    );
+  }
+  if (kind === 'execute') {
+    const victim = [...view.players].reverse().find((p) => !p.alive);
+    return (
+      <div className="tv-banner">
+        <div className="mb-2 flex justify-center">
+          <RichIcon name="executioner-hood" metal="iron" size={70} />
+        </div>
+        <div className="k">Sentence du Régent</div>
+        <div className="tv-title tv-gold text-[2.4rem] sm:text-5xl">{victim?.name ?? '?'} est exécuté</div>
+        <div className="s">Ses secrets partent avec lui… ou presque.</div>
       </div>
+    );
+  }
+  if (kind === 'vote' && view.lastVote) {
+    const votes = Object.values(view.lastVote.votes);
+    const yes = votes.filter(Boolean).length;
+    return (
+      <div className="tv-banner">
+        <div className="k">
+          {nameOf(view.lastVote.regent)} et {nameOf(view.lastVote.nominee)}
+        </div>
+        <div className="tv-title tv-gold text-[2.4rem] sm:text-5xl">{view.lastVote.passed ? 'Gouvernement élu' : 'Gouvernement rejeté'}</div>
+        <div className="s">
+          {yes} pour · {votes.length - yes} contre
+          {!view.lastVote.passed && view.agitation > 0 ? ` — le peuple gronde (${view.agitation}/${MAX_AGITATION})` : ''}
+        </div>
+      </div>
+    );
+  }
+  const text: Partial<Record<ThroneView['phase'], [string, string]>> = {
+    reveal: ['Le roi est mort', 'Chacun lit en secret sa lettre de cachet.'],
+    nomination: ['Le Conseil se réunit', `${nameOf(view.regent)}, Régent, propose un Sénéchal.`],
+    vote: ['Aux voix !', `Élire ${nameOf(view.regent)} et ${nameOf(view.nominee)} ?`],
+    power: ['Pouvoir du Régent', view.pendingPower ? POWER_LABEL[view.pendingPower] : ''],
+  };
+  const t = text[view.phase];
+  if (!t) return null;
+  return (
+    <div className="tv-banner">
+      <div className="k">Le Trône Vide</div>
+      <div className="tv-title tv-gold text-[2.4rem] sm:text-6xl">{t[0]}</div>
+      <div className="s">{t[1]}</div>
+    </div>
+  );
+}
+
+// ───────── En-tête : le trône et les deux pistes ─────────
+
+function Header({ view, wide }: { view: ThroneView; wide: boolean }) {
+  const torches = (size: number) => (
+    <span className="flex items-center gap-1" aria-label={`Colère du peuple : ${view.agitation} sur ${MAX_AGITATION}`} title="Colère du peuple : à 3 gouvernements rejetés d’affilée, l’émeute impose un édit.">
+      {Array.from({ length: MAX_AGITATION }, (_, i) => (
+        <span key={i} className={`tv-torch ${i < view.agitation ? 'lit' : ''}`} style={{ width: size + 4, height: size + 8 }}>
+          <RichIcon name="torch" metal="copper" size={size} />
+        </span>
+      ))}
+    </span>
+  );
+  return (
+    <header className="relative px-3 pb-1 pt-[3.6rem] sm:pt-4">
+      {wide ? (
+        <div className="flex flex-col items-center">
+          <div className="tv-throne">
+            <RichIcon name="stone-throne" metal="gold" size={70} />
+          </div>
+          <div className="tv-title tv-gold mt-1 text-[2rem] leading-none">Le Trône Vide</div>
+          <div className="mt-2 flex items-center gap-4 text-[14px] text-[#d9c08a]">
+            <span className="italic">Colère du peuple</span>
+            {torches(24)}
+            <span className="text-[#bba77f]">
+              Pile : {view.deckCount} · Défausse : {view.discardCount}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 px-1">
+          <span className="tv-throne">
+            <RichIcon name="stone-throne" metal="gold" size={44} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="tv-title tv-gold text-[1.4rem] leading-none">Le Trône Vide</div>
+            <div className="mt-1 text-[13px] text-[#bba77f]">
+              Pile : {view.deckCount} · Défausse : {view.discardCount}
+            </div>
+          </div>
+          {torches(20)}
+        </div>
+      )}
+      <div className="mx-auto mt-3 grid w-[min(1240px,100%)] gap-3 lg:grid-cols-2 lg:gap-5">
+        <Track team="crown" view={view} />
+        <Track team="shadow" view={view} />
+      </div>
+    </header>
+  );
+}
+
+function Seal({ team, size = 34, usurper = false }: { team: Edict; size?: number; usurper?: boolean }) {
+  return (
+    <span className={`tv-seal ${usurper ? 'usurper' : team}`} style={{ width: size, height: size }}>
+      <RichIcon name={usurper ? 'crowned-skull' : team === 'crown' ? 'fleur-de-lys' : 'all-seeing-eye'} metal={team === 'crown' ? 'gold' : 'bone'} size={size * 0.62} />
+    </span>
+  );
+}
+
+function Track({ team, view }: { team: Edict; view: ThroneView }) {
+  const crown = team === 'crown';
+  const total = crown ? CROWN_TO_WIN : SHADOW_TO_WIN;
+  const count = crown ? view.crown : view.shadow;
+  return (
+    <section className={`tv-track ${team}`} aria-label={crown ? 'Édits royaux' : 'Édits de l’Ombre'}>
+      <div className="tv-track-head">
+        <span className="flex items-center gap-2">
+          <RichIcon name={crown ? 'crown' : 'all-seeing-eye'} metal={crown ? 'gold' : 'bone'} size={22} />
+          <span className="tv-title text-[13px] uppercase tracking-[0.18em]">{crown ? 'La Couronne' : 'L’Ombre'}</span>
+        </span>
+        <span className="tv-num text-sm">
+          {count} / {total}
+        </span>
+      </div>
+      <div className="tv-slots" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
+        {Array.from({ length: total }, (_, i) => {
+          const filled = i < count;
+          const power = crown ? null : view.track[i];
+          const last = i === total - 1;
+          return (
+            <div
+              key={i}
+              className={`tv-slot ${filled ? 'filled' : ''} ${last ? 'goal' : ''}`}
+              title={filled ? EDICT_LABEL[team] : last ? 'Victoire' : power ? POWER_LABEL[power] : undefined}
+            >
+              {filled ? (
+                <Seal team={team} size={28} />
+              ) : last ? (
+                <>
+                  <RichIcon name={crown ? 'laurel-crown' : 'crowned-skull'} metal={crown ? 'gold' : 'bone'} size={22} />
+                  Victoire
+                </>
+              ) : power ? (
+                <>
+                  <RichIcon name={POWER_ICON[power]} metal="bone" size={20} />
+                  {POWER_LABEL[power]}
+                </>
+              ) : null}
+              {!crown && i + 1 === USURPER_DANGER && <span className="mark" title="Dès ce 3e édit, élire l’Usurpateur Sénéchal le couronne">danger</span>}
+              {!crown && i + 1 === VETO_AT && <span className="mark" title="Le Sénéchal peut proposer un veto">veto</span>}
+            </div>
+          );
+        })}
+      </div>
+      {!crown && view.shadow >= USURPER_DANGER && view.phase !== 'over' && (
+        <p className="mt-2 text-center text-[13px] italic text-[#ffd0c4]">Élire l’Usurpateur Sénéchal lui donne le trône !</p>
+      )}
     </section>
   );
 }
 
-function Slot({
-  filled,
-  tone,
-  label,
-  mark,
-}: {
-  filled: boolean;
-  tone: Edict;
-  label: string;
-  mark?: string;
-}) {
-  const on = tone === 'crown' ? 'border-key bg-key/25 text-key' : 'border-sabo bg-sabo/25 text-sabo';
+// ───────── Étapes du tour et consigne ─────────
+
+const STEPS: { label: string; icon: GameIconName }[] = [
+  { label: 'Proposition', icon: 'banging-gavel' },
+  { label: 'Vote', icon: 'vote' },
+  { label: 'Régent', icon: 'tied-scroll' },
+  { label: 'Sénéchal', icon: 'quill-ink' },
+  { label: 'Pouvoir', icon: 'crystal-ball' },
+];
+
+function StepTrack({ view }: { view: ThroneView }) {
+  if (view.phase === 'reveal') return null;
+  const now = { reveal: -1, nomination: 0, vote: 1, regent: 2, seneschal: 3, veto: 3, power: 4, powerResult: 4, over: 5 }[view.phase];
   return (
-    <div
-      className={`relative flex h-12 flex-col items-center justify-center rounded-lg border px-0.5 text-center text-[9px] leading-tight font-semibold sm:text-[11px] ${
-        filled ? on : 'border-line bg-bg/40 text-muted'
-      }`}
-    >
-      {filled ? <EdictIcon edict={tone} className="h-5 w-5" /> : label}
-      {mark && <span className="absolute -top-1.5 right-0.5 text-[9px] normal-case text-sabo">{mark}</span>}
-    </div>
+    <ol className="tv-steps" aria-label="Étapes du tour">
+      {STEPS.map((step, i) => (
+        <li key={step.label} className={i < now ? 'done' : i === now ? 'now' : ''} aria-current={i === now ? 'step' : undefined}>
+          <span className="n">
+            <Icon name={step.icon} size={14} />
+          </span>
+          <span className="t">{step.label}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
-function Government({ view, nameOf }: { view: ThroneView; nameOf: (id: PlayerId | null) => string }) {
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <div className="rounded-xl border border-key/40 bg-surface px-3 py-2">
-        <div className="text-[11px] uppercase tracking-wide text-muted">Régent</div>
-        <div className="truncate font-semibold">{nameOf(view.regent)}</div>
-      </div>
-      <div className="rounded-xl border border-line bg-surface px-3 py-2">
-        <div className="text-[11px] uppercase tracking-wide text-muted">Sénéchal</div>
-        <div className="truncate font-semibold">{view.nominee ? nameOf(view.nominee) : '—'}</div>
-      </div>
-    </div>
-  );
-}
-
-// ───────── Consignes ─────────
-
-interface Ctx {
-  view: ThroneView;
-  nameOf: (id: PlayerId | null) => string;
-  sendMove: (m: ThroneMove) => void;
-  mode: Props['mode'];
-  actingAs: PlayerId | null;
-}
-
-function Instruction({ view, nameOf, mode, actingAs }: Ctx) {
+function instructionFor(
+  view: ThroneView,
+  actingAs: PlayerId | null,
+  privateView: boolean,
+  mode: Props['mode'],
+  nameOf: NameOf,
+): { icon: GameIconName; mine: boolean; text: ReactNode } {
   const regent = nameOf(view.regent);
   const nominee = nameOf(view.nominee);
-  const mine = (id: PlayerId | null) => actingAs !== null && actingAs === id;
-  const call = (who: string, rest: string) =>
-    mode === 'hotseat' ? `${who}, ${rest}` : rest.charAt(0).toUpperCase() + rest.slice(1);
-  let text = '';
+  const mine = (id: PlayerId | null) => actingAs !== null && actingAs === id && !!view.players.find((p) => p.id === actingAs)?.alive;
+  const you = (rest: string) => (mode === 'hotseat' && actingAs ? `${nameOf(actingAs)}, ${rest}` : rest.charAt(0).toUpperCase() + rest.slice(1));
+  const alive = view.players.filter((p) => p.alive).length;
   switch (view.phase) {
     case 'reveal': {
-      const ready = view.players.filter((p) => p.acked).length;
-      text = `Chacun découvre son rôle en secret… ${ready}/${view.players.length} prêts`;
-      break;
+      const ready = `${view.players.filter((p) => p.acked).length}/${view.players.length} prêts`;
+      return privateView && !view.players.find((p) => p.id === actingAs)?.acked
+        ? { icon: 'wax-seal', mine: true, text: you(`lis ta lettre de cachet : ton rôle et ton camp sont secrets. (${ready})`) }
+        : { icon: 'wax-seal', mine: false, text: `Chacun lit sa lettre de cachet en secret… ${ready}.` };
     }
     case 'nomination':
-      text = mine(view.regent)
-        ? call(regent, 'propose un Sénéchal parmi les joueurs éligibles.')
-        : `${regent} choisit un Sénéchal. Discutez !`;
-      break;
+      return mine(view.regent)
+        ? { icon: 'banging-gavel', mine: true, text: you('tu es Régent : propose un Sénéchal (touche son blason sur la table).') }
+        : { icon: 'banging-gavel', mine: false, text: `${regent}, Régent, choisit un Sénéchal. Discutez : qui mérite votre confiance ?` };
     case 'vote':
       if (view.config.votes === 'hands') {
-        text = mine(view.regent)
-          ? call(regent, `faites voter à main levée pour ${regent} et ${nominee}, puis coche les « oui ».`)
-          : `Vote à main levée pour ${regent} et ${nominee}.`;
-      } else {
-        const done = view.players.filter((p) => p.voted).length;
-        const alive = view.players.filter((p) => p.alive).length;
-        text = `Vote pour le gouvernement ${regent} / ${nominee} : ${done}/${alive} bulletins.`;
+        return mine(view.regent)
+          ? { icon: 'vote', mine: true, text: you(`faites voter à main levée pour ${regent} et ${nominee}, puis coche les « oui ».`) }
+          : { icon: 'vote', mine: false, text: `À main levée : élire ${regent} (Régent) et ${nominee} (Sénéchal) ?` };
       }
-      break;
+      return privateView && view.me?.myVote === null && mine(actingAs)
+        ? { icon: 'vote', mine: true, text: you(`vote : élire ${regent} (Régent) et ${nominee} (Sénéchal) ? Il faut une majorité de oui.`) }
+        : {
+            icon: 'vote',
+            mine: false,
+            text: `Vote pour ${regent} et ${nominee} : ${view.players.filter((p) => p.voted).length}/${alive} bulletins.`,
+          };
     case 'regent':
-      text = `${regent} examine 3 édits et en défausse un en secret.`;
-      break;
+      return mine(view.regent) && privateView
+        ? { icon: 'tied-scroll', mine: true, text: you('tu as 3 édits : défausses-en un en secret, les 2 autres vont au Sénéchal.') }
+        : { icon: 'tied-scroll', mine: false, text: `${regent} examine 3 édits et en défausse un en secret.` };
     case 'seneschal':
-      text = `${nominee} choisit l’édit à promulguer.`;
-      break;
+      return mine(view.nominee) && privateView
+        ? { icon: 'quill-ink', mine: true, text: you('le Régent t’a transmis 2 édits : promulgues-en un.') }
+        : { icon: 'quill-ink', mine: false, text: `${nominee} choisit l’édit à promulguer.` };
     case 'veto':
-      text = mine(view.regent)
-        ? call(regent, `${nominee} propose un veto. Acceptes-tu ?`)
-        : `${nominee} propose un veto : ${regent} décide.`;
-      break;
+      return mine(view.regent)
+        ? { icon: 'cancel', mine: true, text: you(`${nominee} propose un veto : acceptes-tu de jeter les deux édits ?`) }
+        : { icon: 'cancel', mine: false, text: `${nominee} propose un veto : ${regent} décide.` };
     case 'power':
-      text = `${regent} utilise son pouvoir : ${view.pendingPower ? POWER_LABEL[view.pendingPower] : ''}.`;
-      break;
+      return mine(view.regent)
+        ? { icon: POWER_ICON[view.pendingPower ?? 'peek'], mine: true, text: you(`l’édit de l’Ombre te donne un pouvoir : ${view.pendingPower ? POWER_LABEL[view.pendingPower] : ''}.`) }
+        : { icon: POWER_ICON[view.pendingPower ?? 'peek'], mine: false, text: `${regent} utilise son pouvoir : ${view.pendingPower ? POWER_LABEL[view.pendingPower] : ''}.` };
     case 'powerResult':
-      text = `${regent} prend connaissance du résultat de son enquête.`;
-      break;
-    case 'over':
-      text = 'Partie terminée : tous les rôles sont révélés.';
-      break;
+      return { icon: 'magnifying-glass', mine: mine(view.regent), text: `${regent} prend connaissance du résultat de son enquête.` };
+    default:
+      return { icon: 'stone-throne', mine: false, text: 'Partie terminée : toutes les lettres de cachet sont ouvertes.' };
   }
-  return <div className="rounded-xl border border-line bg-surface px-4 py-3 text-sm">{text}</div>;
 }
 
-// ───────── Informations secrètes ─────────
+function Instruction({ icon, mine, text }: { icon: GameIconName; mine: boolean; text: ReactNode }) {
+  return (
+    <div className={`tv-call ${mine ? 'is-mine' : ''}`}>
+      <span className="ic">
+        <RichIcon name={icon} metal="gold" size={26} />
+      </span>
+      <p>{text}</p>
+    </div>
+  );
+}
 
-function SecretPanel({
+// ───────── La table du Conseil ─────────
+
+function pickingFor(view: ThroneView, actingAs: PlayerId | null, alive: boolean): { ids: PlayerId[] } | null {
+  if (!alive || actingAs !== view.regent) return null;
+  if (view.phase === 'nomination') return { ids: view.players.filter((p) => p.eligible).map((p) => p.id) };
+  if (view.phase === 'power' && view.pendingPower && view.pendingPower !== 'peek') {
+    const others = view.players.filter((p) => p.alive && p.id !== actingAs);
+    return { ids: (view.pendingPower === 'investigate' ? others.filter((p) => !p.investigated) : others).map((p) => p.id) };
+  }
+  return null;
+}
+
+function CouncilTable({
   view,
-  me,
+  viewer,
+  wide,
   nameOf,
+  picking,
+  pick,
+  setPick,
 }: {
   view: ThroneView;
-  me: NonNullable<ThroneView['me']>;
-  nameOf: (id: PlayerId | null) => string;
+  viewer: PlayerId | null;
+  wide: boolean;
+  nameOf: NameOf;
+  picking: { ids: PlayerId[] } | null;
+  pick: PlayerId | null;
+  setPick: (id: PlayerId) => void;
 }) {
+  const links: TableLink[] = [];
+  const target = ['vote', 'regent', 'seneschal', 'veto'].includes(view.phase) ? view.nominee : view.phase === 'nomination' ? pick : null;
+  if (target && target !== view.regent) links.push({ id: 'gov', from: view.regent, to: target, color: '#f0cd6e', width: 3.5, flow: true, glow: true });
+  if (view.phase === 'power' && pick) links.push({ id: 'power', from: view.regent, to: pick, color: view.pendingPower === 'execute' ? '#ff5a4a' : '#a9c4ff', width: 3.5, flow: true, glow: true });
+
+  return (
+    <section className="relative pb-7 lg:pb-3" aria-label="Le Conseil">
+      <h3 className="sr-only">Le Conseil</h3>
+      <RoundTable
+        ids={view.players.map((p) => p.id)}
+        me={viewer}
+        seat={wide ? { w: 128, h: 150 } : { w: 84, h: 118 }}
+        className={wide ? 'aspect-[1.3] max-h-[calc(100dvh-120px)] min-h-[500px]' : 'aspect-[0.84]'}
+        links={links}
+        under={<div className="tv-table-under" />}
+        center={<CouncilHeart view={view} nameOf={nameOf} />}
+        renderSeat={(id) => {
+          const p = view.players.find((x) => x.id === id)!;
+          return (
+            <Seat
+              p={p}
+              seat={view.players.indexOf(p)}
+              view={view}
+              viewer={viewer}
+              wide={wide}
+              picked={pick === id}
+              onPick={picking?.ids.includes(id) ? () => setPick(id) : undefined}
+            />
+          );
+        }}
+      />
+    </section>
+  );
+}
+
+function Crest({ seat, size, dead = false }: { seat: number; size: number; dead?: boolean }) {
+  const c = TINCTURE[seat % TINCTURE.length]!;
+  return (
+    <span className="tv-crest-wrap">
+      <span
+        className="tv-crest"
+        style={{
+          width: size,
+          height: size * 1.12,
+          background: `radial-gradient(120% 90% at 35% 20%, color-mix(in srgb, ${c} 45%, white), ${c} 50%, color-mix(in srgb, ${c} 55%, black))`,
+        }}
+      >
+        <span style={{ marginTop: -size * 0.12 }}>
+          <RichIcon name={dead ? 'tombstone' : CHARGE[seat % CHARGE.length]!} metal={dead ? 'iron' : 'gold'} size={size * 0.56} />
+        </span>
+      </span>
+    </span>
+  );
+}
+
+function seatChip(view: ThroneView, p: ThronePlayerView): { text: string; tone: string } | null {
+  if (!p.alive) return { text: 'exécuté', tone: 'dim' };
+  if (view.phase === 'reveal') return p.acked ? { text: 'prêt', tone: 'green' } : { text: 'lit sa lettre…', tone: 'dim' };
+  if (view.phase === 'vote' && view.config.votes === 'secret') return p.voted ? { text: 'a voté', tone: 'green' } : { text: 'réfléchit…', tone: 'dim' };
+  if (view.phase === 'nomination' && p.termLimited) return { text: 'inéligible', tone: 'dim' };
+  if (p.id === view.regent && view.phase !== 'over') return { text: 'Régent', tone: 'gold' };
+  if (p.id === view.nominee && view.phase !== 'over' && view.phase !== 'nomination') return { text: 'Sénéchal', tone: 'gold' };
+  return null;
+}
+
+function Seat({
+  p,
+  seat,
+  view,
+  viewer,
+  wide,
+  picked,
+  onPick,
+}: {
+  p: ThronePlayerView;
+  seat: number;
+  view: ThroneView;
+  viewer: PlayerId | null;
+  wide: boolean;
+  picked: boolean;
+  onPick?: () => void;
+}) {
+  const over = view.phase === 'over';
+  const regent = p.id === view.regent && !over;
+  const nominee = p.id === view.nominee && !over && view.phase !== 'nomination';
+  const size = wide ? 62 : 48;
+  const chip = seatChip(view, p);
+  const ballot = view.phase !== 'vote' && view.lastVote && Object.hasOwn(view.lastVote.votes, p.id) ? view.lastVote.votes[p.id] : null;
+  const cls = `tv-seat ${regent ? 'is-regent' : ''} ${nominee ? 'is-nominee' : ''} ${picked ? 'is-picked' : ''} ${p.id === viewer ? 'is-me' : ''} ${p.alive ? '' : 'is-dead'}`;
+  const body = (
+    <>
+      {chip && <span className={`tv-chip tone-${chip.tone}`}>{chip.text}</span>}
+      <span className="relative">
+        <Crest seat={seat} size={size} dead={!p.alive} />
+        {regent && (
+          <span className="tv-token -right-3 -top-1" style={{ width: size * 0.5, height: size * 0.5, background: '#1d1206' }} title="Régent">
+            <RichIcon name="banging-gavel" metal="gold" size={size * 0.34} />
+          </span>
+        )}
+        {nominee && (
+          <span className="tv-token -left-3 -top-1" style={{ width: size * 0.5, height: size * 0.5, background: '#14213f' }} title="Sénéchal">
+            <RichIcon name="quill-ink" metal="silver" size={size * 0.34} />
+          </span>
+        )}
+        {p.investigated && (
+          <span className="tv-token -bottom-1 -left-2" style={{ width: size * 0.4, height: size * 0.4, background: '#24170c' }} title="A fait l’objet d’une enquête">
+            <RichIcon name="magnifying-glass" metal="brass" size={size * 0.26} />
+          </span>
+        )}
+      </span>
+      <span className="tv-seat-plate">
+        <span className="tv-seat-name">{p.name}</span>
+        {(p.id === viewer || p.isBot) && <span className="tv-seat-tag">{p.id === viewer ? 'toi' : 'bot'}</span>}
+      </span>
+      <span className="flex min-h-[18px] flex-wrap items-center justify-center gap-1">
+        {p.role && <span className={`tv-role ${p.role === 'loyal' ? 'crown' : 'shadow'}`}>{ROLE_LABEL[p.role]}</span>}
+        {ballot !== null && ballot !== undefined && <span className={`tv-ballot-chip ${ballot ? 'yes' : 'no'}`}>{ballot ? 'Pour' : 'Contre'}</span>}
+      </span>
+    </>
+  );
+  if (onPick) {
+    return (
+      <button
+        type="button"
+        className={cls}
+        style={{ width: wide ? 128 : 84 }}
+        aria-label={`Choisir ${p.name}`}
+        onClick={() => {
+          sfx.click();
+          onPick();
+        }}
+      >
+        {body}
+      </button>
+    );
+  }
+  return (
+    <div className={cls} style={{ width: wide ? 128 : 84 }}>
+      {body}
+    </div>
+  );
+}
+
+/** Centre de la table : ce qui se joue en ce moment. */
+function CouncilHeart({ view, nameOf }: { view: ThroneView; nameOf: NameOf }) {
+  const alive = view.players.filter((p) => p.alive).length;
+  let icon: ReactNode = <RichIcon name="stone-throne" metal="gold" size={60} />;
+  let title = '';
+  let line = '';
+  switch (view.phase) {
+    case 'reveal':
+      icon = <RichIcon name="wax-seal" metal="ruby" size={56} />;
+      title = 'Lettres de cachet';
+      line = `${view.players.filter((p) => p.acked).length}/${view.players.length} lues`;
+      break;
+    case 'nomination':
+      icon = <RichIcon name="banging-gavel" metal="gold" size={56} />;
+      title = `Régent : ${nameOf(view.regent)}`;
+      line = 'propose un Sénéchal';
+      break;
+    case 'vote':
+      icon = <RichIcon name="vote" metal="gold" size={56} />;
+      title = `${nameOf(view.regent)} + ${nameOf(view.nominee)}`;
+      line = view.config.votes === 'secret' ? `${view.players.filter((p) => p.voted).length}/${alive} bulletins` : 'vote à main levée';
+      break;
+    case 'regent':
+    case 'seneschal':
+    case 'veto': {
+      const n = view.phase === 'regent' ? 3 : 2;
+      icon = (
+        <span className="flex gap-1.5">
+          {Array.from({ length: n }, (_, i) => (
+            <span key={i} className="tv-facedown" style={{ transform: `rotate(${(i - (n - 1) / 2) * 7}deg)` }} />
+          ))}
+        </span>
+      );
+      title = view.phase === 'regent' ? `${nameOf(view.regent)} trie 3 édits` : view.phase === 'veto' ? 'Veto proposé' : `${nameOf(view.nominee)} choisit`;
+      line = 'en secret';
+      break;
+    }
+    case 'power':
+    case 'powerResult':
+      icon = <RichIcon name={POWER_ICON[view.pendingPower ?? 'investigate']} metal="silver" size={58} />;
+      title = view.pendingPower ? POWER_LABEL[view.pendingPower] : 'Enquête';
+      line = `pouvoir de ${nameOf(view.regent)}`;
+      break;
+    case 'over':
+      icon = <RichIcon name={view.outcome?.winner === 'crown' ? 'crown' : 'crowned-skull'} metal={view.outcome?.winner === 'crown' ? 'gold' : 'bone'} size={64} />;
+      title = view.outcome?.winner === 'crown' ? 'La Couronne l’emporte' : 'L’Ombre s’empare du trône';
+      break;
+  }
+  return (
+    <div className="flex flex-col items-center text-center">
+      <span className="drop-shadow-[0_6px_10px_rgba(0,0,0,.7)]">{icon}</span>
+      <span className="tv-title mt-2 text-[15px] leading-tight text-[#fbe7a8] [text-shadow:0_2px_4px_rgba(0,0,0,.9)]">{title}</span>
+      {line && <span className="text-[14px] italic text-[#e8d6ad] [text-shadow:0_2px_4px_rgba(0,0,0,.9)]">{line}</span>}
+    </div>
+  );
+}
+
+// ───────── Lettre de cachet (informations secrètes) ─────────
+
+function Letter({ view, me, nameOf }: { view: ThroneView; me: NonNullable<ThroneView['me']>; nameOf: NameOf }) {
   const goal =
     me.team === 'crown'
       ? `Fais promulguer ${CROWN_TO_WIN} édits royaux, ou fais exécuter l’Usurpateur.`
@@ -226,100 +650,151 @@ function SecretPanel({
         ? 'Reste discret : après le 3e édit de l’Ombre, fais-toi élire Sénéchal pour t’emparer du trône.'
         : `Fais passer ${SHADOW_TO_WIN} édits de l’Ombre, ou fais élire l’Usurpateur Sénéchal après le 3e.`;
   return (
-    <section className={`animate-pop rounded-2xl border bg-surface-2 p-4 ${ROLE_STYLE[me.role]}`}>
-      <div className="flex flex-wrap items-baseline gap-x-2">
-        <span className="text-sm text-muted">Ton rôle :</span>
-        <span className="text-xl font-bold">{ROLE_LABEL[me.role]}</span>
-        <span className="text-sm text-muted">({TEAM_LABEL[me.team]})</span>
+    <section className="tv-letter">
+      <div className="absolute -top-5 left-1/2 -translate-x-1/2">
+        <Seal team={me.team} size={46} usurper={me.role === 'usurper'} />
       </div>
-      <p className="mt-1 text-sm text-muted">{goal}</p>
+      <div className="tv-title mt-2 text-center text-[11px] uppercase tracking-[0.3em] text-[#7a2a14]">Lettre de cachet · confidentiel</div>
+      <div className="mt-1 flex flex-wrap items-baseline justify-center gap-x-2">
+        <span className="muted text-[15px]">Ton rôle :</span>
+        <span className="tv-title text-[1.6rem]" style={{ color: me.team === 'crown' ? '#1f3f86' : '#7a120c' }}>
+          {ROLE_LABEL[me.role]}
+        </span>
+        <span className="muted text-[15px]">({TEAM_LABEL[me.team]})</span>
+      </div>
+      <p className="mt-2 text-center text-[1.05rem] leading-snug">{goal}</p>
       {me.allies.length > 0 && (
-        <p className="mt-3 text-sm text-fg">
-          Tes complices :{' '}
-          {me.allies.map((a) => `${nameOf(a.id)} (${ROLE_LABEL[a.role]})`).join(', ')}
+        <p className="mt-3 text-center">
+          Tes complices : <strong>{me.allies.map((a) => `${nameOf(a.id)} (${ROLE_LABEL[a.role]})`).join(', ')}</strong>
         </p>
       )}
-      {me.role === 'usurper' && me.allies.length === 0 && (
-        <p className="mt-3 text-sm text-muted">Tu ne connais pas tes Conjurés, mais eux te connaissent.</p>
-      )}
+      {me.role === 'usurper' && me.allies.length === 0 && <p className="muted mt-3 text-center">Tu ne connais pas tes Conjurés, mais eux te connaissent.</p>}
       {me.investigations.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-1 text-sm text-fg">
+        <ul className="mt-3 flex flex-col gap-1">
           {me.investigations.map((i) => (
-            <li key={i.target}>
-              Enquête : {nameOf(i.target)} sert{' '}
-              <strong className={i.team === 'crown' ? 'text-key' : 'text-sabo'}>{TEAM_LABEL[i.team]}</strong>
+            <li key={i.target} className="flex items-center justify-center gap-1.5">
+              <RichIcon name="magnifying-glass" metal="brass" size={18} /> {nameOf(i.target)} sert{' '}
+              <strong style={{ color: i.team === 'crown' ? '#1f3f86' : '#7a120c' }}>{TEAM_LABEL[i.team]}</strong>
             </li>
           ))}
         </ul>
       )}
       {me.passed && (
-        <p className="mt-3 text-sm text-muted">
-          Tu as transmis : {me.passed.map((e) => EDICT_LABEL[e]).join(' + ')}
+        <p className="muted mt-3 flex items-center justify-center gap-1.5">
+          Tu as transmis : {me.passed.map((e, i) => <Seal key={i} team={e} size={20} />)}
         </p>
       )}
+      {view.phase === 'over' && <p className="muted mt-2 text-center text-sm italic">Toutes les lettres sont maintenant ouvertes.</p>}
     </section>
   );
 }
 
 // ───────── Actions de la phase ─────────
 
-function Actions({ view, nameOf, sendMove, actingAs, viewer }: Ctx & { viewer: PlayerId | null }) {
+function Actions({
+  view,
+  nameOf,
+  seatOf,
+  sendMove,
+  actingAs,
+  privateView,
+  pick,
+  setPick,
+}: {
+  view: ThroneView;
+  nameOf: NameOf;
+  seatOf: (id: PlayerId | null) => number;
+  sendMove: (m: ThroneMove) => void;
+  actingAs: PlayerId | null;
+  privateView: boolean;
+  pick: PlayerId | null;
+  setPick: (id: PlayerId | null) => void;
+}) {
   const me = actingAs as PlayerId;
   const isRegent = me === view.regent;
-  const privateView = viewer !== null && viewer === actingAs;
   const self = view.players.find((p) => p.id === me)!;
 
   switch (view.phase) {
     case 'reveal':
       return !self.acked && privateView ? (
-        <Primary onClick={() => sendMove({ type: 'ack' })}>J’ai retenu mon rôle</Primary>
+        <Dock title="Ta lettre de cachet">
+          <p className="muted text-center">Retiens bien ton rôle et ton camp : personne d’autre ne le verra.</p>
+          <div className="mt-3 flex justify-center">
+            <button
+              type="button"
+              className="tv-btn"
+              onClick={() => {
+                sfx.seal();
+                sendMove({ type: 'ack' });
+              }}
+            >
+              J’ai retenu mon rôle
+            </button>
+          </div>
+        </Dock>
       ) : null;
 
     case 'nomination':
       return isRegent ? (
         <PickPlayer
           title="Proposer un Sénéchal"
+          hint="Le Sénéchal promulguera l’édit. Choisis quelqu’un de confiance… ou qui sert tes plans."
           options={view.players.filter((p) => p.eligible)}
+          seatOf={seatOf}
+          value={pick}
+          onChange={setPick}
           confirm={(name) => `Proposer ${name}`}
-          onPick={(target) => sendMove({ type: 'nominate', target })}
+          onPick={(target) => {
+            sfx.knock();
+            sendMove({ type: 'nominate', target });
+          }}
         />
       ) : null;
 
     case 'vote':
       if (view.config.votes === 'hands') {
-        return isRegent ? <HandsVote view={view} onSubmit={(yes) => sendMove({ type: 'tally', yes })} /> : null;
+        return isRegent ? <HandsVote view={view} seatOf={seatOf} onSubmit={(yes) => sendMove({ type: 'tally', yes })} /> : null;
       }
       if (self.voted || !privateView) {
         return self.voted && view.me?.myVote !== null && privateView ? (
-          <p className="text-sm text-muted">Ton bulletin : {view.me?.myVote ? 'Oui' : 'Non'}. En attente des autres…</p>
+          <Dock title="Bulletin déposé">
+            <p className="text-center">
+              Tu as voté <strong>{view.me?.myVote ? 'oui' : 'non'}</strong>. On attend les autres conseillers…
+            </p>
+          </Dock>
         ) : null;
       }
       return (
-        <Panel title={`Élire ${nameOf(view.regent)} et ${nameOf(view.nominee)} ?`}>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => sendMove({ type: 'vote', yes: true })}
-              className="rounded-xl bg-good px-4 py-4 text-lg font-bold text-bg hover:brightness-110"
-            >
-              Oui
-            </button>
-            <button
-              type="button"
-              onClick={() => sendMove({ type: 'vote', yes: false })}
-              className="rounded-xl bg-sabo px-4 py-4 text-lg font-bold text-bg hover:brightness-110"
-            >
-              Non
-            </button>
+        <Dock title={`Élire ${nameOf(view.regent)} et ${nameOf(view.nominee)} ?`}>
+          <p className="muted -mt-1 text-center text-[15px]">À la majorité, ils gouvernent ce tour-ci.</p>
+          <div className="mt-3 flex justify-center gap-4">
+            {[true, false].map((yes) => (
+              <button
+                key={String(yes)}
+                type="button"
+                aria-label={yes ? 'Oui' : 'Non'}
+                className="tv-ballot"
+                onClick={() => {
+                  sfx.seal();
+                  sendMove({ type: 'vote', yes });
+                }}
+              >
+                <RichIcon name={yes ? 'thumb-up' : 'thumb-down'} metal={yes ? 'gold' : 'ruby'} size={64} />
+                <span className="word" style={{ color: yes ? '#5a4210' : '#7a120c' }}>
+                  {yes ? 'Oui' : 'Non'}
+                </span>
+                <span className="muted text-[13px] italic">{yes ? 'je les soutiens' : 'je m’y oppose'}</span>
+              </button>
+            ))}
           </div>
-        </Panel>
+        </Dock>
       );
 
     case 'regent':
       return isRegent && privateView && view.me?.hand ? (
         <ChooseEdict
           title="Choisis l’édit à défausser"
-          hint="Les deux autres iront au Sénéchal."
+          hint="Les deux autres iront au Sénéchal. Personne ne saura ce que tu as jeté."
           hand={view.me.hand}
           verb="Défausser"
           onPick={(index) => sendMove({ type: 'discard', index })}
@@ -336,11 +811,7 @@ function Actions({ view, nameOf, sendMove, actingAs, viewer }: Ctx & { viewer: P
           onPick={(index) => sendMove({ type: 'enact', index })}
           extra={
             view.vetoUnlocked && !view.vetoRefused ? (
-              <button
-                type="button"
-                onClick={() => sendMove({ type: 'veto' })}
-                className="rounded-xl border border-line px-4 py-2.5 text-sm hover:border-sabo/60"
-              >
+              <button type="button" onClick={() => sendMove({ type: 'veto' })} className="tv-btn2">
                 Proposer un veto au Régent
               </button>
             ) : null
@@ -350,49 +821,53 @@ function Actions({ view, nameOf, sendMove, actingAs, viewer }: Ctx & { viewer: P
 
     case 'veto':
       return isRegent ? (
-        <Panel title="Veto proposé par le Sénéchal">
-          <div className="grid grid-cols-2 gap-2">
-            <Primary onClick={() => sendMove({ type: 'vetoAnswer', accept: true })}>Accepter</Primary>
-            <button
-              type="button"
-              onClick={() => sendMove({ type: 'vetoAnswer', accept: false })}
-              className="rounded-xl border border-line px-4 py-3 font-semibold hover:border-sabo/60"
-            >
+        <Dock title="Veto proposé par le Sénéchal">
+          <p className="muted text-center text-[15px]">Accepter : aucun édit ne passe et la colère du peuple monte d’un cran.</p>
+          <div className="mt-3 flex justify-center gap-2">
+            <button type="button" className="tv-btn" onClick={() => sendMove({ type: 'vetoAnswer', accept: true })}>
+              Accepter
+            </button>
+            <button type="button" className="tv-btn2" onClick={() => sendMove({ type: 'vetoAnswer', accept: false })}>
               Refuser
             </button>
           </div>
-          <p className="mt-2 text-xs text-muted">Accepter : aucun édit ne passe et l’agitation monte d’un cran.</p>
-        </Panel>
+        </Dock>
       ) : null;
 
     case 'power': {
       if (!isRegent) return null;
       if (view.pendingPower === 'peek') {
         return privateView && view.me?.peek ? (
-          <Panel title="Présage : les 3 prochains édits">
-            <div className="flex gap-2">
+          <Dock title="Présage : les 3 prochains édits">
+            <div className="flex justify-center gap-2">
               {view.me.peek.map((e, i) => (
                 <EdictCard key={i} edict={e} />
               ))}
             </div>
-            <div className="mt-3">
-              <Primary onClick={() => sendMove({ type: 'power' })}>J’ai vu</Primary>
+            <div className="mt-3 flex justify-center">
+              <button type="button" className="tv-btn" onClick={() => sendMove({ type: 'power' })}>
+                J’ai vu
+              </button>
             </div>
-          </Panel>
+          </Dock>
         ) : null;
       }
       const others = view.players.filter((p) => p.alive && p.id !== me);
       const options = view.pendingPower === 'investigate' ? others.filter((p) => !p.investigated) : others;
       const titles = {
-        investigate: ['Enquêter sur…', (n: string) => `Enquêter sur ${n}`],
-        special: ['Désigner le prochain Régent', (n: string) => `Désigner ${n}`],
-        execute: ['Exécuter…', (n: string) => `Exécuter ${n}`],
+        investigate: ['Enquêter sur…', (n: string) => `Enquêter sur ${n}`, 'Tu découvriras son camp (pas son rôle exact).'],
+        special: ['Désigner le prochain Régent', (n: string) => `Désigner ${n}`, 'Il présidera le prochain tour.'],
+        execute: ['Exécuter…', (n: string) => `Exécuter ${n}`, 'S’il est l’Usurpateur, la Couronne gagne aussitôt.'],
       } as const;
       const t = titles[view.pendingPower as keyof typeof titles];
       return t ? (
         <PickPlayer
           title={t[0]}
+          hint={t[2]}
           options={options}
+          seatOf={seatOf}
+          value={pick}
+          onChange={setPick}
           confirm={t[1]}
           danger={view.pendingPower === 'execute'}
           onPick={(target) => sendMove({ type: 'power', target })}
@@ -404,16 +879,20 @@ function Actions({ view, nameOf, sendMove, actingAs, viewer }: Ctx & { viewer: P
       if (!isRegent || !privateView) return null;
       const last = view.me?.investigations.at(-1);
       return last ? (
-        <Panel title="Résultat de l’enquête">
-          <p className="text-lg">
-            {nameOf(last.target)} sert{' '}
-            <strong className={last.team === 'crown' ? 'text-key' : 'text-sabo'}>{TEAM_LABEL[last.team]}</strong>.
-          </p>
-          <p className="mt-1 text-xs text-muted">À toi de décider si tu le dis… et si tu dis la vérité.</p>
-          <div className="mt-3">
-            <Primary onClick={() => sendMove({ type: 'power' })}>Compris</Primary>
+        <Dock title="Résultat de l’enquête">
+          <div className="flex justify-center">
+            <Seal team={last.team} size={60} />
           </div>
-        </Panel>
+          <p className="mt-2 text-center text-xl">
+            {nameOf(last.target)} sert <strong style={{ color: last.team === 'crown' ? '#1f3f86' : '#7a120c' }}>{TEAM_LABEL[last.team]}</strong>.
+          </p>
+          <p className="muted mt-1 text-center text-[14px] italic">À toi de décider si tu le dis… et si tu dis la vérité.</p>
+          <div className="mt-3 flex justify-center">
+            <button type="button" className="tv-btn" onClick={() => sendMove({ type: 'power' })}>
+              Compris
+            </button>
+          </div>
+        </Dock>
       ) : null;
     }
 
@@ -422,104 +901,90 @@ function Actions({ view, nameOf, sendMove, actingAs, viewer }: Ctx & { viewer: P
   }
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Dock({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="animate-pop rounded-2xl border border-accent/40 bg-surface-2 p-4">
-      <h4 className="mb-3 font-semibold">{title}</h4>
+    <section className="tv-dock">
+      <h4 className="mb-3">{title}</h4>
       {children}
     </section>
   );
 }
 
-function Primary({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full rounded-xl bg-accent px-4 py-3 font-semibold text-bg hover:brightness-110 sm:w-auto"
-    >
-      {children}
-    </button>
-  );
-}
-
 function PickPlayer({
   title,
+  hint,
   options,
+  seatOf,
+  value,
+  onChange,
   confirm,
   onPick,
   danger = false,
 }: {
   title: string;
-  options: ThroneView['players'];
+  hint?: string;
+  options: ThronePlayerView[];
+  seatOf: (id: PlayerId | null) => number;
+  value: PlayerId | null;
+  onChange: (id: PlayerId) => void;
   confirm: (name: string) => string;
   onPick: (id: PlayerId) => void;
   danger?: boolean;
 }) {
-  const [picked, setPicked] = useState<PlayerId | null>(null);
+  const picked = value && options.some((p) => p.id === value) ? value : null;
   const name = options.find((p) => p.id === picked)?.name;
   return (
-    <Panel title={title}>
-      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={title}>
+    <Dock title={title}>
+      {hint && <p className="muted -mt-1 mb-2 text-center text-[15px]">{hint}</p>}
+      <div className="flex flex-wrap justify-center gap-1" role="radiogroup" aria-label={title}>
         {options.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            role="radio"
-            aria-checked={picked === p.id}
-            onClick={() => setPicked(p.id)}
-            className={`rounded-lg border px-3 py-2 text-sm ${
-              picked === p.id ? 'border-accent bg-accent/15 text-fg' : 'border-line text-muted hover:text-fg'
-            }`}
-          >
-            {p.name}
+          <button key={p.id} type="button" role="radio" aria-checked={picked === p.id} onClick={() => onChange(p.id)} className="tv-pick">
+            <Crest seat={seatOf(p.id)} size={40} />
+            <span className="tv-title text-[13px]">{p.name}</span>
           </button>
         ))}
       </div>
-      <button
-        type="button"
-        disabled={!picked}
-        onClick={() => picked && onPick(picked)}
-        className={`mt-3 w-full rounded-xl px-4 py-3 font-semibold text-bg hover:brightness-110 disabled:opacity-40 sm:w-auto ${
-          danger ? 'bg-sabo' : 'bg-accent'
-        }`}
-      >
-        {name ? confirm(name) : 'Choisis un joueur'}
-      </button>
-    </Panel>
+      <div className="mt-3 flex justify-center">
+        <button type="button" disabled={!picked} onClick={() => picked && onPick(picked)} className={`tv-btn ${danger ? 'danger' : ''}`}>
+          {name ? confirm(name) : 'Choisis un conseiller'}
+        </button>
+      </div>
+    </Dock>
   );
 }
 
-function HandsVote({ view, onSubmit }: { view: ThroneView; onSubmit: (yes: PlayerId[]) => void }) {
+function HandsVote({ view, seatOf, onSubmit }: { view: ThroneView; seatOf: (id: PlayerId | null) => number; onSubmit: (yes: PlayerId[]) => void }) {
   const alive = view.players.filter((p) => p.alive);
   const [yes, setYes] = useState<PlayerId[]>([]);
   useEffect(() => setYes([]), [view.nominee]);
   const toggle = (id: PlayerId) => setYes((y) => (y.includes(id) ? y.filter((x) => x !== id) : [...y, id]));
   const passes = yes.length * 2 > alive.length;
   return (
-    <Panel title="Qui a levé la main pour « oui » ?">
-      <div className="flex flex-wrap gap-1.5">
+    <Dock title="Qui a levé la main pour « oui » ?">
+      <div className="flex flex-wrap justify-center gap-1">
         {alive.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            aria-pressed={yes.includes(p.id)}
-            onClick={() => toggle(p.id)}
-            className={`rounded-lg border px-3 py-2 text-sm ${
-              yes.includes(p.id) ? 'border-good bg-good/15 text-good' : 'border-line text-muted'
-            }`}
-          >
-            {p.name} {yes.includes(p.id) ? '✓' : ''}
+          <button key={p.id} type="button" aria-pressed={yes.includes(p.id)} onClick={() => toggle(p.id)} className="tv-pick" style={yes.includes(p.id) ? { background: 'rgba(42,63,122,.16)', boxShadow: '0 0 0 2px #2a3f7a' } : undefined}>
+            <span className="relative">
+              <Crest seat={seatOf(p.id)} size={38} />
+              {yes.includes(p.id) && (
+                <span className="absolute -bottom-1 -right-2">
+                  <RichIcon name="thumb-up" metal="gold" size={22} />
+                </span>
+              )}
+            </span>
+            <span className="tv-title text-[13px]">{p.name}</span>
           </button>
         ))}
       </div>
-      <p className="mt-2 text-xs text-muted">
+      <p className="muted mt-2 text-center text-[15px]">
         {yes.length} oui sur {alive.length} : le gouvernement serait {passes ? 'élu' : 'rejeté'}.
       </p>
-      <div className="mt-3">
-        <Primary onClick={() => onSubmit(yes)}>Valider le vote</Primary>
+      <div className="mt-3 flex justify-center">
+        <button type="button" className="tv-btn" onClick={() => onSubmit(yes)}>
+          Valider le vote
+        </button>
       </div>
-    </Panel>
+    </Dock>
   );
 }
 
@@ -536,129 +1001,70 @@ function ChooseEdict({
   hand: Edict[];
   verb: string;
   onPick: (index: number) => void;
-  extra?: React.ReactNode;
+  extra?: ReactNode;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   return (
-    <Panel title={title}>
-      <p className="-mt-2 mb-3 text-xs text-muted">{hint}</p>
-      <div className="flex flex-wrap gap-2">
+    <Dock title={title}>
+      <p className="muted -mt-1 mb-3 text-center text-[15px]">{hint}</p>
+      <div className="flex justify-center gap-2.5">
         {hand.map((e, i) => (
           <button
             key={i}
             type="button"
             aria-pressed={picked === i}
             aria-label={EDICT_LABEL[e]}
-            onClick={() => setPicked(i)}
-            className={`rounded-xl transition ${picked === i ? '-translate-y-1 ring-2 ring-accent ring-offset-2 ring-offset-bg' : ''}`}
+            onClick={() => {
+              sfx.whoosh(0, 0.1);
+              setPicked(i);
+            }}
           >
             <EdictCard edict={e} />
           </button>
         ))}
       </div>
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-4 flex flex-col items-center gap-2">
         <button
           type="button"
+          className="tv-btn"
           disabled={picked === null}
-          onClick={() => picked !== null && onPick(picked)}
-          className="rounded-xl bg-accent px-4 py-3 font-semibold text-bg hover:brightness-110 disabled:opacity-40"
+          onClick={() => {
+            if (picked === null) return;
+            sfx.seal();
+            onPick(picked);
+          }}
         >
           {picked === null ? 'Choisis un édit' : `${verb} : ${EDICT_LABEL[hand[picked]!]}`}
         </button>
         {extra}
       </div>
-    </Panel>
+    </Dock>
   );
 }
 
 function EdictCard({ edict }: { edict: Edict }) {
   return (
-    <div
-      className={`flex h-24 w-16 animate-reveal flex-col items-center justify-center gap-1.5 rounded-xl border-2 ${
-        edict === 'crown' ? 'border-key bg-key/15 text-key' : 'border-sabo bg-sabo/15 text-sabo'
-      }`}
-    >
-      <EdictIcon edict={edict} className="h-7 w-7" />
-      <span className="px-1 text-center text-[9px] leading-tight font-bold uppercase">
-        {edict === 'crown' ? 'Royal' : 'Ombre'}
+    <span className="tv-edict">
+      <Seal team={edict} size={50} />
+      <span className="lbl" style={{ color: edict === 'crown' ? '#1f3f86' : '#7a120c' }}>
+        {EDICT_LABEL[edict]}
       </span>
-    </div>
-  );
-}
-
-function EdictIcon({ edict, className }: { edict: Edict; className?: string }) {
-  return edict === 'crown' ? (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className} aria-hidden>
-      <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8z" strokeLinejoin="round" />
-    </svg>
-  ) : (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className} aria-hidden>
-      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" />
-      <circle cx="12" cy="12" r="2.5" fill="currentColor" />
-    </svg>
-  );
-}
-
-// ───────── Joueurs, historique, journal ─────────
-
-function Players({ view, viewer }: { view: ThroneView; viewer: PlayerId | null }) {
-  const last = view.lastVote;
-  return (
-    <section className="rounded-2xl border border-line bg-surface p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Conseil</div>
-      <ul className="mt-2 flex flex-col gap-1.5">
-        {view.players.map((p) => (
-          <li key={p.id} className={`flex flex-wrap items-center gap-2 text-sm ${p.alive ? '' : 'opacity-50'}`}>
-            <span className={`min-w-[5rem] flex-1 truncate ${p.alive ? '' : 'line-through'}`}>
-              {p.name}
-              {p.id === viewer && <span className="text-accent"> (toi)</span>}
-              {p.isBot && <span className="text-muted"> · bot</span>}
-            </span>
-            {!p.alive && <Badge className="border-line text-muted">exécuté</Badge>}
-            {p.id === view.regent && view.phase !== 'over' && <Badge className="border-key/60 text-key">Régent</Badge>}
-            {p.id === view.nominee && view.phase !== 'over' && <Badge className="border-accent/60 text-accent">Sénéchal</Badge>}
-            {p.termLimited && view.phase === 'nomination' && <Badge className="border-line text-muted">inéligible</Badge>}
-            {p.investigated && <Badge className="border-line text-muted">enquêté</Badge>}
-            {p.role && <Badge className={ROLE_STYLE[p.role]}>{ROLE_LABEL[p.role]}</Badge>}
-            {view.phase === 'reveal' && <span className={`text-xs ${p.acked ? 'text-good' : 'text-muted'}`}>{p.acked ? '✓' : '…'}</span>}
-            {view.phase === 'vote' && p.alive && (
-              <span className={`text-xs ${p.voted ? 'text-good' : 'text-muted'}`}>{p.voted ? 'a voté' : '…'}</span>
-            )}
-            {view.phase !== 'vote' && last && Object.hasOwn(last.votes, p.id) && (
-              <span className={`w-9 text-right text-xs font-semibold ${last.votes[p.id] ? 'text-good' : 'text-sabo'}`}>
-                {last.votes[p.id] ? 'Oui' : 'Non'}
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
-      {last && view.phase !== 'vote' && (
-        <p className="mt-2 text-xs text-muted">Dernier vote : gouvernement {last.passed ? 'élu' : 'rejeté'}.</p>
-      )}
-    </section>
-  );
-}
-
-function Badge({ children, className }: { children: React.ReactNode; className: string }) {
-  return (
-    <span className={`shrink-0 rounded-md border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide ${className}`}>
-      {children}
     </span>
   );
 }
 
-function History({ view, nameOf }: { view: ThroneView; nameOf: (id: PlayerId | null) => string }) {
+// ───────── Registre et journal ─────────
+
+function History({ view, nameOf }: { view: ThroneView; nameOf: NameOf }) {
   if (view.history.length === 0) return null;
   return (
-    <section className="rounded-2xl border border-line bg-surface p-4 text-sm">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Édits promulgués</div>
-      <ol className="mt-2 flex flex-col gap-1">
+    <section className="rounded-xl border border-[#3a2410] bg-black/45 px-4 py-3 backdrop-blur-[2px]">
+      <h3 className="tv-title text-[15px] uppercase tracking-[0.14em] text-[#e9c46a]">Registre des édits</h3>
+      <ol className="mt-2 flex flex-col gap-1.5">
         {view.history.map((e, i) => (
           <li key={i} className="flex items-center gap-2">
-            <EdictIcon edict={e.edict} className={`h-4 w-4 ${e.edict === 'crown' ? 'text-key' : 'text-sabo'}`} />
-            <span>
-              {e.regent ? `${nameOf(e.regent)} → ${nameOf(e.seneschal)}` : 'Émeute'}
-            </span>
+            <Seal team={e.edict} size={22} />
+            <span className="text-[#efe3c8]">{e.regent ? `${nameOf(e.regent)} → ${nameOf(e.seneschal)}` : 'Émeute du peuple'}</span>
           </li>
         ))}
       </ol>
@@ -666,16 +1072,14 @@ function History({ view, nameOf }: { view: ThroneView; nameOf: (id: PlayerId | n
   );
 }
 
-function Journal({ lines }: { lines: string[] }) {
+function Journal({ lines, open = false }: { lines: string[]; open?: boolean }) {
   const recent = lines.slice(-8).reverse();
   return (
-    <details className="rounded-xl border border-line bg-surface p-3 text-sm">
-      <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted">
-        Journal
-      </summary>
-      <ol className="mt-2 flex flex-col gap-1">
+    <details open={open} className="rounded-xl border border-[#3a2410] bg-black/45 px-4 py-2.5 backdrop-blur-[2px]">
+      <summary className="tv-title cursor-pointer select-none text-[15px] uppercase tracking-[0.14em] text-[#e9c46a]">Chronique du Conseil</summary>
+      <ol className="mt-1 flex flex-col gap-1">
         {recent.map((line, i) => (
-          <li key={lines.length - i} className={i === 0 ? 'text-fg' : 'text-muted'}>
+          <li key={lines.length - i} className={i === 0 ? 'text-[#f6e7c4]' : 'text-[#bba77f]'}>
             {line}
           </li>
         ))}
@@ -683,3 +1087,4 @@ function Journal({ lines }: { lines: string[] }) {
     </details>
   );
 }
+

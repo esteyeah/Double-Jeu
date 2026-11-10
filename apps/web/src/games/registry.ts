@@ -18,7 +18,7 @@ import PlunderBoard, { skin as plunderSkin } from '@arcade/plunder/client';
 import { reactor } from '@arcade/reactor';
 import ReactorBoard, { skin as reactorSkin } from '@arcade/reactor/client';
 import { throne } from '@arcade/throne';
-import ThroneBoard from '@arcade/throne/client';
+import ThroneBoard, { skin as throneSkin } from '@arcade/throne/client';
 
 export interface ClientGame {
   /** Le moteur sert au mode local (un seul téléphone) : en ligne, c'est le serveur qui l'exécute. */
@@ -40,7 +40,7 @@ const games: Record<string, ClientGame> = {
     immersive: reactorSkin,
   },
   interrogation: { module: interrogation, Board: InterrogationBoard },
-  throne: { module: throne, Board: ThroneBoard },
+  throne: { module: throne, Board: ThroneBoard, immersive: throneSkin },
   plunder: {
     module: plunder,
     Board: PlunderBoard,

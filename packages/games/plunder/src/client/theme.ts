@@ -167,7 +167,7 @@ export const PLUNDER_CSS = `
 .bt-table-under::after{content:'';position:absolute;inset:18%;border-radius:50%;pointer-events:none;border:1.5px dashed rgba(90,55,20,.35)}
 .bt-seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;border-radius:14px;text-align:center;transition:transform .2s}
 .bt-seat .bt-medal{transition:outline-color .2s}
-.bt-seat-plate{display:flex;align-items:baseline;justify-content:center;gap:4px;max-width:100%;padding:1px 8px 2px;border-radius:8px;
+.bt-seat-plate{display:flex;align-items:baseline;justify-content:center;gap:4px;max-width:150px;white-space:nowrap;padding:1px 8px 2px;border-radius:8px;
   background:linear-gradient(180deg,rgba(45,25,9,.92),rgba(16,8,3,.94));border:1px solid rgba(240,195,92,.28);box-shadow:0 3px 8px rgba(0,0,0,.5)}
 .bt-seat-name{font-family:'Pirata One',Georgia,serif;font-size:17px;line-height:1.05;color:#f6e3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bt-seat-tag{font-size:10px;color:#9fd3df;flex:none}

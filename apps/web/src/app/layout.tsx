@@ -10,6 +10,12 @@ import '@fontsource/orbitron/800.css';
 import '@fontsource/rajdhani/500.css';
 import '@fontsource/rajdhani/700.css';
 import '@fontsource/share-tech-mono';
+import '@fontsource/cinzel/500.css';
+import '@fontsource/cinzel/700.css';
+import '@fontsource/special-elite';
+import '@fontsource/uncial-antiqua';
+import '@fontsource/cormorant-garamond/500.css';
+import '@fontsource/cormorant-garamond/600-italic.css';
 
 export const metadata: Metadata = {
   title: 'Double Jeu · jeux de société de bluff et de déduction',

@@ -223,6 +223,86 @@ export const sfx = {
       o.stop(at + 1.2);
     });
   },
+  /** Coup de maillet ou de poing sur la table. */
+  knock(delay = 0, volume = 0.5) {
+    const ac = ready();
+    if (!ac) return;
+    const at = ac.currentTime + delay;
+    tone(ac, at, 150, 'sine', env(ac, at, volume, 0.002, 0.18), 0.2, 55);
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1400;
+    noise(ac, at, 0.06, lp, env(ac, at, volume * 0.5, 0.001, 0.05));
+  },
+  /** Sceau de cire qu'on appose : bruit sourd et froissement de papier. */
+  seal(delay = 0) {
+    const ac = ready();
+    if (!ac) return;
+    const at = ac.currentTime + delay;
+    tone(ac, at, 110, 'sine', env(ac, at, 0.45, 0.004, 0.25), 0.3, 50);
+    const bp = ac.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 3500;
+    bp.Q.value = 0.7;
+    noise(ac, at + 0.04, 0.3, bp, env(ac, at + 0.04, 0.08, 0.02, 0.25));
+  },
+  /** Roulement de tambour grave (moment solennel, mauvaise nouvelle). */
+  drum(delay = 0, hits = 2) {
+    const ac = ready();
+    if (!ac) return;
+    for (let i = 0; i < hits; i++) {
+      const at = ac.currentTime + delay + i * 0.42;
+      tone(ac, at, 95, 'sine', env(ac, at, 0.55, 0.004, 0.55), 0.6, 48);
+      const lp = ac.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 500;
+      noise(ac, at, 0.25, lp, env(ac, at, 0.3, 0.002, 0.2));
+    }
+  },
+  /** Dés secoués dans un gobelet, puis qui s'immobilisent. */
+  dice(delay = 0, seconds = 0.5) {
+    const ac = ready();
+    if (!ac) return;
+    const start = ac.currentTime + delay;
+    const n = Math.round(seconds * 26);
+    for (let i = 0; i < n; i++) {
+      const at = start + (i / n) * seconds + Math.random() * 0.02;
+      const bp = ac.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 1800 + Math.random() * 2600;
+      bp.Q.value = 4;
+      noise(ac, at, 0.02, bp, env(ac, at, 0.12 + Math.random() * 0.12, 0.001, 0.02));
+    }
+  },
+  /** Cloche lointaine. */
+  bell(delay = 0, freq = 392, volume = 0.12) {
+    const ac = ready();
+    if (!ac) return;
+    const at = ac.currentTime + delay;
+    [1, 2, 2.4, 3, 4.2].forEach((k, i) => tone(ac, at, freq * k, 'sine', env(ac, at, volume / (i + 1), 0.005, 2.6 - i * 0.35), 2.8));
+  },
+  /** Bulle qui éclate (chaudron). */
+  bubble(delay = 0, volume = 0.12) {
+    const ac = ready();
+    if (!ac) return;
+    const at = ac.currentTime + delay;
+    const f = 180 + Math.random() * 220;
+    tone(ac, at, f, 'sine', env(ac, at, volume, 0.004, 0.08), 0.1, f * 2.6);
+  },
+  /** Glace qui craque. */
+  crack(delay = 0) {
+    const ac = ready();
+    if (!ac) return;
+    const at = ac.currentTime + delay;
+    for (let i = 0; i < 7; i++) {
+      const t = at + i * 0.035 + Math.random() * 0.03;
+      const hp = ac.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 1500 + Math.random() * 3000;
+      noise(ac, t, 0.05, hp, env(ac, t, 0.25, 0.001, 0.05));
+    }
+    tone(ac, at, 120, 'sine', env(ac, at, 0.3, 0.002, 0.5), 0.55, 40);
+  },
   /** Grondement sourd (défaite, explosion). */
   boom(delay = 0) {
     const ac = ready();
@@ -237,7 +317,7 @@ export const sfx = {
   },
 };
 
-export type AmbientKind = 'sea' | 'reactor';
+export type AmbientKind = 'sea' | 'reactor' | 'hearth' | 'wind' | 'brew' | 'canal' | 'office';
 
 /**
  * Ambiance de fond en boucle : la mer qui clapote et le bois qui grince, ou le ronronnement du réacteur.
@@ -272,7 +352,108 @@ export function startAmbient(kind: AmbientKind, intensity = 0): { stop: () => vo
   };
 
   let level = intensity;
-  if (kind === 'sea') {
+  /** Crépitement du feu : grappes de petits craquements. */
+  const crackle = (volume: number) => {
+    const burst = () => {
+      const at = ac.currentTime;
+      const n = 1 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < n; i++) {
+        const t = at + i * (0.02 + Math.random() * 0.06);
+        const hp = ac.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 1200 + Math.random() * 3000;
+        const src = ac.createBufferSource();
+        src.buffer = noiseBuffer(ac, 0.05);
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(volume * (0.3 + Math.random()), t + 0.002);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+        src.connect(hp).connect(g).connect(bus);
+        src.start(t);
+        src.stop(t + 0.05);
+      }
+      timers.push(window.setTimeout(burst, 120 + Math.random() * 700));
+    };
+    timers.push(window.setTimeout(burst, 600));
+    // Souffle du foyer.
+    const roar = loopNoise(true);
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 260;
+    const g = ac.createGain();
+    g.gain.value = volume * 0.45;
+    lfo(0.3, volume * 0.15, g.gain);
+    roar.connect(lp).connect(g).connect(bus);
+    roar.start();
+  };
+  /** Bruit filtré en boucle, dont le volume ondule. */
+  const bed = (brown: boolean, type: BiquadFilterType, freq: number, volume: number, sway = 0.08, sweep = 0) => {
+    const src = loopNoise(brown);
+    const f = ac.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    const g = ac.createGain();
+    g.gain.value = volume;
+    lfo(sway, volume * 0.6, g.gain);
+    if (sweep) lfo(sway * 0.7, sweep, f.frequency);
+    src.connect(f).connect(g).connect(bus);
+    src.start();
+  };
+  const every = (min: number, max: number, play: () => void, first = min) => {
+    const run = () => {
+      play();
+      timers.push(window.setTimeout(run, min + Math.random() * (max - min)));
+    };
+    timers.push(window.setTimeout(run, first));
+  };
+
+  if (kind === 'hearth') {
+    crackle(0.09);
+    bed(true, 'lowpass', 180, 0.03, 0.05);
+  } else if (kind === 'wind') {
+    bed(false, 'bandpass', 600, 0.05, 0.09, 380);
+    bed(true, 'lowpass', 300, 0.06, 0.05, 120);
+    every(9000, 18000, () => {
+      // Rafale.
+      const at = ac.currentTime;
+      const bp = ac.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.Q.value = 1.2;
+      bp.frequency.setValueAtTime(400, at);
+      bp.frequency.linearRampToValueAtTime(1100, at + 1.6);
+      bp.frequency.linearRampToValueAtTime(500, at + 3.2);
+      const src = ac.createBufferSource();
+      src.buffer = noiseBuffer(ac, 3.4);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(0.09, at + 1.4);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + 3.3);
+      src.connect(bp).connect(g).connect(bus);
+      src.start(at);
+      src.stop(at + 3.4);
+    }, 5000);
+  } else if (kind === 'brew') {
+    crackle(0.05);
+    every(250, 1400, () => sfx.bubble(0, 0.05 + Math.random() * 0.05), 800);
+  } else if (kind === 'canal') {
+    bed(true, 'lowpass', 700, 0.05, 0.12, 200);
+    every(22000, 40000, () => sfx.bell(0, 330 + Math.random() * 120, 0.05), 9000);
+  } else if (kind === 'office') {
+    // Néon qui grésille, horloge, machine à écrire au loin.
+    [120, 240].forEach((freq, i) => {
+      const o = ac.createOscillator();
+      o.frequency.value = freq;
+      const g = ac.createGain();
+      g.gain.value = i ? 0.004 : 0.008;
+      o.connect(g).connect(bus);
+      o.start();
+      nodes.push(o);
+    });
+    every(1000, 1000, () => sfx.click(0, 0.035), 1000);
+    every(18000, 35000, () => {
+      for (let i = 0; i < 8 + Math.random() * 10; i++) sfx.click(i * (0.08 + Math.random() * 0.1), 0.05);
+    }, 12000);
+  } else if (kind === 'sea') {
     // Houle : bruit brun filtré, dont le volume ondule lentement.
     const waves = loopNoise(true);
     const lp = ac.createBiquadFilter();

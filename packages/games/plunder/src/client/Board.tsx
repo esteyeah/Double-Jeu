@@ -305,7 +305,7 @@ function DeckTable({
   }
 
   return (
-    <div className="bt-table pb-1" aria-label="L’équipage sur le pont">
+    <div className="bt-table pb-6 lg:pb-2" aria-label="L’équipage sur le pont">
       <RoundTable
         ids={view.pirates.map((p) => p.id)}
         me={viewer}
