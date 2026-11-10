@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
 import type { StageSkin } from '@arcade/tabletop';
 import { cauldron } from '@arcade/cauldron';
-import CauldronBoard from '@arcade/cauldron/client';
+import CauldronBoard, { skin as cauldronSkin } from '@arcade/cauldron/client';
 import { compass } from '@arcade/compass';
 import CompassBoard from '@arcade/compass/client';
 import { court } from '@arcade/court';
@@ -48,7 +48,7 @@ const games: Record<string, ClientGame> = {
   },
   expedition: { module: expedition, Board: ExpeditionBoard, immersive: expeditionSkin },
   court: { module: court, Board: CourtBoard, immersive: courtSkin },
-  cauldron: { module: cauldron, Board: CauldronBoard },
+  cauldron: { module: cauldron, Board: CauldronBoard, immersive: cauldronSkin },
   cups: { module: cups, Board: CupsBoard },
   compass: { module: compass, Board: CompassBoard },
 };

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
+import { Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, type GameIconName, type Metal } from '@arcade/tabletop';
 import {
   ACTION_HELP,
   ACTION_LABEL,
@@ -9,148 +10,397 @@ import {
   INGREDIENT_LABEL,
   ROLE_LABEL,
   signed,
+  type ActionKind,
   type Card,
   type CauldronMove,
+  type CauldronPlayerView,
   type CauldronView,
   type Ingredient,
   type Taste,
 } from '../shared';
+import { CAULDRON_CSS } from './theme';
+
+export { skin } from './skin';
 
 type Props = BoardProps<CauldronView, CauldronMove>;
 type NameOf = (id: PlayerId | null) => string;
 
-const INGREDIENT_STYLE: Record<Ingredient, string> = {
-  1: 'border-key/70 bg-key/10 text-key',
-  0: 'border-tech/70 bg-tech/10 text-tech',
-  [-2]: 'border-sabo/70 bg-sabo/10 text-sabo',
-} as Record<Ingredient, string>;
 const INGREDIENTS: Ingredient[] = [1, 0, -2];
+const ING: Record<Ingredient, { icon: GameIconName; metal: Metal; color: string; text: string }> = {
+  1: { icon: 'plant-roots', metal: 'gold', color: '#a87a14', text: '#fff6cf' },
+  0: { icon: 'vial', metal: 'silver', color: '#2b6b8a', text: '#e6f6ff' },
+  [-2]: { icon: 'poison-bottle', metal: 'bone', color: '#5b1a6b', text: '#ffe1f7' },
+} as Record<Ingredient, { icon: GameIconName; metal: Metal; color: string; text: string }>;
+const ACT: Record<ActionKind, { icon: GameIconName; metal: Metal }> = {
+  taste: { icon: 'round-bottom-flask', metal: 'silver' },
+  skim: { icon: 'bubbles', metal: 'silver' },
+  suspect: { icon: 'evil-eyes', metal: 'ruby' },
+  plead: { icon: 'scroll-unfurled', metal: 'bone' },
+};
+/** Emblèmes des membres de la guilde (par place). */
+const EMBLEM: GameIconName[] = ['spell-book', 'round-potion', 'crystal-cluster', 'frog', 'bat', 'mushrooms', 'herbs-bundle', 'pestle-mortar'];
+const TINT = ['#2a4a2e', '#3f2a55', '#5a3a14', '#1f4a55', '#4a1f2a', '#33401a', '#22304f', '#4a3a1a'];
 
 export default function CauldronBoard({ view, viewer, actingAs, mode, sendMove }: Props) {
   const nameOf: NameOf = (id) => view.players.find((p) => p.id === id)?.name ?? '?';
+  const seatOf = (id: PlayerId | null) => Math.max(0, view.players.findIndex((p) => p.id === id));
   const me = view.me && view.me.id === viewer ? view.me : null;
   const privateView = viewer !== null && viewer === actingAs;
   const actor = view.players.find((p) => p.id === actingAs);
   const canAct = !!actor && !actor.expelled && view.phase !== 'over';
   const hotseatName = mode === 'hotseat' && actor ? `${actor.name}, ` : '';
+  const wide = useMediaQuery('(min-width: 1024px)');
+  useAmbient('brew');
+
+  const [splash, setSplash] = useState(0);
+  useOnChange(view.pours.length, (prev) => {
+    if (view.pours.length > prev) {
+      sfx.splash(0);
+      [0.2, 0.35, 0.5].forEach((d) => sfx.bubble(d, 0.12));
+      setSplash((n) => n + 1);
+    }
+  });
+  const event = useGuildEvents(view);
+
+  let action: ReactNode = null;
+  if (canAct && view.phase === 'reveal' && privateView && !actor.acked)
+    action = (
+      <section className="ch-dock">
+        <h4>Ton rôle dans la guilde</h4>
+        <p className="muted text-center">Garde-le pour toi : personne d’autre ne le verra.</p>
+        <div className="mt-3 flex justify-center">
+          <button type="button" className="ch-btn" onClick={() => sendMove({ type: 'ack' })}>
+            J’ai retenu mon rôle
+          </button>
+        </div>
+      </section>
+    );
+  else if (canAct && view.phase === 'turn' && actingAs === view.active && privateView && me)
+    action = <TurnPanel view={view} hand={me.hand} me={me.id} seatOf={seatOf} title={`${hotseatName}à toi de jouer`} sendMove={sendMove} />;
+  else if (canAct && view.phase === 'tasted' && actingAs === view.active && privateView && me?.tastes.at(-1))
+    action = <TastedPanel taste={me.tastes.at(-1)!} nameOf={nameOf} onDone={() => sendMove({ type: 'seen' })} />;
+  else if (canAct && view.phase === 'vote') action = <VotePanel view={view} actingAs={actingAs!} privateView={privateView} nameOf={nameOf} seatOf={seatOf} sendMove={sendMove} />;
 
   return (
-    <div className="flex flex-col gap-4">
-      <Header view={view} />
-      <Banner view={view} nameOf={nameOf} actingAs={actingAs} />
+    <div className="ch">
+      <style href="arcade-cauldron-v1" precedence="default">
+        {CAULDRON_CSS}
+      </style>
+      <div className="ch-stone" />
+      <div className="ch-glow" />
 
-      {me && privateView && <Identity me={me} view={view} nameOf={nameOf} />}
+      <header className="relative pt-[3.4rem] sm:pt-3">
+        <div className="ch-shelf" aria-hidden="true">
+          {(['round-potion', 'fizzing-flask', 'candle-skull', 'standing-potion', 'spell-book', 'bubbling-flask', 'mushrooms', 'magic-potion', 'crystal-cluster', 'health-potion'] as GameIconName[]).map((icon, i) => (
+            <span key={icon} className={i > 5 ? 'hidden sm:inline' : ''} style={{ animationDelay: `${i * 0.4}s` }}>
+              <RichIcon name={icon} metal={(['ruby', 'silver', 'bone', 'gold', 'copper', 'silver', 'ruby', 'gold', 'silver', 'ruby'] as Metal[])[i]!} size={i % 3 === 0 ? 44 : 36} />
+            </span>
+          ))}
+        </div>
+        <div className="mt-2 text-center">
+          <div className="ch-title ch-green text-[1.9rem] leading-none sm:text-[2.4rem]">Le Chaudron</div>
+        </div>
+      </header>
+      <div className="mx-auto mt-3 w-[min(1240px,calc(100%-20px))]">
+        <Gauge view={view} />
+        <Instruction {...instructionFor(view, actingAs, privateView, mode, nameOf)} />
+      </div>
 
-      {canAct && view.phase === 'reveal' && privateView && !actor.acked && (
-        <Primary onClick={() => sendMove({ type: 'ack' })}>J’ai retenu mon rôle</Primary>
-      )}
-      {canAct && view.phase === 'turn' && actingAs === view.active && privateView && me && (
-        <TurnPanel view={view} hand={me.hand} me={me.id} title={`${hotseatName}à toi de jouer`} sendMove={sendMove} />
-      )}
-      {canAct && view.phase === 'tasted' && actingAs === view.active && privateView && me?.tastes.at(-1) && (
-        <TastedPanel taste={me.tastes.at(-1)!} nameOf={nameOf} onDone={() => sendMove({ type: 'seen' })} />
-      )}
-      {canAct && view.phase === 'vote' && (
-        <VotePanel view={view} actingAs={actingAs!} privateView={privateView} nameOf={nameOf} sendMove={sendMove} />
-      )}
+      <div className="mx-auto mt-4 grid w-[min(1240px,calc(100%-20px))] gap-x-6 gap-y-4 pb-16 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
+        <div className="flex flex-col gap-4 lg:col-start-2 lg:row-start-1">
+          {action}
+          {me && privateView && <Identity me={me} view={view} nameOf={nameOf} />}
+          {me && privateView && view.phase !== 'turn' && view.phase !== 'reveal' && me.hand.length > 0 && (
+            <section className="ch-page">
+              <h4>Ta main</h4>
+              <div className="mt-2 flex flex-wrap justify-center gap-2">
+                {me.hand.map((c, i) => (
+                  <CardFace key={i} card={c} w={88} />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+        <div className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+          <Lair view={view} viewer={viewer} wide={wide} nameOf={nameOf} splash={splash} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-2">
+          <Brew view={view} nameOf={nameOf} />
+          {me && privateView && me.tastes.length > 0 && <Tastes tastes={me.tastes} nameOf={nameOf} />}
+          <Reference view={view} />
+          <Journal lines={view.log} open={wide} />
+        </div>
+      </div>
 
-      {me && privateView && view.phase !== 'turn' && view.phase !== 'reveal' && me.hand.length > 0 && (
-        <section className="rounded-2xl border border-line bg-surface p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Ta main</div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {me.hand.map((c, i) => (
-              <CardFace key={i} card={c} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      <Cauldron view={view} nameOf={nameOf} />
-      {me && privateView && me.tastes.length > 0 && <Tastes tastes={me.tastes} nameOf={nameOf} />}
-      <Guild view={view} viewer={viewer} />
-      {view.lastVote && <LastVote vote={view.lastVote} nameOf={nameOf} />}
-      <Reference view={view} />
-      <Journal lines={view.log} />
+      <Cinematic trigger={event.key} onMount={false} duration={2000}>
+        <EventBanner view={view} kind={event.kind} nameOf={nameOf} />
+      </Cinematic>
     </div>
   );
 }
 
-// ───────── En-tête ─────────
+// ───────── Événements ─────────
 
-function Header({ view }: { view: CauldronView }) {
-  const reached = view.announcedTotal >= view.target;
+type EventKind = 'none' | 'vote' | 'expel';
+
+function useGuildEvents(view: CauldronView): { key: string; kind: EventKind } {
+  const expelled = view.players.filter((p) => p.expelled).length;
+  const voteKey = view.lastVote ? `${view.lastVote.proposer}|${JSON.stringify(view.lastVote.votes)}|${view.lastVote.passed}` : '';
+  const prev = useRef({ expelled, voteKey });
+  const event = useRef<{ key: string; kind: EventKind }>({ key: 'start', kind: 'none' });
+  const p = prev.current;
+  if (expelled > p.expelled) event.current = { key: `expel-${expelled}`, kind: 'expel' };
+  else if (voteKey && voteKey !== p.voteKey) event.current = { key: `vote-${voteKey}-${view.log.length}`, kind: 'vote' };
+  prev.current = { expelled, voteKey };
+
+  const played = useRef(event.current.key);
+  useEffect(() => {
+    const e = event.current;
+    if (played.current === e.key) return;
+    played.current = e.key;
+    if (e.kind === 'expel') sfx.drum(0, 3);
+    else if (e.kind === 'vote') {
+      [0, 0.18, 0.36].forEach((d) => sfx.knock(d, 0.35));
+      if (view.lastVote?.passed) sfx.chime(0.5);
+    }
+  });
+  return event.current;
+}
+
+function EventBanner({ view, kind, nameOf }: { view: CauldronView; kind: EventKind; nameOf: NameOf }) {
+  if (kind === 'expel') {
+    const p = [...view.players].reverse().find((x) => x.expelled);
+    if (!p) return null;
+    return (
+      <div className="ch-banner">
+        <div className="mb-2 flex justify-center">
+          <RichIcon name={p.role === 'poisoner' ? 'poison-bottle' : 'spell-book'} metal={p.role === 'poisoner' ? 'ruby' : 'gold'} size={64} />
+        </div>
+        <div className="k">Chassé de la guilde</div>
+        <div className="ch-title ch-green text-[2.1rem] sm:text-5xl">{p.name}</div>
+        <div className="s">{p.role ? `C’était ${p.role === 'poisoner' ? 'un Empoisonneur !' : 'un Alchimiste…'}` : ''}</div>
+      </div>
+    );
+  }
+  if (kind === 'vote' && view.lastVote) {
+    const votes = Object.values(view.lastVote.votes);
+    const yes = votes.filter(Boolean).length;
+    return (
+      <div className="ch-banner">
+        <div className="k">Proposé par {nameOf(view.lastVote.proposer)}</div>
+        <div className="ch-title ch-green text-[2.1rem] sm:text-5xl">{view.lastVote.passed ? 'On sert la potion !' : 'Potion refusée'}</div>
+        <div className="s">
+          {yes} pour · {votes.length - yes} contre{view.lastVote.passed ? '' : ` — ${nameOf(view.lastVote.proposer)} reçoit un soupçon`}
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+// ───────── L'alambic ─────────
+
+function Gauge({ view }: { view: CauldronView }) {
+  const total = view.realTotal ?? view.announcedTotal;
+  const max = view.target + 3;
+  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
+  const reached = total >= view.target;
   return (
-    <div className="grid grid-cols-3 gap-2">
-      <Stat label="Force visée" value={`${view.target}`} />
-      {view.realTotal === null ? (
-        <Stat label="Annoncé" value={signed(view.announcedTotal)} tone={reached ? 'text-good' : ''} />
-      ) : (
-        <Stat label="Force réelle" value={signed(view.realTotal)} tone={view.realTotal >= view.target ? 'text-good' : 'text-sabo'} />
-      )}
-      <Stat label="Pioche" value={`${view.deckCount} cartes`} tone={view.deckCount <= 6 ? 'text-sabo' : ''} />
-    </div>
+    <section className="rounded-2xl bg-[rgba(6,10,6,.72)] px-4 py-3 shadow-[inset_0_0_0_1px_rgba(170,255,170,.22),0_10px_24px_rgba(0,0,0,.5)] backdrop-blur-[2px]" aria-label="Force du chaudron">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <span className="ch-title text-[15px] text-[#c9ffb8]">{view.realTotal === null ? 'Force annoncée' : 'Force réelle'}</span>
+        <span className="text-[15px]">
+          <strong className={`ch-num text-2xl ${reached ? 'text-[#b6ff9e]' : total < 0 ? 'text-[#ff8a7a]' : 'text-[#e7efd9]'}`}>{signed(total)}</strong>
+          <span className="text-[#a8c49a]"> / {view.target} visée</span>
+          <span className="ml-3 text-[#a8c49a]">· pioche : {view.deckCount}</span>
+        </span>
+      </div>
+      <div className="ch-gauge">
+        {Array.from({ length: max - 1 }, (_, i) => (
+          <span key={i} className="tick" style={{ left: pct(i + 1) }} />
+        ))}
+        <span className={`fill ${reached ? '' : 'low'}`} style={{ width: pct(total) }} />
+        <span className="mark" style={{ left: pct(view.target) }} title={`Force visée : ${view.target}`} />
+      </div>
+      {view.realTotal === null && <p className="mt-1.5 text-[13px] italic text-[#a8c49a]">Ce sont les valeurs annoncées : certaines sont peut-être des mensonges.</p>}
+    </section>
   );
 }
 
-function Stat({ label, value, tone = '' }: { label: string; value: string; tone?: string }) {
-  return (
-    <div className="min-w-0 rounded-xl border border-line bg-surface px-3 py-2">
-      <div className="truncate text-[11px] uppercase tracking-wide text-muted">{label}</div>
-      <div className={`truncate font-semibold tabular-nums ${tone}`}>{value}</div>
-    </div>
-  );
-}
+// ───────── Consigne ─────────
 
-function Banner({ view, nameOf, actingAs }: { view: CauldronView; nameOf: NameOf; actingAs: PlayerId | null }) {
+function instructionFor(view: CauldronView, actingAs: PlayerId | null, privateView: boolean, mode: Props['mode'], nameOf: NameOf): { icon: GameIconName; mine: boolean; text: ReactNode } {
+  const you = (rest: string) => (mode === 'hotseat' && actingAs ? `${nameOf(actingAs)}, ${rest}` : rest.charAt(0).toUpperCase() + rest.slice(1));
   const active = nameOf(view.active);
-  let text: string;
+  const self = view.players.find((p) => p.id === actingAs);
+  const alive = !!self && !self.expelled;
   switch (view.phase) {
-    case 'reveal':
-      text = `Chacun découvre son rôle en secret… ${view.players.filter((p) => p.acked).length}/${view.players.length} prêts`;
-      break;
+    case 'reveal': {
+      const ready = `${view.players.filter((p) => p.acked).length}/${view.players.length} prêts`;
+      return privateView && alive && !self!.acked
+        ? { icon: 'spell-book', mine: true, text: you(`découvre ton rôle : Alchimiste ou Empoisonneur ? (${ready})`) }
+        : { icon: 'spell-book', mine: false, text: `Chacun découvre son rôle en secret… ${ready}.` };
+    }
     case 'turn':
-      text =
-        actingAs === view.active
-          ? 'À toi : verse un ingrédient, joue une action ou propose de servir la potion.'
-          : `${active} verse un ingrédient, joue une action ou propose de servir la potion.`;
-      break;
+      return alive && actingAs === view.active
+        ? { icon: 'cauldron', mine: true, text: you('à toi : verse un ingrédient (en annonçant sa valeur, vraie ou fausse), joue une action, ou propose de servir.') }
+        : { icon: 'cauldron', mine: false, text: `${active} verse un ingrédient, joue une action ou propose de servir la potion.` };
     case 'tasted':
-      text = `${active} goûte le chaudron en secret…`;
-      break;
+      return { icon: 'round-bottom-flask', mine: actingAs === view.active && privateView, text: `${active} goûte le chaudron en secret…` };
     case 'vote': {
       const proposer = nameOf(view.vote?.proposer ?? null);
-      text =
-        view.config.votes === 'hands'
-          ? `${proposer} propose de servir la potion : votez à main levée, ${proposer} reporte le résultat.`
-          : `${proposer} propose de servir la potion : ${view.players.filter((p) => p.voted).length}/${
-              view.players.filter((p) => !p.expelled).length
-            } bulletins.`;
-      break;
+      if (view.config.votes === 'hands')
+        return {
+          icon: 'vote',
+          mine: actingAs === view.vote?.proposer,
+          text: `${proposer} propose de servir la potion : votez à main levée, ${proposer} reporte le résultat.`,
+        };
+      const voted = `${view.players.filter((p) => p.voted).length}/${view.players.filter((p) => !p.expelled).length} bulletins`;
+      return privateView && alive && !self!.voted
+        ? { icon: 'vote', mine: true, text: you(`${proposer} propose de servir la potion. La crois-tu assez forte (${view.target}) ? (${voted})`) }
+        : { icon: 'vote', mine: false, text: `${proposer} propose de servir la potion : ${voted}.` };
     }
     default:
-      text = `Chaudron révélé : force réelle ${signed(view.realTotal ?? 0)} (annoncé ${signed(view.announcedTotal)}) pour ${view.target} visée. Les mensonges sont surlignés et tous les rôles révélés.`;
+      return {
+        icon: 'cauldron',
+        mine: false,
+        text: `Chaudron révélé : force réelle ${signed(view.realTotal ?? 0)} (annoncé ${signed(view.announcedTotal)}) pour ${view.target} visée. Les mensonges sont surlignés.`,
+      };
   }
-  return <div className="rounded-xl border border-key/40 bg-key/5 px-4 py-3 text-sm">{text}</div>;
 }
 
-// ───────── Identité ─────────
+function Instruction({ icon, mine, text }: { icon: GameIconName; mine: boolean; text: ReactNode }) {
+  return (
+    <div className={`ch-call ${mine ? 'is-mine' : ''}`}>
+      <span className="ic">
+        <RichIcon name={icon} metal="gold" size={26} />
+      </span>
+      <p>{text}</p>
+    </div>
+  );
+}
+
+// ───────── L'antre : la guilde autour du chaudron ─────────
+
+function Lair({ view, viewer, wide, nameOf, splash }: { view: CauldronView; viewer: PlayerId | null; wide: boolean; nameOf: NameOf; splash: number }) {
+  return (
+    <section className="relative pb-7 lg:pb-3" aria-label="La guilde">
+      <h3 className="sr-only">La guilde</h3>
+      <RoundTable
+        ids={view.players.map((p) => p.id)}
+        me={viewer}
+        seat={wide ? { w: 128, h: 140 } : { w: 84, h: 112 }}
+        className={wide ? 'aspect-[1.32] max-h-[calc(100dvh-140px)] min-h-[480px]' : 'aspect-[0.86]'}
+        under={<div className="ch-floor" />}
+        center={<Pot view={view} nameOf={nameOf} splash={splash} />}
+        renderSeat={(id) => {
+          const p = view.players.find((x) => x.id === id)!;
+          return <Seat p={p} seat={view.players.indexOf(p)} view={view} viewer={viewer} wide={wide} />;
+        }}
+      />
+    </section>
+  );
+}
+
+function Medal({ seat, size }: { seat: number; size: number }) {
+  const c = TINT[seat % TINT.length]!;
+  return (
+    <span className="ch-medal" style={{ width: size, height: size, background: `radial-gradient(circle at 35% 28%, color-mix(in srgb, ${c} 55%, white), ${c} 55%, color-mix(in srgb, ${c} 50%, black))` }}>
+      <RichIcon name={EMBLEM[seat % EMBLEM.length]!} metal="brass" size={size * 0.6} />
+    </span>
+  );
+}
+
+function seatChip(view: CauldronView, p: CauldronPlayerView): { text: string; tone: string } | null {
+  if (p.expelled) return { text: 'chassé', tone: 'red' };
+  if (view.phase === 'reveal') return p.acked ? { text: 'prêt', tone: 'green' } : { text: 'lit son rôle…', tone: 'dim' };
+  if (view.phase === 'vote' && view.config.votes === 'secret') return p.voted ? { text: 'a voté', tone: 'green' } : { text: 'réfléchit…', tone: 'dim' };
+  if (view.vote?.proposer === p.id) return { text: 'propose de servir', tone: 'gold' };
+  if (p.id === view.active && view.phase !== 'over') return { text: view.phase === 'tasted' ? 'goûte…' : 'à son tour', tone: 'gold' };
+  return null;
+}
+
+function Seat({ p, seat, view, viewer, wide }: { p: CauldronPlayerView; seat: number; view: CauldronView; viewer: PlayerId | null; wide: boolean }) {
+  const chip = seatChip(view, p);
+  const size = wide ? 60 : 48;
+  const ballot = view.phase !== 'vote' && view.lastVote && Object.hasOwn(view.lastVote.votes, p.id) ? view.lastVote.votes[p.id] : null;
+  return (
+    <div className={`ch-seat ${p.id === view.active && view.phase !== 'over' && !p.expelled ? 'is-active' : ''} ${p.id === viewer ? 'is-me' : ''} ${p.expelled ? 'is-out' : ''}`} style={{ width: wide ? 128 : 84 }}>
+      {chip && <span className={`ch-chip tone-${chip.tone}`}>{chip.text}</span>}
+      <Medal seat={seat} size={size} />
+      <span className="ch-plate">
+        <span className="ch-name">{p.name}</span>
+        {(p.id === viewer || p.isBot) && <span className="ch-tag">{p.id === viewer ? 'toi' : 'bot'}</span>}
+      </span>
+      {!p.expelled && (
+        <span className="flex items-center gap-[3px]" aria-label={`${p.suspicion} jeton(s) de soupçon sur ${EXPEL_AT}`} title="Soupçons : au 3e, le joueur est chassé">
+          {Array.from({ length: EXPEL_AT }, (_, i) => (
+            <span key={i} className={`ch-skull ${i < p.suspicion ? 'on' : ''}`}>
+              <RichIcon name="evil-eyes" metal={i < p.suspicion ? 'bone' : 'iron'} size={12} />
+            </span>
+          ))}
+        </span>
+      )}
+      <span className="flex min-h-[17px] flex-wrap items-center justify-center gap-1">
+        {p.role && <span className={`ch-role ${p.role}`}>{ROLE_LABEL[p.role]}</span>}
+        {ballot !== null && ballot !== undefined && <span className={`ch-vote ${ballot ? 'yes' : 'no'}`}>{ballot ? 'oui' : 'non'}</span>}
+      </span>
+    </div>
+  );
+}
+
+function Pot({ view, nameOf, splash }: { view: CauldronView; nameOf: NameOf; splash: number }) {
+  const last = view.pours.at(-1);
+  return (
+    <div className="flex flex-col items-center text-center">
+      <span key={splash} className={`ch-pot ${splash ? 'ch-splash' : ''}`}>
+        <span className="ch-bubbles" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        <RichIcon name="cauldron" metal="iron" size={84} />
+      </span>
+      <span className="ch-title mt-1 text-[14px] text-[#d9ffc9] [text-shadow:0_2px_4px_rgba(0,0,0,.9)]">
+        {view.pours.length} ingrédient{view.pours.length > 1 ? 's' : ''}
+      </span>
+      {last && view.phase !== 'over' && (
+        <span className="mt-0.5 text-[13.5px] italic text-[#e7efd9] [text-shadow:0_2px_4px_rgba(0,0,0,.9)]">
+          {nameOf(last.by)} a versé « {signed(last.announced)} »
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ───────── Rôle secret ─────────
 
 function Identity({ me, view, nameOf }: { me: NonNullable<CauldronView['me']>; view: CauldronView; nameOf: NameOf }) {
   const poisoner = me.role === 'poisoner';
   return (
-    <section
-      className={`animate-pop rounded-2xl border p-4 ${poisoner ? 'border-sabo/50 bg-sabo/5' : 'border-good/50 bg-good/5'}`}
-    >
-      <div className="text-sm text-muted">Ton rôle secret :</div>
-      <div className={`text-xl font-bold ${poisoner ? 'text-sabo' : 'text-good'}`}>{ROLE_LABEL[me.role]}</div>
-      <p className="mt-1 text-xs text-muted">
+    <section className="ch-page">
+      <div className="ch-title text-center text-[12px] uppercase tracking-[0.22em] text-[#7a3a14]">Ton rôle secret :</div>
+      <div className="mt-1 flex items-center justify-center gap-3">
+        <RichIcon name={poisoner ? 'poison-bottle' : 'spell-book'} metal={poisoner ? 'ruby' : 'gold'} size={46} />
+        <span className="ch-title text-[1.7rem]" style={{ color: poisoner ? '#5b1a6b' : '#1d6b33' }}>
+          {ROLE_LABEL[me.role]}
+        </span>
+      </div>
+      <p className="mt-1 text-center text-[1.02rem] leading-snug">
         {poisoner
           ? `Fais rater la potion (force visée : ${view.target}) : verse de la Ciguë en mentant, écume les bons ingrédients, sème le doute.`
           : `Fais atteindre ${view.target} au chaudron, démasque les menteurs en goûtant, et ne sers la potion que si tu y crois.`}
       </p>
       {poisoner && (
-        <p className="mt-2 text-sm">
-          {me.allies.length ? `Tes complices : ${me.allies.map(nameOf).join(', ')}.` : 'Tu es le seul Empoisonneur.'}
+        <p className="mt-2 text-center">
+          {me.allies.length ? (
+            <>
+              Tes complices : <strong>{me.allies.map(nameOf).join(', ')}</strong>.
+            </>
+          ) : (
+            'Tu es le seul Empoisonneur.'
+          )}
         </p>
       )}
     </section>
@@ -159,21 +409,36 @@ function Identity({ me, view, nameOf }: { me: NonNullable<CauldronView['me']>; v
 
 // ───────── Cartes ─────────
 
-function CardFace({ card, selected = false }: { card: Card; selected?: boolean }) {
-  const ring = selected ? '-translate-y-1 ring-2 ring-accent ring-offset-2 ring-offset-bg' : '';
+function CardFace({ card, w = 104 }: { card: Card; w?: number }) {
   if (card.kind === 'ingredient') {
+    const d = ING[card.value];
     return (
-      <div className={`w-24 rounded-xl border-2 px-2 py-2 text-left transition ${INGREDIENT_STYLE[card.value]} ${ring}`}>
-        <div className="text-2xl font-bold tabular-nums">{signed(card.value)}</div>
-        <div className="text-[11px] font-semibold leading-tight">{INGREDIENT_LABEL[card.value]}</div>
-      </div>
+      <span className="ch-card" style={{ '--w': `${w}px` } as CSSProperties}>
+        <RichIcon name={d.icon} metal={d.metal} size={w * 0.48} />
+        <span className="v" style={{ color: d.color }}>
+          {signed(card.value)}
+        </span>
+        <span className="n">{INGREDIENT_LABEL[card.value]}</span>
+      </span>
     );
   }
+  const a = ACT[card.action];
   return (
-    <div className={`w-24 rounded-xl border-2 border-accent/60 bg-accent/10 px-2 py-2 text-left text-accent transition ${ring}`}>
-      <div className="text-[10px] uppercase tracking-wide text-muted">Action</div>
-      <div className="font-bold leading-tight">{ACTION_LABEL[card.action]}</div>
-    </div>
+    <span className="ch-card" style={{ '--w': `${w}px` } as CSSProperties}>
+      <span className="text-[10px] uppercase tracking-[0.2em] text-[#7a3a14]">Action</span>
+      <RichIcon name={a.icon} metal={a.metal} size={w * 0.44} />
+      <span className="n">{ACTION_LABEL[card.action]}</span>
+    </span>
+  );
+}
+
+function Vial({ value }: { value: Ingredient }) {
+  const d = ING[value];
+  return (
+    <span className="ch-vial" style={{ background: d.color, color: d.text }}>
+      <RichIcon name={d.icon} metal={d.metal} size={16} />
+      {signed(value)}
+    </span>
   );
 }
 
@@ -183,12 +448,14 @@ function TurnPanel({
   view,
   hand,
   me,
+  seatOf,
   title,
   sendMove,
 }: {
   view: CauldronView;
   hand: Card[];
   me: PlayerId;
+  seatOf: (id: PlayerId | null) => number;
   title: string;
   sendMove: (m: CauldronMove) => void;
 }) {
@@ -204,15 +471,12 @@ function TurnPanel({
   const card = index === null ? null : (hand[index] ?? null);
   const members = view.players.filter((p) => !p.expelled);
   const targets =
-    card?.kind === 'action' && card.action === 'suspect'
-      ? members.filter((p) => p.id !== me)
-      : card?.kind === 'action' && card.action === 'plead'
-        ? members
-        : [];
+    card?.kind === 'action' && card.action === 'suspect' ? members.filter((p) => p.id !== me) : card?.kind === 'action' && card.action === 'plead' ? members : [];
   const needsTarget = targets.length > 0;
   const empty = view.pours.length === 0;
 
   const pick = (i: number) => {
+    sfx.click();
     setIndex(i);
     const c = hand[i];
     setAnnounce(c?.kind === 'ingredient' ? c.value : null);
@@ -230,9 +494,9 @@ function TurnPanel({
   };
 
   return (
-    <section className="animate-pop rounded-2xl border border-accent/40 bg-surface-2 p-4">
-      <h4 className="font-semibold first-letter:uppercase">{title}</h4>
-      <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Ta main">
+    <section className="ch-dock">
+      <h4 className="first-letter:uppercase">{title}</h4>
+      <div className="mt-3 flex flex-wrap justify-center gap-2.5" role="radiogroup" aria-label="Ta main">
         {hand.map((c, i) => (
           <button
             key={i}
@@ -241,59 +505,42 @@ function TurnPanel({
             aria-checked={index === i}
             aria-label={c.kind === 'ingredient' ? `${INGREDIENT_LABEL[c.value]} (${signed(c.value)})` : ACTION_LABEL[c.action]}
             onClick={() => pick(i)}
-            className="rounded-xl"
           >
-            <CardFace card={c} selected={index === i} />
+            <CardFace card={c} w={98} />
           </button>
         ))}
       </div>
 
       {card?.kind === 'ingredient' && (
         <div className="mt-3">
-          <div className="text-xs text-muted">Ce que tu annonces à la guilde :</div>
+          <div className="muted text-center text-[15px] italic">Ce que tu annonces à la guilde :</div>
           <div className="mt-1 grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Annonce">
             {INGREDIENTS.map((v) => (
-              <button
-                key={v}
-                type="button"
-                role="radio"
-                aria-checked={announce === v}
-                onClick={() => setAnnounce(v)}
-                className={`min-w-0 rounded-lg border px-2 py-2 text-sm ${
-                  announce === v ? INGREDIENT_STYLE[v] : 'border-line text-muted hover:text-fg'
-                }`}
-              >
-                <span className="font-bold tabular-nums">{signed(v)}</span>
-                <span className="block truncate text-[11px]">{INGREDIENT_LABEL[v]}</span>
+              <button key={v} type="button" role="radio" aria-checked={announce === v} onClick={() => setAnnounce(v)} className="ch-opt">
+                <Vial value={v} />
+                <span className="block truncate text-[12.5px]">{INGREDIENT_LABEL[v]}</span>
               </button>
             ))}
           </div>
-          {announce !== null && announce !== card.value && (
-            <p className="mt-2 text-xs text-sabo">Mensonge : un goûteur pourrait le découvrir.</p>
-          )}
+          {announce !== null && announce !== card.value && <p className="mt-2 text-center text-[14px] font-semibold text-[#8e1b14]">Mensonge : un goûteur pourrait le découvrir.</p>}
         </div>
       )}
 
       {card?.kind === 'action' && (
         <div className="mt-3">
-          <p className="text-xs text-muted">
+          <p className="muted text-center text-[15px]">
             {ACTION_HELP[card.action]}
             {(card.action === 'taste' || card.action === 'skim') && empty && ' (le chaudron est vide : sans effet)'}
           </p>
           {needsTarget && (
-            <div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Joueur visé">
+            <div className="mt-2 flex flex-wrap justify-center gap-1" role="radiogroup" aria-label="Joueur visé">
               {targets.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={target === p.id}
-                  onClick={() => setTarget(p.id)}
-                  className={`rounded-lg border px-3 py-2 text-sm ${
-                    target === p.id ? 'border-sabo bg-sabo/15 text-fg' : 'border-line text-muted hover:text-fg'
-                  }`}
-                >
-                  {p.id === me ? 'Moi' : p.name} · {p.suspicion}/{EXPEL_AT}
+                <button key={p.id} type="button" role="radio" aria-checked={target === p.id} onClick={() => setTarget(p.id)} className="ch-pick">
+                  <Medal seat={seatOf(p.id)} size={38} />
+                  <span className="ch-name !text-[#2a1d0e]">{p.id === me ? 'Moi' : p.name}</span>
+                  <span className="text-[12px] text-[#5f4a2a]">
+                    {p.suspicion}/{EXPEL_AT} soupçons
+                  </span>
                 </button>
               ))}
             </div>
@@ -301,49 +548,39 @@ function TurnPanel({
         </div>
       )}
 
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <button
-          type="button"
-          disabled={!card || (card.kind === 'ingredient' ? announce === null : needsTarget && !target)}
-          onClick={play}
-          className="rounded-xl bg-accent px-4 py-3 font-semibold text-bg hover:brightness-110 disabled:opacity-40"
-        >
+      <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+        <button type="button" className="ch-btn" disabled={!card || (card.kind === 'ingredient' ? announce === null : needsTarget && !target)} onClick={play}>
           {label}
         </button>
-        <button
-          type="button"
-          disabled={empty}
-          onClick={() => sendMove({ type: 'propose' })}
-          className="rounded-xl border border-good/60 px-4 py-3 font-semibold text-good hover:bg-good/10 disabled:opacity-30"
-        >
+        <button type="button" className="ch-btn2" disabled={empty} onClick={() => sendMove({ type: 'propose' })}>
           Proposer de servir la potion
         </button>
       </div>
-      <p className="mt-2 text-xs text-muted">
-        Servir déclenche un vote de la guilde. S’il échoue, tu reçois un jeton de soupçon.
-      </p>
+      <p className="muted mt-2 text-center text-[13.5px] italic">Servir déclenche un vote de la guilde. S’il échoue, tu reçois un jeton de soupçon.</p>
     </section>
   );
 }
 
 function TastedPanel({ taste, nameOf, onDone }: { taste: Taste; nameOf: NameOf; onDone: () => void }) {
   return (
-    <Panel title="Tu goûtes le chaudron… (secret)">
-      <div className="flex flex-wrap gap-2">
+    <section className="ch-dock">
+      <h4>Tu goûtes le chaudron… (secret)</h4>
+      <div className="mt-3 flex flex-wrap justify-center gap-2">
         {taste.values.map((v, i) => (
-          <CardFace key={i} card={{ kind: 'ingredient', value: v }} />
+          <CardFace key={i} card={{ kind: 'ingredient', value: v }} w={80} />
         ))}
       </div>
-      <p className="mt-3 text-sm">
-        Annoncé : {taste.pours.map((p) => `${nameOf(p.by)} ${signed(p.announced)}`).join(' · ')}
-        {' '}(total annoncé {signed(taste.pours.reduce((s, p) => s + p.announced, 0))}, réel{' '}
-        {signed(taste.values.reduce<number>((s, v) => s + v, 0))})
+      <p className="mt-3 text-center">
+        Annoncé : {taste.pours.map((p) => `${nameOf(p.by)} ${signed(p.announced)}`).join(' · ')} (total annoncé {signed(taste.pours.reduce((s, p) => s + p.announced, 0))}, réel{' '}
+        <strong>{signed(taste.values.reduce<number>((s, v) => s + v, 0))}</strong>)
       </p>
-      <p className="mt-1 text-xs text-muted">Les valeurs sont mélangées : tu ne sais pas qui a versé quoi.</p>
-      <div className="mt-3">
-        <Primary onClick={onDone}>Compris</Primary>
+      <p className="muted mt-1 text-center text-[14px] italic">Les valeurs sont mélangées : tu ne sais pas qui a versé quoi.</p>
+      <div className="mt-3 flex justify-center">
+        <button type="button" className="ch-btn" onClick={onDone}>
+          Compris
+        </button>
       </div>
-    </Panel>
+    </section>
   );
 }
 
@@ -354,118 +591,102 @@ function VotePanel({
   actingAs,
   privateView,
   nameOf,
+  seatOf,
   sendMove,
 }: {
   view: CauldronView;
   actingAs: PlayerId;
   privateView: boolean;
   nameOf: NameOf;
+  seatOf: (id: PlayerId | null) => number;
   sendMove: (m: CauldronMove) => void;
 }) {
   const proposer = view.vote?.proposer ?? null;
   if (view.config.votes === 'hands') {
-    return actingAs === proposer ? <HandsVote view={view} onSubmit={(yes) => sendMove({ type: 'tally', yes })} /> : null;
+    return actingAs === proposer ? <HandsVote view={view} seatOf={seatOf} onSubmit={(yes) => sendMove({ type: 'tally', yes })} /> : null;
   }
   if (!privateView) return null;
   const self = view.players.find((p) => p.id === actingAs)!;
   if (self.voted) {
     return (
-      <p className="text-sm text-muted">Ton bulletin : {view.me?.myVote ? 'Oui' : 'Non'}. En attente des autres…</p>
+      <section className="ch-dock">
+        <h4>Bulletin déposé</h4>
+        <p className="text-center">
+          Tu as voté <strong>{view.me?.myVote ? 'oui' : 'non'}</strong>. On attend les autres…
+        </p>
+      </section>
     );
   }
   return (
-    <Panel title={`Servir la potion proposée par ${nameOf(proposer)} ?`}>
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => sendMove({ type: 'vote', yes: true })}
-          className="rounded-xl bg-good px-4 py-3 font-bold text-bg hover:brightness-110"
-        >
+    <section className="ch-dock">
+      <h4>Servir la potion proposée par {nameOf(proposer)} ?</h4>
+      <div className="mt-3 flex justify-center gap-3">
+        <button type="button" className="ch-btn" onClick={() => sendMove({ type: 'vote', yes: true })}>
           Oui, on sert
         </button>
-        <button
-          type="button"
-          onClick={() => sendMove({ type: 'vote', yes: false })}
-          className="rounded-xl bg-sabo px-4 py-3 font-bold text-bg hover:brightness-110"
-        >
+        <button type="button" className="ch-btn danger" onClick={() => sendMove({ type: 'vote', yes: false })}>
           Non
         </button>
       </div>
-      <p className="mt-2 text-xs text-muted">
+      <p className="muted mt-2 text-center text-[14px] italic">
         Majorité de oui : on révèle le chaudron et la partie s’arrête. Sinon {nameOf(proposer)} reçoit un jeton de soupçon.
       </p>
-    </Panel>
+    </section>
   );
 }
 
-function HandsVote({ view, onSubmit }: { view: CauldronView; onSubmit: (yes: PlayerId[]) => void }) {
+function HandsVote({ view, seatOf, onSubmit }: { view: CauldronView; seatOf: (id: PlayerId | null) => number; onSubmit: (yes: PlayerId[]) => void }) {
   const [yes, setYes] = useState<PlayerId[]>([]);
   useEffect(() => setYes([]), [view.vote?.proposer]);
   const members = view.players.filter((p) => !p.expelled);
   const toggle = (id: PlayerId) => setYes((y) => (y.includes(id) ? y.filter((x) => x !== id) : [...y, id]));
   const passes = yes.length * 2 > members.length;
   return (
-    <Panel title="Qui a levé la main pour servir la potion ?">
-      <div className="flex flex-wrap gap-1.5">
+    <section className="ch-dock">
+      <h4>Qui a levé la main pour servir la potion ?</h4>
+      <div className="mt-2 flex flex-wrap justify-center gap-1">
         {members.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            aria-pressed={yes.includes(p.id)}
-            onClick={() => toggle(p.id)}
-            className={`rounded-lg border px-3 py-2 text-sm ${
-              yes.includes(p.id) ? 'border-good bg-good/15 text-good' : 'border-line text-muted'
-            }`}
-          >
-            {p.name} {yes.includes(p.id) ? '✓' : ''}
+          <button key={p.id} type="button" aria-pressed={yes.includes(p.id)} onClick={() => toggle(p.id)} className="ch-pick">
+            <Medal seat={seatOf(p.id)} size={38} />
+            <span className="ch-name !text-[#2a1d0e]">
+              {p.name} {yes.includes(p.id) ? '✓' : ''}
+            </span>
           </button>
         ))}
       </div>
-      <p className="mt-2 text-xs text-muted">
+      <p className="muted mt-2 text-center text-[15px]">
         {yes.length} oui sur {members.length} : la potion serait {passes ? 'servie' : 'refusée'}.
       </p>
-      <div className="mt-3">
-        <Primary onClick={() => onSubmit(yes)}>Valider le vote</Primary>
+      <div className="mt-3 flex justify-center">
+        <button type="button" className="ch-btn" onClick={() => onSubmit(yes)}>
+          Valider le vote
+        </button>
       </div>
-    </Panel>
+    </section>
   );
 }
 
-// ───────── Plateau public ─────────
+// ───────── Le contenu du chaudron, dégustations, aide ─────────
 
-function Cauldron({ view, nameOf }: { view: CauldronView; nameOf: NameOf }) {
+function Brew({ view, nameOf }: { view: CauldronView; nameOf: NameOf }) {
   const over = view.phase === 'over';
   return (
-    <section className="rounded-2xl border border-line bg-surface p-4">
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Le chaudron</div>
-        <div className="text-xs text-muted">
-          {view.pours.length} ingrédient{view.pours.length > 1 ? 's' : ''}
-        </div>
-      </div>
+    <section className="ch-page">
+      <h4>Le chaudron</h4>
       {view.pours.length === 0 ? (
-        <p className="mt-2 text-sm text-muted">Le chaudron est vide.</p>
+        <p className="muted mt-1 text-center italic">Le chaudron est vide.</p>
       ) : (
         <ol className="mt-2 flex flex-col gap-1">
           {view.pours.map((p, i) => {
             const lie = p.value !== null && p.value !== p.announced;
             return (
-              <li
-                key={i}
-                className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-sm ${
-                  lie && over ? 'border-sabo/60 bg-sabo/5' : 'border-line'
-                }`}
-              >
-                <span className="w-6 shrink-0 text-right text-xs tabular-nums text-muted">{i + 1}</span>
-                <span className="min-w-[5rem] flex-1 truncate">{nameOf(p.by)}</span>
-                <span className={`shrink-0 rounded border px-1.5 text-xs font-semibold tabular-nums ${INGREDIENT_STYLE[p.announced]}`}>
-                  annonce {signed(p.announced)}
-                </span>
+              <li key={i} className={`flex items-center gap-2 rounded-md px-2 py-1 ${lie && over ? 'bg-[#8e1b14]/15 ring-1 ring-[#8e1b14]/50' : ''}`}>
+                <span className="ch-num w-5 shrink-0 text-right text-[13px] text-[#7a6a4a]">{i + 1}</span>
+                <span className="min-w-[4.5rem] flex-1 truncate">{nameOf(p.by)}</span>
+                <span className="text-[13px] italic text-[#5f4a2a]">annonce</span>
+                <Vial value={p.announced} />
                 {p.value !== null && (
-                  <span
-                    className={`shrink-0 text-xs font-semibold tabular-nums ${lie ? 'text-sabo' : 'text-muted'}`}
-                    title={over ? 'Valeur réelle' : 'Ce que tu as vraiment versé'}
-                  >
+                  <span className={`shrink-0 text-[13px] font-semibold ${lie ? 'text-[#8e1b14]' : 'text-[#5f4a2a]'}`} title={over ? 'Valeur réelle' : 'Ce que tu as vraiment versé'}>
                     {lie ? `réel ${signed(p.value)}` : '✓'}
                   </span>
                 )}
@@ -474,8 +695,11 @@ function Cauldron({ view, nameOf }: { view: CauldronView; nameOf: NameOf }) {
           })}
         </ol>
       )}
-      {!over && view.pours.length > 0 && (
-        <p className="mt-2 text-xs text-muted">Tu vois la vraie valeur de tes propres versements seulement.</p>
+      {!over && view.pours.length > 0 && <p className="muted mt-2 text-center text-[13.5px] italic">Tu ne vois la vraie valeur que de tes propres versements.</p>}
+      {view.lastVote && (
+        <p className="mt-2 text-center text-[14px]">
+          Dernier vote ({nameOf(view.lastVote.proposer)}) : <strong>{view.lastVote.passed ? 'potion servie' : 'refusé'}</strong>
+        </p>
       )}
     </section>
   );
@@ -483,150 +707,58 @@ function Cauldron({ view, nameOf }: { view: CauldronView; nameOf: NameOf }) {
 
 function Tastes({ tastes, nameOf }: { tastes: Taste[]; nameOf: NameOf }) {
   return (
-    <details className="rounded-xl border border-accent/30 bg-surface p-3 text-sm">
-      <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted">
-        Tes dégustations secrètes ({tastes.length})
-      </summary>
+    <details className="rounded-xl border border-[rgba(170,255,170,.25)] bg-[rgba(6,10,6,.75)] px-4 py-3">
+      <summary className="ch-title cursor-pointer select-none text-[14px] text-[#c9ffb8]">Tes dégustations secrètes ({tastes.length})</summary>
       <ul className="mt-2 flex flex-col gap-1.5">
         {tastes.map((t, i) => (
-          <li key={i}>
-            <strong className="tabular-nums">{t.values.map(signed).join(', ')}</strong>{' '}
-            <span className="text-muted">— annoncé : {t.pours.map((p) => `${nameOf(p.by)} ${signed(p.announced)}`).join(', ')}</span>
+          <li key={i} className="flex flex-wrap items-center gap-1">
+            {t.values.map((v, k) => (
+              <Vial key={k} value={v} />
+            ))}
+            <span className="text-[14px] text-[#a8c49a]">— annoncé : {t.pours.map((p) => `${nameOf(p.by)} ${signed(p.announced)}`).join(', ')}</span>
           </li>
         ))}
       </ul>
     </details>
-  );
-}
-
-function Guild({ view, viewer }: { view: CauldronView; viewer: PlayerId | null }) {
-  return (
-    <section className="rounded-2xl border border-line bg-surface p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">La guilde</div>
-      <ul className="mt-2 flex flex-col gap-2">
-        {view.players.map((p) => (
-          <li
-            key={p.id}
-            className={`flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-sm ${
-              p.id === view.active && view.phase !== 'over' && !p.expelled ? 'border-key/60 bg-key/5' : 'border-line'
-            } ${p.expelled ? 'opacity-60' : ''}`}
-          >
-            <span className={`min-w-[5rem] flex-1 truncate font-semibold ${p.expelled ? 'line-through' : ''}`}>
-              {p.name}
-              {p.id === viewer && <span className="font-normal text-accent"> (toi)</span>}
-              {p.isBot && <span className="font-normal text-muted"> · bot</span>}
-            </span>
-            {view.phase === 'reveal' && <span className={`text-xs ${p.acked ? 'text-good' : 'text-muted'}`}>{p.acked ? '✓' : '…'}</span>}
-            {view.phase === 'vote' && view.config.votes === 'secret' && !p.expelled && (
-              <span className={`text-xs ${p.voted ? 'text-good' : 'text-muted'}`}>{p.voted ? 'a voté' : '…'}</span>
-            )}
-            {p.role && (
-              <span
-                className={`shrink-0 rounded border px-1 text-[10px] uppercase ${
-                  p.role === 'poisoner' ? 'border-sabo/60 text-sabo' : 'border-good/60 text-good'
-                }`}
-              >
-                {ROLE_LABEL[p.role]}
-              </span>
-            )}
-            {p.expelled ? (
-              <span className="shrink-0 text-xs text-muted">chassé</span>
-            ) : (
-              <span className="flex shrink-0 gap-0.5" aria-label={`${p.suspicion} jeton(s) de soupçon sur ${EXPEL_AT}`}>
-                {Array.from({ length: EXPEL_AT }, (_, i) => (
-                  <span
-                    key={i}
-                    className={`h-3 w-3 rounded-full border ${i < p.suspicion ? 'border-sabo bg-sabo' : 'border-line'}`}
-                  />
-                ))}
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function LastVote({ vote, nameOf }: { vote: NonNullable<CauldronView['lastVote']>; nameOf: NameOf }) {
-  const yes = Object.entries(vote.votes).filter(([, v]) => v).map(([id]) => nameOf(id));
-  const no = Object.entries(vote.votes).filter(([, v]) => !v).map(([id]) => nameOf(id));
-  return (
-    <section className="rounded-xl border border-line bg-surface p-3 text-sm">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-        Dernier vote (proposé par {nameOf(vote.proposer)}) : {vote.passed ? 'potion servie' : 'refusé'}
-      </div>
-      <p className="mt-1">
-        <span className="text-good">Oui : {yes.join(', ') || 'personne'}</span>
-        <span className="text-muted"> · </span>
-        <span className="text-sabo">Non : {no.join(', ') || 'personne'}</span>
-      </p>
-    </section>
   );
 }
 
 function Reference({ view }: { view: CauldronView }) {
   return (
-    <details className="rounded-xl border border-line bg-surface p-3 text-sm">
-      <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted">
-        Aide-mémoire
-      </summary>
+    <details className="rounded-xl border border-[rgba(170,255,170,.25)] bg-[rgba(6,10,6,.75)] px-4 py-3">
+      <summary className="ch-title cursor-pointer select-none text-[14px] text-[#c9ffb8]">Le grimoire (aide-mémoire)</summary>
       <ul className="mt-2 flex flex-col gap-1.5">
         {INGREDIENTS.map((v) => (
-          <li key={v}>
-            <strong>{INGREDIENT_LABEL[v]}</strong> : <span className="text-muted">{signed(v)} de force</span>
+          <li key={v} className="flex items-center gap-2">
+            <Vial value={v} /> <strong>{INGREDIENT_LABEL[v]}</strong>
           </li>
         ))}
-        {(Object.keys(ACTION_LABEL) as (keyof typeof ACTION_LABEL)[]).map((a) => (
-          <li key={a}>
-            <strong>{ACTION_LABEL[a]}</strong> : <span className="text-muted">{ACTION_HELP[a]}</span>
+        {(Object.keys(ACTION_LABEL) as ActionKind[]).map((a) => (
+          <li key={a} className="flex items-start gap-2">
+            <RichIcon name={ACT[a].icon} metal={ACT[a].metal} size={22} />
+            <span>
+              <strong>{ACTION_LABEL[a]}</strong> : <span className="text-[#a8c49a]">{ACTION_HELP[a]}</span>
+            </span>
           </li>
         ))}
-        <li className="text-muted">
-          Force visée : {view.target}. La pioche épuisée fait gagner les Empoisonneurs.
-        </li>
+        <li className="text-[#a8c49a]">Force visée : {view.target}. La pioche épuisée fait gagner les Empoisonneurs.</li>
       </ul>
     </details>
   );
 }
 
-function Journal({ lines }: { lines: string[] }) {
+function Journal({ lines, open = false }: { lines: string[]; open?: boolean }) {
   const recent = lines.slice(-10).reverse();
   return (
-    <details className="rounded-xl border border-line bg-surface p-3 text-sm" open>
-      <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted">
-        Journal
-      </summary>
+    <details open={open} className="rounded-xl border border-[rgba(170,255,170,.25)] bg-[rgba(6,10,6,.75)] px-4 py-3">
+      <summary className="ch-title cursor-pointer select-none text-[14px] text-[#c9ffb8]">Chuchotements de la guilde</summary>
       <ol className="mt-2 flex flex-col gap-1">
         {recent.map((line, i) => (
-          <li key={lines.length - i} className={i === 0 ? 'text-fg' : 'text-muted'}>
+          <li key={lines.length - i} className={i === 0 ? 'text-[#eef6dd]' : 'text-[#a8b89a]'}>
             {line}
           </li>
         ))}
       </ol>
     </details>
-  );
-}
-
-// ───────── Petits composants ─────────
-
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="animate-pop rounded-2xl border border-accent/40 bg-surface-2 p-4">
-      <h4 className="mb-3 font-semibold">{title}</h4>
-      {children}
-    </section>
-  );
-}
-
-function Primary({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full rounded-xl bg-accent px-4 py-3 font-semibold text-bg hover:brightness-110 sm:w-auto"
-    >
-      {children}
-    </button>
   );
 }
