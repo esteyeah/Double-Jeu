@@ -185,13 +185,18 @@ Les plateaux utilisent les jetons de couleur de la plateforme (`bg-surface`, `te
 
 ### Plateau immersif
 
-Un jeu peut occuper tout l'écran dans son propre univers (Butin, Réacteur) : le site s'efface, il ne reste que
-quatre boutons flottants (discussion, menu, son, plein écran).
+Chaque jeu occupe tout l'écran dans son propre univers : le site s'efface, il ne reste que quatre boutons flottants
+(discussion, menu, son, plein écran). Pont de navire (Butin), salle de contrôle (Réacteur), salle du Conseil (Le Trône
+Vide), bal masqué (La Cité), nuit polaire (Expédition), antre d'alchimiste (Le Chaudron), taverne (Gobelets),
+commissariat des années 70 (Garde à vue), table de cartographe (Boussole).
 
 - `client/theme.ts` : la feuille de style du jeu (décor, matières, animations), injectée avec `<style href precedence>`.
 - `client/skin.tsx` : un `StageSkin` (`@arcade/tabletop`) qui habille aussi les écrans communs : passage du
   téléphone, fin de partie (victoire ou défaite du joueur), discussion et menu (les jetons de couleur du site y sont
   redéfinis), messages. L'exporter depuis `client/Board.tsx` et le déclarer dans le registre : `immersive: skin`.
+- `RoundTable` (kit) assoit les joueurs autour d'un centre et relie les places par des flèches (visées, cordées,
+  gouvernements…) ; `Cinematic` affiche les grands moments (manche, vote, carte retournée…) ; une consigne en clair
+  dit toujours quoi faire maintenant.
 - Textures dans `apps/web/public/themes/<id>/`, icônes de [game-icons.net](https://game-icons.net)
   (`pnpm --filter @arcade/tabletop icons` après avoir complété la liste dans `packages/tabletop/scripts/icons.mjs`),
   sons et ambiances synthétisés en direct (`sfx`, `useAmbient`) : aucun fichier audio.
@@ -207,7 +212,8 @@ quatre boutons flottants (discussion, menu, son, plein écran).
 - Icônes : [game-icons.net](https://game-icons.net), par Lorc, Delapouite et leurs contributeurs, sous licence
   [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) (colorées et mises en relief pour les plateaux).
 - Textures : [Poly Haven](https://polyhaven.com) et [ambientCG](https://ambientcg.com), domaine public (CC0), retouchées.
-- Polices : Pirata One, IM Fell English, Orbitron, Rajdhani, Share Tech Mono (SIL Open Font License), servies par le site.
+- Polices : Pirata One, IM Fell English, Orbitron, Rajdhani, Share Tech Mono, Cinzel, Cormorant Garamond, Special Elite,
+  Uncial Antiqua (SIL Open Font License ou Apache 2.0), servies par le site.
 
 ## Limites actuelles
 
