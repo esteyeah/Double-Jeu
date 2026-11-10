@@ -21,6 +21,10 @@ export interface TableLink {
   glow?: boolean;
   /** Trait animé (pointillés qui défilent vers la cible). */
   flow?: boolean;
+  /** Sans pointe de flèche (une corde, un lien). */
+  head?: boolean;
+  /** Courbure (1 par défaut, 0 : ligne droite). */
+  curve?: number;
 }
 
 export interface SeatGeometry {
@@ -172,7 +176,7 @@ function Arrow({ a, b, r, link }: { a: SeatGeometry; b: SeatGeometry; r: number;
   const ux = dx / len;
   const uy = dy / len;
   // Courbe légère : A→B et B→A passent de part et d'autre.
-  const bend = Math.min(60, len * 0.16);
+  const bend = Math.min(60, len * 0.16) * (link.curve ?? 1);
   const mx = (a.x + b.x) / 2 - uy * bend;
   const my = (a.y + b.y) / 2 + ux * bend;
   // Départ et arrivée au bord des médaillons.
@@ -193,7 +197,7 @@ function Arrow({ a, b, r, link }: { a: SeatGeometry; b: SeatGeometry; r: number;
   const hx = tx / tl;
   const hy = ty / tl;
   const w = link.width ?? 3;
-  const head = 5 + w * 2.2;
+  const head = link.head === false ? 0 : 5 + w * 2.2;
   const base = { x: p2x - hx * head, y: p2y - hy * head };
   const tip = `${p2x + hx * 2},${p2y + hy * 2} ${base.x - hy * head * 0.55},${base.y + hx * head * 0.55} ${base.x + hy * head * 0.55},${base.y - hx * head * 0.55}`;
   const d = `M${p0x},${p0y} Q${mx},${my} ${base.x},${base.y}`;
@@ -209,7 +213,7 @@ function Arrow({ a, b, r, link }: { a: SeatGeometry; b: SeatGeometry; r: number;
         strokeDasharray={link.flow ? '8 8' : link.dash}
         style={link.flow ? { animation: 'tt-flow .9s linear infinite' } : undefined}
       />
-      <polygon points={tip} fill={link.color} stroke="rgba(0,0,0,.6)" strokeWidth="1" />
+      {link.head !== false && <polygon points={tip} fill={link.color} stroke="rgba(0,0,0,.6)" strokeWidth="1" />}
       {link.flow && (
         <style href="tabletop-flow" precedence="default">
           {'@keyframes tt-flow{to{stroke-dashoffset:-16}}'}
