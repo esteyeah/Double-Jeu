@@ -1,7 +1,7 @@
 /** Décor du Chaudron : antre d'alchimiste — pierre humide, lueurs vertes, étagères de fioles, grimoire. */
 export const CAULDRON_CSS = `
 @font-face{font-family:'Ch Digits';src:local('Times New Roman'),local('TimesNewRomanPSMT'),local('Liberation Serif'),local('Noto Serif'),local('Droid Serif'),local('Tinos');unicode-range:U+0030-0039}
-.ch{position:relative;min-height:100dvh;color:#e7efd9;font-family:'Ch Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;background:#070a08;overflow:hidden;isolation:isolate}
+.ch{position:relative;min-height:100dvh;color:#e7efd9;font-family:'Ch Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;background:#070a08;overflow:hidden;overflow:clip;isolation:isolate}
 .ch-stone{position:absolute;inset:0;z-index:-3;background:url(/themes/cauldron/stone.jpg) center top/420px}
 .ch-glow{position:absolute;inset:0;z-index:-2;pointer-events:none;animation:ch-breathe 7s ease-in-out infinite;
   background:radial-gradient(50% 40% at 50% 58%,rgba(90,255,140,.22),transparent 70%),radial-gradient(30% 30% at 12% 20%,rgba(255,170,70,.18),transparent 70%),

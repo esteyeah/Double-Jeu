@@ -1,7 +1,7 @@
 /** Décor de Boussole : table de cartographe — chêne ciré, grande carte sur parchemin, rose des vents, encre. */
 export const COMPASS_CSS = `
 @font-face{font-family:'Bs Digits';src:local('Times New Roman'),local('TimesNewRomanPSMT'),local('Liberation Serif'),local('Noto Serif'),local('Droid Serif'),local('Tinos');unicode-range:U+0030-0039}
-.bs{position:relative;min-height:100dvh;font-family:'Bs Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;overflow:hidden;isolation:isolate;
+.bs{position:relative;min-height:100dvh;font-family:'Bs Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;overflow:hidden;overflow:clip;isolation:isolate;
   --color-fg:#2a1d0e;--color-muted:#6b5432;--color-accent:#1f5f7a;--color-bg:#fbf3df;--color-surface:#f6ecd4;--color-surface-2:#fbf4e2;--color-line:#b8995e;
   --color-key:#8e3a14;--color-good:#2f7a3c;--color-sabo:#a3241a;--color-tech:#1f5f7a;color:var(--color-fg);background:#3a2410}
 .bs-desk{position:absolute;inset:0;z-index:-3;background:url(/themes/compass/desk.jpg) center/520px}

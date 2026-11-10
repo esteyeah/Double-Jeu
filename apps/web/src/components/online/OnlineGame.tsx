@@ -5,6 +5,7 @@ import type { GameSnapshot, PlayerId } from '@arcade/game-sdk';
 import type { RoomState } from '@arcade/protocol';
 import { getClientGame, type ClientGame } from '@/games/registry';
 import { request, useOnline } from '@/lib/online';
+import { AvatarProvider } from '@arcade/tabletop';
 import { Drawer, FullscreenButton, HudButton, HudIcon, ResultOverlay, SoundButton, Stage, StageButton, Toast } from '../immersive/Stage';
 import { Button, ErrorNote, ResultBanner, Rules } from '../ui/kit';
 import { Chat } from './Chat';
@@ -179,7 +180,9 @@ function ImmersiveOnline({
         </>
       }
     >
-      <Board view={snapshot.view} viewer={seated ? me : null} actingAs={seated ? me : null} mode="online" sendMove={sendMove} />
+      <AvatarProvider skins={Object.fromEntries(room.seats.map((s) => [s.id, s.skin]))}>
+        <Board view={snapshot.view} viewer={seated ? me : null} actingAs={seated ? me : null} mode="online" sendMove={sendMove} />
+      </AvatarProvider>
 
       {result && (
         <ResultOverlay

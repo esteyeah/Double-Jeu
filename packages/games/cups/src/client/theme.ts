@@ -1,7 +1,7 @@
 /** Décor de Gobelets : taverne enfumée — pierre, âtre, table de bois, gobelets de cuir, ardoise à la craie. */
 export const CUPS_CSS = `
 @font-face{font-family:'Go Digits';src:local('Times New Roman'),local('TimesNewRomanPSMT'),local('Liberation Serif'),local('Noto Serif'),local('Droid Serif'),local('Tinos');unicode-range:U+0030-0039}
-.go{position:relative;min-height:100dvh;color:#f3e3c6;font-family:'Go Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;background:#120a05;overflow:hidden;isolation:isolate}
+.go{position:relative;min-height:100dvh;color:#f3e3c6;font-family:'Go Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;background:#120a05;overflow:hidden;overflow:clip;isolation:isolate}
 .go-wall{position:absolute;inset:0;z-index:-3;background:url(/themes/cups/wall.jpg) center top/420px}
 .go-light{position:absolute;inset:0;z-index:-2;pointer-events:none;animation:go-flicker 5s ease-in-out infinite;
   background:radial-gradient(45% 35% at 50% 8%,rgba(255,170,80,.32),transparent 70%),radial-gradient(35% 45% at 0% 70%,rgba(255,140,50,.28),transparent 70%),

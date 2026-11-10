@@ -9,11 +9,13 @@ import { fetchWords } from '@/lib/api';
 import { KEYS, storage } from '@/lib/storage';
 import { Button, ErrorNote, Panel, Rules } from '../ui/kit';
 import { SettingsForm } from '../ui/Settings';
+import { Avatar, AvatarProvider } from '@arcade/tabletop';
 import { LocalGame } from './LocalGame';
 
 interface RosterEntry {
   name: string;
   isBot: boolean;
+  skin?: number;
 }
 
 export function LocalScreen({ gameId }: { gameId: string }) {
@@ -24,6 +26,7 @@ export function LocalScreen({ gameId }: { gameId: string }) {
     ...(game?.module.meta.hotseatDefaults ?? {}),
   }));
   const [gameKey, setGameKey] = useState(0);
+  const [skins, setSkins] = useState<Record<string, number>>({});
   const [extras, setExtras] = useState<SetupExtras>({});
 
   if (!game || !game.module.meta.supportsHotseat) {
@@ -58,6 +61,7 @@ export function LocalScreen({ gameId }: { gameId: string }) {
       </header>
 
       {players ? (
+        <AvatarProvider skins={skins}>
         <LocalGame
           key={gameKey}
           game={game}
@@ -67,6 +71,7 @@ export function LocalScreen({ gameId }: { gameId: string }) {
           onReplay={() => setGameKey((k) => k + 1)}
           onExit={() => setPlayers(null)}
         />
+        </AvatarProvider>
       ) : (
         <LocalSetup
           game={game}
@@ -78,6 +83,7 @@ export function LocalScreen({ gameId }: { gameId: string }) {
               const res = await fetchWords(game.module.meta.id, 2500);
               setExtras(res.ok ? { words: res.words.map((w) => w.word) } : {});
             }
+            setSkins(Object.fromEntries(roster.map((p, i) => [`local_${i}`, p.skin ?? 0])));
             setPlayers(
               roster.map((p, i) => ({
                 id: `local_${i}`,
@@ -175,6 +181,17 @@ function LocalSetup({
         <ul className="mt-3 flex flex-col gap-2">
           {roster.map((p, i) => (
             <li key={i} className="flex items-center gap-2">
+              {game.look && (
+                <button
+                  type="button"
+                  onClick={() => update(i, { skin: ((p.skin ?? 0) + 1) % 1000 })}
+                  aria-label={`Changer le personnage du joueur ${i + 1}`}
+                  title="Changer de personnage"
+                  className="shrink-0 overflow-hidden rounded-full bg-[radial-gradient(circle_at_50%_35%,#3a4766,#151b2c)] ring-1 ring-line hover:ring-accent"
+                >
+                  <Avatar name={p.name.trim() || `Joueur ${i + 1}`} look={game.look} skin={p.skin ?? 0} size={42} />
+                </button>
+              )}
               <input
                 value={p.name}
                 maxLength={NAME_MAX}

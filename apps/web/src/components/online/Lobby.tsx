@@ -3,13 +3,21 @@
 import { useState } from 'react';
 import type { PlayerId } from '@arcade/game-sdk';
 import type { Ack, RoomState } from '@arcade/protocol';
+import { Avatar } from '@arcade/tabletop';
 import { getClientGame } from '@/games/registry';
+import { KEYS, storage } from '@/lib/storage';
 import { request } from '@/lib/online';
 import { Button, ErrorNote, Panel, Rules } from '../ui/kit';
 import { SettingsForm } from '../ui/Settings';
 import { InviteBox } from './Invite';
 
 export function Lobby({ room, me }: { room: RoomState; me: PlayerId | null }) {
+  const look = getClientGame(room.gameId)?.look ?? 'explorer';
+  const changeSkin = (skin: number) => {
+    const next = Math.max(0, Math.min(999, skin));
+    storage.set(KEYS.skin, String(next));
+    void request('room:setSkin', { skin: next });
+  };
   const [error, setError] = useState<string | null>(null);
   const meta = getClientGame(room.gameId)?.module.meta;
   const isHost = me === room.hostId;
@@ -65,14 +73,27 @@ export function Lobby({ room, me }: { room: RoomState; me: PlayerId | null }) {
               key={s.id}
               className="flex items-center gap-3 rounded-xl border border-line bg-surface-2 px-3 py-2.5"
             >
-              <span
-                className={`h-2 w-2 shrink-0 rounded-full ${s.connected ? 'bg-good' : 'bg-muted'}`}
-                title={s.connected ? 'connecté' : 'déconnecté'}
-              />
+              <span className="relative shrink-0">
+                <Avatar id={s.id} name={s.name} look={look} skin={s.skin} size={44} className="overflow-hidden rounded-full bg-[radial-gradient(circle_at_50%_35%,#3a4766,#151b2c)]" />
+                <span
+                  className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface-2 ${s.connected ? 'bg-good' : 'bg-muted'}`}
+                  title={s.connected ? 'connecté' : 'déconnecté'}
+                />
+              </span>
               <span className="min-w-0 flex-1 truncate font-medium">
                 {s.name}
                 {s.id === me && <span className="text-accent"> (toi)</span>}
               </span>
+              {s.id === me && !s.isBot && (
+                <span className="flex shrink-0 items-center gap-1" aria-label="Changer de personnage">
+                  <button type="button" onClick={() => changeSkin(s.skin - 1)} disabled={s.skin <= 0} className="rounded-md border border-line px-2 py-1 text-xs hover:border-accent/60 disabled:opacity-30" aria-label="Personnage précédent">
+                    ◀
+                  </button>
+                  <button type="button" onClick={() => changeSkin(s.skin + 1)} className="rounded-md border border-line px-2 py-1 text-xs hover:border-accent/60" aria-label="Personnage suivant">
+                    ▶
+                  </button>
+                </span>
+              )}
               {s.id === room.hostId && (
                 <span className="text-xs font-semibold text-key">hôte</span>
               )}

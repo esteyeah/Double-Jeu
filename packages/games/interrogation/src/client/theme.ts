@@ -1,7 +1,7 @@
 /** Décor de Garde à vue : commissariat des années 70 — mur vert, néon, bureau en métal, dossier kraft, tableau de liège. */
 export const INTERROGATION_CSS = `
 @font-face{font-family:'Gv Digits';src:local('Courier New'),local('Liberation Mono'),local('Nimbus Mono PS'),local('Cousine');unicode-range:U+0030-0039}
-.gv{position:relative;min-height:100dvh;color:#e9ecdf;font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;overflow:hidden;isolation:isolate;
+.gv{position:relative;min-height:100dvh;color:#e9ecdf;font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;overflow:hidden;overflow:clip;isolation:isolate;
   background:linear-gradient(180deg,transparent 0 68%,rgba(0,0,0,.35) 68.2%,transparent 69%),url(/themes/interrogation/lino.jpg) 0 0/240px,#2b3328}
 .gv-wall{position:absolute;inset:0 0 auto 0;height:100%;z-index:-3;background:url(/themes/interrogation/wall.jpg) center top/520px;
   -webkit-mask:linear-gradient(180deg,#000 0 72%,transparent 86%);mask:linear-gradient(180deg,#000 0 72%,transparent 86%)}
@@ -45,16 +45,18 @@ export const INTERROGATION_CSS = `
 .gv-board{position:relative;padding:18px 14px 16px;border-radius:6px;background:url(/themes/interrogation/cork.jpg) center/260px;
   box-shadow:0 0 0 10px #6b4a28,0 0 0 12px #2a1b0c,0 16px 34px rgba(0,0,0,.6),inset 0 0 30px rgba(60,30,10,.45)}
 .gv-board h3{font-family:'Special Elite',monospace;color:#2a1b0c;background:#f7f4ea;display:inline-block;padding:2px 10px;transform:rotate(-1.5deg);box-shadow:0 2px 5px rgba(0,0,0,.35)}
-.gv-polas{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:16px 10px;margin-top:14px}
+.gv-polas{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:18px 12px;margin-top:14px}
 .gv-pola{position:relative;padding:7px 7px 10px;background:#fbfaf4;color:#22201a;text-align:center;box-shadow:0 6px 12px rgba(0,0,0,.45);transition:transform .2s}
 .gv-pola:nth-child(3n+1){transform:rotate(-2.5deg)}.gv-pola:nth-child(3n+2){transform:rotate(1.8deg)}.gv-pola:nth-child(3n){transform:rotate(-.8deg)}
 .gv-pola::before{content:'';position:absolute;left:50%;top:-7px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff8a7a,#b3261e 60%,#5e0c08);box-shadow:0 3px 4px rgba(0,0,0,.5);z-index:2}
 .gv-photo{position:relative;display:grid;place-items:end center;aspect-ratio:1;overflow:hidden;
   background:repeating-linear-gradient(180deg,transparent 0 13px,rgba(255,255,255,.18) 13px 14px),linear-gradient(180deg,#5a6670,#2a3036)}
 .gv-photo.insp{background:radial-gradient(circle at 50% 40%,#3a5a7a,#162636)}
+.gv-photo > span:first-child{position:absolute!important;inset:6% 4% 0 4%;width:auto!important;height:auto!important}
+.gv-plaque{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);padding:1px 6px;font-family:'Gv Digits','Special Elite',monospace;font-size:10px;letter-spacing:.08em;color:#f4f6ea;background:#14181b;border:1px solid #9aa1a6;white-space:nowrap;z-index:1}
 .gv-pola .nm{display:block;margin-top:6px;font-family:'Special Elite',monospace;font-size:14px;line-height:1.15;word-break:break-word}
 .gv-pola .sc{font-family:'Gv Digits',monospace;font-size:12px;color:#5a5446}
-.gv-pola .st{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-12deg);white-space:nowrap;font-size:13px}
+.gv-pola .st{position:absolute;left:4px;top:6px;transform:rotate(-9deg);transform-origin:left top;white-space:nowrap;font-size:11px;padding:1px 6px;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .gv-pola.is-me{box-shadow:0 0 0 3px #ffe08a,0 6px 12px rgba(0,0,0,.45)}
 .gv-chip{display:inline-block;margin-top:3px;font-family:'Special Elite',monospace;font-size:11.5px;padding:0 6px;border-radius:3px}
 .gv-chip.ok{color:#1f6b3a;background:#dff5e3}.gv-chip.wait{color:#6b5a2a;background:#f5ecd0}

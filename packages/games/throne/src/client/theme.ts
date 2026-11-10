@@ -2,7 +2,7 @@
 export const THRONE_CSS = `
 @font-face{font-family:'Tv Digits';src:local('Times New Roman'),local('TimesNewRomanPSMT'),local('Liberation Serif'),local('Noto Serif'),local('Droid Serif'),local('Tinos');unicode-range:U+0030-0039}
 .tv{position:relative;min-height:100dvh;color:#efe3c8;font-family:'Tv Digits','Cormorant Garamond','IM Fell English',Georgia,serif;font-weight:500;font-size:17px;
-  background:#0d0906;overflow:hidden;isolation:isolate}
+  background:#0d0906;overflow:hidden;overflow:clip;isolation:isolate}
 .tv-wall{position:absolute;inset:0;z-index:-3;background:url(/themes/throne/wall.jpg) center top/460px}
 .tv-light{position:absolute;inset:0;z-index:-2;pointer-events:none;animation:tv-flicker 5s ease-in-out infinite;
   background:radial-gradient(46% 32% at 50% 10%,rgba(255,184,96,.30),transparent 70%),radial-gradient(55% 45% at 50% 62%,rgba(255,160,70,.16),transparent 72%),

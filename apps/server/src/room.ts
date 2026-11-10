@@ -75,6 +75,16 @@ export class Room {
     return getGame(this.gameId)?.meta.maxPlayers ?? 8;
   }
 
+  /** Apparence de chaque joueur (elle le suit s'il passe de spectateur à joueur). */
+  private skins = new Map<PlayerId, number>();
+
+  setSkin(playerId: PlayerId, skin: number): Ack {
+    if (this.skins.get(playerId) === skin) return { ok: true };
+    this.skins.set(playerId, skin);
+    this.broadcastState();
+    return { ok: true };
+  }
+
   // ───────── Présence ─────────
 
   join(socket: ArcadeSocket, playerId: PlayerId, name: string): Ack {
@@ -447,6 +457,7 @@ export class Room {
         isBot: s.isBot,
         connected: s.isBot || this.isConnected(s.id),
         autopilot: this.autopilot.has(s.id),
+        skin: this.skins.get(s.id) ?? 0,
       })),
       spectators: [...this.spectators].map(([id, name]) => ({ id, name })),
     };

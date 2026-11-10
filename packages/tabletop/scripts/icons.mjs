@@ -39,7 +39,7 @@ const WANTED = [
   'desk-lamp', 'revolver', 'coffee-cup', 'stopwatch', 'hourglass', 'notebook', 'fountain-pen', 'finger-print', 'mug-shot',
   'talk', 'idea', 'post-stamp',
   // Boussole
-  'compass', 'clover', 'linked-rings', 'knot', 'puzzle', 'globe', 'telescope', 'sextant', 'scroll-quill', 'paper-boat',
+  'pointy-hat', 'top-hat', 'western-hat', 'winter-hat', 'compass', 'clover', 'linked-rings', 'knot', 'puzzle', 'globe', 'telescope', 'sextant', 'scroll-quill', 'paper-boat',
   // Butin
   'pirate-captain', 'pirate-skull', 'pirate-hook', 'pirate-hat', 'eyepatch', 'parrot-head', 'pirate-coat', 'pirate-flag',
   'pirate-grave', 'pistol-gun', 'crossed-pistols', 'bullets', 'heavy-bullets', 'bullet-impacts', 'smoke-bomb',

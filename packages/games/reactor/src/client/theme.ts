@@ -1,7 +1,7 @@
 /** Décor de Réacteur : salle de contrôle d'une station orbitale, acier brossé, néons, alarmes. */
 export const REACTOR_CSS = `
 .rx{--cyan:#58f3ff;--amber:#ffb547;--red:#ff4433;--green:#5dff9e;--steel:#cfd8e3;position:relative;min-height:100dvh;color:#dfe8f2;
-  font-family:'Rajdhani','Segoe UI',system-ui,sans-serif;font-weight:500;background:#05080c;overflow:hidden;isolation:isolate}
+  font-family:'Rajdhani','Segoe UI',system-ui,sans-serif;font-weight:500;background:#05080c;overflow:hidden;overflow:clip;isolation:isolate}
 .rx-wall{position:absolute;inset:0;z-index:-3;background:url(/themes/reactor/wall.jpg) center/520px}
 .rx-plates{position:absolute;inset:0;z-index:-2;opacity:.35;background:url(/themes/reactor/plates.jpg) center/300px;mix-blend-mode:overlay}
 .rx-light{position:absolute;inset:0;z-index:-1;pointer-events:none;

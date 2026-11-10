@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import { Cinematic, Icon, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, type GameIconName, type TableLink } from '@arcade/tabletop';
+import { Avatar, Cinematic, Icon, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, type GameIconName, type TableLink } from '@arcade/tabletop';
 import {
   MAX_REJECTIONS,
   ROLE_LABEL,
@@ -21,9 +21,6 @@ export { skin } from './skin';
 type Props = BoardProps<ExpeditionView, ExpeditionMove>;
 type NameOf = (id: PlayerId | null) => string;
 
-/** Couleurs des parkas et insignes, par place. */
-const PARKA = ['#c0392b', '#d35400', '#c99a12', '#1f7a46', '#1f5f99', '#6b3a8a', '#8a5a12', '#2b6b6b', '#7a1d4a', '#4a5a1d'];
-const BADGE: GameIconName[] = ['mountain-climbing', 'backpack', 'compass', 'lantern', 'winter-gloves', 'sitting-dog', 'spyglass', 'rope-coil', 'snowflake-1', 'camping-tent'];
 const STAGE_ICON: GameIconName[] = ['camping-tent', 'rope-bridge', 'frozen-block', 'snowing', 'flying-flag'];
 /** Position des étapes sur la carte (en % de la largeur et de la hauteur). */
 const WAYPOINT = [
@@ -65,8 +62,8 @@ export default function ExpeditionBoard({ view, viewer, actingAs, mode, sendMove
       <div className="ex-snow" />
 
       <header className="relative px-3 pt-[3.6rem] text-center sm:pt-4">
-        <div className="ex-title ex-frost text-[1.75rem] leading-none sm:text-[2.4rem]">Expédition polaire</div>
-        <div className="mt-1 text-[14px] italic text-[#cfe6ff]">Cap sur le Pôle — {TO_WIN} étapes réussies pour l’atteindre</div>
+        <div className="ex-kicker">Cap sur le Pôle · {TO_WIN} étapes réussies pour l’atteindre</div>
+        <div className="ex-title ex-frost mt-1 text-[2.2rem] leading-none sm:text-[3.4rem]">Expédition polaire</div>
       </header>
       <div className="mx-auto mt-3 w-[min(1240px,calc(100%-20px))]">
         <RouteMap view={view} />
@@ -218,26 +215,57 @@ function RouteMap({ view }: { view: ExpeditionView }) {
     <section className="ex-route" aria-label="Le parcours">
       <svg className="bg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <defs>
-          <linearGradient id="ex-far" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#f4fbff" />
-            <stop offset="0.25" stopColor="#a9c3da" />
-            <stop offset="1" stopColor="#24435f" />
-          </linearGradient>
-          <linearGradient id="ex-near" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset="0.35" stopColor="#d2e4f2" />
-            <stop offset="1" stopColor="#8fb0c9" />
-          </linearGradient>
           <linearGradient id="ex-sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#081a33" />
-            <stop offset="1" stopColor="#2b5b80" />
+            <stop offset="0" stopColor="#04122b" />
+            <stop offset=".55" stopColor="#0f3a5e" />
+            <stop offset="1" stopColor="#2a6f96" />
           </linearGradient>
+          <linearGradient id="ex-aur" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#3dffc0" stopOpacity="0" />
+            <stop offset=".3" stopColor="#3dffc0" stopOpacity=".75" />
+            <stop offset=".65" stopColor="#39d8ff" stopOpacity=".6" />
+            <stop offset="1" stopColor="#a479ff" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="ex-fog" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#cfe6ff" stopOpacity="0" />
+            <stop offset=".5" stopColor="#cfe6ff" stopOpacity=".28" />
+            <stop offset="1" stopColor="#cfe6ff" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="ex-ground" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="1" stopColor="#b9d3e8" />
+          </linearGradient>
+          <linearGradient id="ex-trail" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stopColor="#ffe29a" />
+            <stop offset="1" stopColor="#ff8a2a" />
+          </linearGradient>
+          <filter id="ex-blur" x="-10%" y="-50%" width="120%" height="200%">
+            <feGaussianBlur stdDeviation="1.2" />
+          </filter>
         </defs>
         <rect width="100" height="100" fill="url(#ex-sky)" />
-        <polygon points="0,62 8,46 15,54 24,34 33,48 43,26 52,40 61,20 70,36 80,10 89,30 100,16 100,100 0,100" fill="url(#ex-far)" opacity=".85" />
-        <polygon points="0,88 10,74 20,80 32,64 42,72 54,58 64,66 76,50 86,60 100,48 100,100 0,100" fill="url(#ex-near)" />
-        <path d="M2,92 Q8,80 12,74 T31,58 T50,46 T69,33 T88,19" fill="none" stroke="rgba(40,60,90,.55)" strokeWidth="5" vectorEffect="non-scaling-stroke" strokeDasharray="2 7" strokeLinecap="round" />
-        <path d={walked} fill="none" stroke="#e3c58a" strokeWidth="4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+        <g filter="url(#ex-blur)" className="ex-aurora-svg">
+          <path d="M-5,26 C18,10 38,32 58,16 S88,6 106,20" fill="none" stroke="url(#ex-aur)" strokeWidth="7" />
+          <path d="M-5,34 C22,22 44,40 64,26 S92,20 106,30" fill="none" stroke="url(#ex-aur)" strokeWidth="4" opacity=".6" />
+        </g>
+        {[
+          [7, 8],
+          [22, 14],
+          [38, 6],
+          [61, 9],
+          [83, 5],
+          [94, 13],
+          [48, 18],
+        ].map(([x, y]) => (
+          <rect key={`${x}-${y}`} x={x} y={y} width=".35" height=".9" fill="#fff" opacity=".8" />
+        ))}
+        <Range ridge={FAR_RIDGE} light="#5f83a3" dark="#3a5b7b" cap="#e9f4fc" capDark="#bcd3e6" />
+        <rect y="52" width="100" height="22" fill="url(#ex-fog)" />
+        <Range ridge={MID_RIDGE} light="#a7c3da" dark="#7193b1" cap="#ffffff" capDark="#dbe9f4" />
+        <rect y="66" width="100" height="18" fill="url(#ex-fog)" />
+        <path d="M0,86 C20,78 40,92 60,84 C75,78 90,86 100,80 L100,100 L0,100 Z" fill="url(#ex-ground)" />
+        <path d="M2,92 Q8,80 12,74 T31,58 T50,46 T69,33 T88,19" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="3" vectorEffect="non-scaling-stroke" strokeDasharray="2 8" strokeLinecap="round" />
+        <path d={walked} fill="none" stroke="url(#ex-trail)" strokeWidth="5" vectorEffect="non-scaling-stroke" strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 3px rgba(255,170,80,.9))' }} />
       </svg>
       {view.missions.map((m, i) => {
         const now = i === view.mission && !ended;
@@ -246,7 +274,7 @@ function RouteMap({ view }: { view: ExpeditionView }) {
         return (
           <div key={m.name} className={`ex-way ${state}`} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
             <span className="pin">
-              <RichIcon name={m.result && !m.result.success ? 'iceberg' : STAGE_ICON[i]!} metal={state === 'future' ? 'silver' : m.result && !m.result.success ? 'bone' : 'gold'} size={26} />
+              <RichIcon name={m.result && !m.result.success ? 'iceberg' : STAGE_ICON[i]!} variant="neon" glow="#ffffff" size={24} />
             </span>
             <span className="lbl">{m.name}</span>
             <span className="tag">
@@ -259,16 +287,47 @@ function RouteMap({ view }: { view: ExpeditionView }) {
           </div>
         );
       })}
-      <div className="absolute left-3 top-2.5 flex items-center gap-1.5 rounded-full bg-[rgba(4,14,28,.75)] px-2.5 py-1 text-[13px]" title="Au 5e refus d’affilée, l’expédition s’enlise et les Mutins gagnent.">
+      <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-white/15 bg-[rgba(4,14,30,.55)] px-3 py-1 text-[13px] font-semibold backdrop-blur" title="Au 5e refus d’affilée, l’expédition s’enlise et les Mutins gagnent.">
         <span className="hidden sm:inline">Refus d’affilée</span>
         {Array.from({ length: MAX_REJECTIONS }, (_, i) => (
           <span key={i} className={`ex-flake ${i < view.rejections ? 'on' : ''}`}>
-            <RichIcon name="snowflake-2" metal={i < view.rejections ? (view.rejections >= MAX_REJECTIONS - 1 ? 'ruby' : 'silver') : 'iron'} size={16} />
+            <RichIcon name="snowflake-2" variant="neon" glow={i < view.rejections ? (view.rejections >= MAX_REJECTIONS - 1 ? '#ff6a5a' : '#bfe6ff') : '#5f7f9a'} size={16} />
           </span>
         ))}
       </div>
     </section>
   );
+}
+
+const FAR_RIDGE: [number, number][] = [[0, 58], [9, 40], [17, 50], [27, 28], [37, 44], [47, 22], [56, 36], [66, 16], [76, 32], [86, 12], [94, 28], [100, 20]];
+const MID_RIDGE: [number, number][] = [[0, 74], [12, 56], [22, 66], [34, 48], [45, 60], [56, 44], [67, 56], [79, 38], [90, 52], [100, 42]];
+
+/** Chaîne de montagnes : silhouette à l'ombre, versant éclairé en biseau, neige dentelée au sommet. */
+function Range({ ridge, light, dark, cap, capDark }: { ridge: [number, number][]; light: string; dark: string; cap: string; capDark: string }) {
+  const parts: ReactNode[] = [];
+  const outline = ridge.map(([x, y]) => `${x},${y}`).join(' ');
+  parts.push(<polygon key="base" points={`0,100 ${outline} 100,100`} fill={dark} />);
+  for (let i = 1; i < ridge.length - 1; i++) {
+    const [px, py] = ridge[i]!;
+    const [lx, ly] = ridge[i - 1]!;
+    const [rx, ry] = ridge[i + 1]!;
+    // Les sommets sont les points plus hauts que leurs deux voisins.
+    if (py > ly || py > ry) continue;
+    // Versant éclairé : de la vallée de gauche au sommet, puis une arête qui redescend en biais.
+    const kx = px + (rx - px) * 0.22;
+    const ky = py + (100 - py) * 0.62;
+    parts.push(<polygon key={`l${i}`} points={`${lx},${ly} ${px},${py} ${kx},${ky} ${lx + (px - lx) * 0.55},100 ${lx},100`} fill={light} />);
+    // Neige : calotte à bord dentelé, plus claire côté soleil.
+    const t = 0.34;
+    const al = [px + (lx - px) * t, py + (ly - py) * t];
+    const ar = [px + (rx - px) * t * 0.8, py + (ry - py) * t * 0.8];
+    const ak = [px + (kx - px) * t * 0.9, py + (ky - py) * t * 0.9];
+    const z1 = [al[0]! + (ak[0]! - al[0]!) * 0.5, al[1]! + (ak[1]! - al[1]!) * 0.5 - 2.2];
+    const z2 = [ak[0]! + (ar[0]! - ak[0]!) * 0.5, ak[1]! + (ar[1]! - ak[1]!) * 0.5 - 1.6];
+    parts.push(<polygon key={`cl${i}`} points={`${px},${py} ${al.join(',')} ${z1.join(',')} ${ak.join(',')}`} fill={cap} />);
+    parts.push(<polygon key={`cr${i}`} points={`${px},${py} ${ak.join(',')} ${z2.join(',')} ${ar.join(',')}`} fill={capDark} />);
+  }
+  return <g>{parts}</g>;
 }
 
 // ───────── Étapes du tour et consigne ─────────
@@ -385,7 +444,7 @@ function Camp({
       <RoundTable
         ids={view.players.map((p) => p.id)}
         me={viewer}
-        seat={wide ? { w: 128, h: 150 } : { w: 84, h: 118 }}
+        seat={wide ? { w: 132, h: 168 } : { w: 88, h: 128 }}
         className={wide ? 'aspect-[1.3] max-h-[calc(100dvh-140px)] min-h-[500px]' : 'aspect-[0.84]'}
         links={links}
         under={<div className="ex-camp" />}
@@ -399,11 +458,10 @@ function Camp({
   );
 }
 
-function Hood({ seat, size }: { seat: number; size: number }) {
-  const c = PARKA[seat % PARKA.length]!;
+function Hood({ id, name, size }: { id: PlayerId; name: string; size: number }) {
   return (
-    <span className="ex-hood" style={{ width: size, height: size, background: `radial-gradient(circle at 35% 28%, color-mix(in srgb, ${c} 50%, white), ${c} 55%, color-mix(in srgb, ${c} 55%, black))` }}>
-      <RichIcon name={BADGE[seat % BADGE.length]!} metal="bone" size={size * 0.6} />
+    <span className="ex-hood" style={{ width: size, height: size }}>
+      <Avatar id={id} name={name} look="polar" size={size} round zoom={1.32} />
     </span>
   );
 }
@@ -436,7 +494,7 @@ function Seat({
 }) {
   const leader = p.id === view.leader && view.phase !== 'over' && view.phase !== 'spy';
   const chip = seatChip(view, p);
-  const size = wide ? 60 : 48;
+  const size = wide ? 78 : 58;
   const last = view.lastVote;
   const ballot = view.phase !== 'vote' && last && Object.hasOwn(last.votes, p.id) ? last.votes[p.id] : null;
   const cls = `ex-seat ${roped ? 'is-team' : ''} ${leader ? 'is-leader' : ''} ${p.id === viewer ? 'is-me' : ''}`;
@@ -444,7 +502,7 @@ function Seat({
     <>
       {chip && <span className={`ex-chip tone-${chip.tone}`}>{chip.text}</span>}
       <span className="relative">
-        <Hood seat={seat} size={size} />
+        <Hood id={p.id} name={p.name} size={size} />
         {leader && (
           <span className="ex-token -right-3 -top-1" style={{ width: size * 0.5, height: size * 0.5, background: '#14304f' }} title="Chef d’expédition">
             <RichIcon name="flying-flag" metal="gold" size={size * 0.34} />
@@ -468,15 +526,47 @@ function Seat({
   );
   if (onToggle) {
     return (
-      <button type="button" className={cls} style={{ width: wide ? 128 : 84 }} aria-label={roped ? `Retirer ${p.name} de la cordée` : `Ajouter ${p.name} à la cordée`} onClick={onToggle}>
+      <button type="button" className={cls} style={{ width: wide ? 132 : 88 }} aria-label={roped ? `Retirer ${p.name} de la cordée` : `Ajouter ${p.name} à la cordée`} onClick={onToggle}>
         {body}
       </button>
     );
   }
   return (
-    <div className={cls} style={{ width: wide ? 128 : 84 }}>
+    <div className={cls} style={{ width: wide ? 132 : 88 }}>
       {body}
     </div>
+  );
+}
+
+/** Feu de camp dessiné : bûches croisées, flammes qui dansent. */
+function CampFire() {
+  return (
+    <span className="ex-fire" aria-hidden="true">
+      <svg viewBox="0 0 120 120" width="110" height="110">
+        <defs>
+          <radialGradient id="ex-f1" cx="50%" cy="80%" r="70%">
+            <stop offset="0" stopColor="#fff6c2" />
+            <stop offset=".45" stopColor="#ffb340" />
+            <stop offset="1" stopColor="#ff4d1a" />
+          </radialGradient>
+          <radialGradient id="ex-f2" cx="50%" cy="85%" r="70%">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="1" stopColor="#ffd36a" />
+          </radialGradient>
+          <linearGradient id="ex-log" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#8a5a34" />
+            <stop offset="1" stopColor="#4a2c14" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="60" cy="100" rx="40" ry="8" fill="rgba(40,30,30,.35)" />
+        <rect x="22" y="86" width="76" height="11" rx="5.5" fill="url(#ex-log)" transform="rotate(-14 60 92)" />
+        <rect x="22" y="86" width="76" height="11" rx="5.5" fill="url(#ex-log)" transform="rotate(14 60 92)" />
+        <path className="ex-flame" d="M60 22 C74 42 86 56 80 74 C76 86 66 92 60 92 C50 92 40 86 38 74 C35 58 48 48 52 34 C54 46 58 50 60 22 Z" fill="url(#ex-f1)" />
+        <path className="ex-flame b" d="M44 50 C50 62 54 70 52 80 C50 88 44 90 40 88 C34 84 34 74 38 66 C40 60 44 58 44 50 Z" fill="url(#ex-f1)" opacity=".9" />
+        <path className="ex-flame c" d="M76 46 C84 60 86 70 82 80 C79 87 72 89 70 86 C66 80 70 72 72 64 C74 58 74 54 76 46 Z" fill="url(#ex-f1)" opacity=".9" />
+        <path className="ex-flame b" d="M60 52 C67 62 70 70 67 80 C65 86 62 88 60 88 C56 88 53 85 52 80 C51 72 58 66 60 52 Z" fill="url(#ex-f2)" />
+      </svg>
+    </span>
   );
 }
 
@@ -515,11 +605,9 @@ function CampHeart({ view, nameOf }: { view: ExpeditionView; nameOf: NameOf }) {
   }
   return (
     <div className="flex flex-col items-center text-center">
-      <span className="ex-fire">
-        <RichIcon name="campfire" metal="copper" size={58} />
-      </span>
-      {stage && view.phase !== 'over' && view.phase !== 'spy' && <span className="ex-title mt-2 text-[14px] text-[#14304f]">{stage.name}</span>}
-      <span className="mt-0.5 text-[14px] italic text-[#22344a]">{line}</span>
+      <CampFire />
+      {stage && view.phase !== 'over' && view.phase !== 'spy' && <span className="ex-title mt-1 text-[15px] text-[#0c2a48]">{stage.name}</span>}
+      <span className="mt-0.5 text-[14px] font-semibold text-[#2a4a6a]">{line}</span>
     </div>
   );
 }
@@ -536,16 +624,16 @@ function Notebook({ me, nameOf }: { me: NonNullable<ExpeditionView['me']>; nameO
   const mutiny = me.side === 'mutiny';
   return (
     <section className="ex-notebook">
-      <div className="ex-title text-center text-[12px] uppercase tracking-[0.3em] text-[#a33a2a]">Carnet de bord · confidentiel</div>
+      <div className="ex-kicker text-center">Carnet de bord · confidentiel</div>
       <div className="mt-1 flex flex-wrap items-baseline justify-center gap-x-2">
         <span className="muted">Ton rôle :</span>
-        <span className="ex-title text-[1.6rem]" style={{ color: mutiny ? '#9c1b14' : '#1f4f86' }}>
+        <span className="ex-title text-[1.7rem]" style={{ color: mutiny ? '#ff8a7a' : '#bfe6ff' }}>
           {ROLE_LABEL[me.role]}
         </span>
         <span className="muted">({SIDE_LABEL[me.side]})</span>
       </div>
       <div className="mt-1 flex justify-center">
-        <RichIcon name={mutiny ? (me.role === 'spy' ? 'spy' : 'iceberg') : me.role === 'cartographer' ? 'compass' : 'mountain-climbing'} metal={mutiny ? 'ruby' : 'steel'} size={44} />
+        <RichIcon name={mutiny ? (me.role === 'spy' ? 'spy' : 'iceberg') : me.role === 'cartographer' ? 'compass' : 'mountain-climbing'} variant="neon" glow={mutiny ? '#ff8a7a' : '#bfe6ff'} size={44} />
       </div>
       <p className="mt-1 text-center text-[1.05rem] leading-snug">{goal[me.role]}</p>
       {me.allies.length > 0 && (
@@ -609,8 +697,8 @@ function Actions({
           <div className="mt-2 flex flex-wrap justify-center gap-1">
             {view.players.map((p) => (
               <button key={p.id} type="button" aria-pressed={team.includes(p.id)} onClick={() => toggle(p.id)} className="ex-pick">
-                <Hood seat={seatOf(p.id)} size={40} />
-                <span className="ex-name !text-[#14304f]">{p.name}</span>
+                <Hood id={p.id} name={p.name} size={46} />
+                <span className="ex-name">{p.name}</span>
               </button>
             ))}
           </div>
@@ -729,8 +817,8 @@ function HandsVote({ view, seatOf, onSubmit }: { view: ExpeditionView; seatOf: (
       <div className="mt-2 flex flex-wrap justify-center gap-1">
         {view.players.map((p) => (
           <button key={p.id} type="button" aria-pressed={yes.includes(p.id)} onClick={() => toggle(p.id)} className="ex-pick">
-            <Hood seat={seatOf(p.id)} size={38} />
-            <span className="ex-name !text-[#14304f]">
+            <Hood id={p.id} name={p.name} size={44} />
+            <span className="ex-name">
               {p.name} {yes.includes(p.id) ? '✓' : ''}
             </span>
           </button>
@@ -757,8 +845,8 @@ function SpyPicker({ options, seatOf, onPick }: { options: ExpeditionPlayerView[
       <div className="mt-2 flex flex-wrap justify-center gap-1" role="radiogroup" aria-label="Cartographe présumée">
         {options.map((p) => (
           <button key={p.id} type="button" role="radio" aria-checked={picked === p.id} onClick={() => setPicked(p.id)} className="ex-pick">
-            <Hood seat={seatOf(p.id)} size={40} />
-            <span className="ex-name !text-[#14304f]">{p.name}</span>
+            <Hood id={p.id} name={p.name} size={46} />
+            <span className="ex-name">{p.name}</span>
           </button>
         ))}
       </div>
@@ -777,14 +865,14 @@ function History({ view, nameOf }: { view: ExpeditionView; nameOf: NameOf }) {
   const done = view.missions.filter((m) => m.result);
   if (done.length === 0) return null;
   return (
-    <section className="rounded-xl border border-[rgba(180,220,255,.3)] bg-[rgba(4,14,28,.72)] px-4 py-3 backdrop-blur-[2px]">
-      <h3 className="ex-title text-[15px] uppercase tracking-[0.12em] text-[#bfe3ff]">Carnet de route</h3>
+    <section className="ex-glass px-5 py-4">
+      <h3 className="ex-kicker">Carnet de route</h3>
       <ol className="mt-2 flex flex-col gap-1.5">
         {done.map((m) => (
           <li key={m.name} className="flex items-start gap-2">
             <RichIcon name={m.result!.success ? 'flying-flag' : 'iceberg'} metal={m.result!.success ? 'gold' : 'ruby'} size={20} />
             <span>
-              <strong className="ex-title text-[14px]">{m.name}</strong> · {m.result!.team.map(nameOf).join(', ')}
+              <strong className="font-semibold">{m.name}</strong> · {m.result!.team.map(nameOf).join(', ')}
               <span className="text-[#9fb8cc]">
                 {' '}
                 (chef : {nameOf(m.result!.leader)}, {m.result!.sabotages} sabotage{m.result!.sabotages > 1 ? 's' : ''})
@@ -800,8 +888,8 @@ function History({ view, nameOf }: { view: ExpeditionView; nameOf: NameOf }) {
 function Journal({ lines, open = false }: { lines: string[]; open?: boolean }) {
   const recent = lines.slice(-8).reverse();
   return (
-    <details open={open} className="rounded-xl border border-[rgba(180,220,255,.3)] bg-[rgba(4,14,28,.72)] px-4 py-2.5 backdrop-blur-[2px]">
-      <summary className="ex-title cursor-pointer select-none text-[15px] uppercase tracking-[0.12em] text-[#bfe3ff]">Journal de l’expédition</summary>
+    <details open={open} className="ex-glass px-5 py-3">
+      <summary className="ex-kicker cursor-pointer select-none">Journal de l’expédition</summary>
       <ol className="mt-1 flex flex-col gap-1">
         {recent.map((line, i) => (
           <li key={lines.length - i} className={i === 0 ? 'text-[#eef6ff]' : 'text-[#9fb8cc]'}>

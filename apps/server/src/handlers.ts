@@ -53,19 +53,23 @@ export function registerHandlers(socket: ArcadeSocket, rooms: RoomManager): void
   const currentRoom = () => rooms.get(session.roomCode);
   const noRoom = { ok: false, error: "Tu n'es dans aucun salon." } as const;
 
-  on('room:create', ({ name, gameId }) => {
+  on('room:create', ({ name, gameId, skin }) => {
     if (!getGame(gameId)) return { ok: false, error: 'Ce jeu n’est pas encore disponible.' };
     const room = rooms.create(session.playerId, gameId);
+    if (skin !== undefined) room.setSkin(session.playerId, skin);
     const res = rooms.enter(socket, session, room, name);
     return res.ok ? { ok: true, code: room.code } : res;
   });
 
-  on('room:join', ({ name, code }) => {
+  on('room:join', ({ name, code, skin }) => {
     const room = rooms.get(code);
     if (!room) return { ok: false, error: 'Salon introuvable. Vérifie le code.' };
+    if (skin !== undefined) room.setSkin(session.playerId, skin);
     const res = rooms.enter(socket, session, room, name);
     return res.ok ? { ok: true, code: room.code } : res;
   });
+
+  on('room:setSkin', ({ skin }) => currentRoom()?.setSkin(session.playerId, skin) ?? noRoom);
 
   on('room:leave', () => {
     const room = currentRoom();

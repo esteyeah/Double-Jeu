@@ -7,7 +7,7 @@ import { NAME_MAX, ROOM_CODE_LENGTH } from '@arcade/protocol';
 import { catalog } from '@/games/registry';
 import { loadAccount, useAccount } from '@/lib/api';
 import { request } from '@/lib/online';
-import { KEYS, storage } from '@/lib/storage';
+import { KEYS, storage, mySkin } from '@/lib/storage';
 import { Button, ErrorNote, Panel } from './ui/kit';
 
 export function Home() {
@@ -48,7 +48,7 @@ export function Home() {
     if (!n) return;
     setBusy(gameId);
     setError(null);
-    const res = await request('room:create', { name: n, gameId });
+    const res = await request('room:create', { name: n, gameId, skin: mySkin() });
     setBusy(null);
     if (!res.ok) return setError(res.error);
     router.push(`/room/${res.code}`);
@@ -187,7 +187,8 @@ export function Home() {
       </section>
       <footer className="mt-10 border-t border-line pt-4 text-xs leading-relaxed text-muted">
         Icônes : <a className="underline underline-offset-2 hover:text-fg" href="https://game-icons.net" target="_blank" rel="noreferrer">game-icons.net</a>{' '}
-        (Lorc, Delapouite et contributeurs, CC BY 3.0). Textures : Poly Haven et ambientCG (CC0). Polices sous licences libres (SIL OFL, Apache 2.0).
+        (Lorc, Delapouite et contributeurs, CC BY 3.0). Textures : Poly Haven et ambientCG (CC0).
+        Personnages : Avataaars (Pablo Stanley) et Toon Head (Johan Melin, CC BY 4.0), via DiceBear. Polices sous licences libres (SIL OFL, Apache 2.0).
       </footer>
     </main>
   );

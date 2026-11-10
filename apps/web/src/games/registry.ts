@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
-import type { StageSkin } from '@arcade/tabletop';
+import type { AvatarLook, StageSkin } from '@arcade/tabletop';
 import { cauldron } from '@arcade/cauldron';
 import CauldronBoard, { skin as cauldronSkin } from '@arcade/cauldron/client';
 import { compass } from '@arcade/compass';
@@ -30,6 +30,8 @@ export interface ClientGame {
    * et les écrans communs (passage du téléphone, fin de partie, menus) prennent son habillage.
    */
   immersive?: StageSkin;
+  /** Style des personnages des joueurs (aperçu au salon et à la préparation). */
+  look?: AvatarLook;
 }
 
 /** Jeux jouables. Ajouter un jeu = une entrée ici + une dans le registre du serveur. */
@@ -38,19 +40,21 @@ const games: Record<string, ClientGame> = {
     module: reactor,
     Board: ReactorBoard,
     immersive: reactorSkin,
+    look: 'crew',
   },
-  interrogation: { module: interrogation, Board: InterrogationBoard, immersive: interrogationSkin },
-  throne: { module: throne, Board: ThroneBoard, immersive: throneSkin },
+  interrogation: { module: interrogation, Board: InterrogationBoard, immersive: interrogationSkin, look: 'suspect' },
+  throne: { module: throne, Board: ThroneBoard, immersive: throneSkin, look: 'council' },
   plunder: {
     module: plunder,
     Board: PlunderBoard,
     immersive: plunderSkin,
+    look: 'pirate',
   },
-  expedition: { module: expedition, Board: ExpeditionBoard, immersive: expeditionSkin },
-  court: { module: court, Board: CourtBoard, immersive: courtSkin },
-  cauldron: { module: cauldron, Board: CauldronBoard, immersive: cauldronSkin },
-  cups: { module: cups, Board: CupsBoard, immersive: cupsSkin },
-  compass: { module: compass, Board: CompassBoard, immersive: compassSkin },
+  expedition: { module: expedition, Board: ExpeditionBoard, immersive: expeditionSkin, look: 'polar' },
+  court: { module: court, Board: CourtBoard, immersive: courtSkin, look: 'masked' },
+  cauldron: { module: cauldron, Board: CauldronBoard, immersive: cauldronSkin, look: 'alchemist' },
+  cups: { module: cups, Board: CupsBoard, immersive: cupsSkin, look: 'tavern' },
+  compass: { module: compass, Board: CompassBoard, immersive: compassSkin, look: 'explorer' },
 };
 
 export function getClientGame(id: string): ClientGame | undefined {

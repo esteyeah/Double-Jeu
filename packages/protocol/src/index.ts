@@ -24,10 +24,13 @@ export const roomCodeSchema = z
   .regex(new RegExp(`^[${ROOM_CODE_ALPHABET}]{${ROOM_CODE_LENGTH}}$`), 'Code de salon invalide.');
 
 export const gameIdSchema = z.string().min(1).max(32);
+/** Apparence choisie par le joueur (un autre numéro, c'est un autre personnage). */
+export const skinSchema = z.number().int().min(0).max(999);
 
 export const schemas = {
-  'room:create': z.object({ name: nameSchema, gameId: gameIdSchema }),
-  'room:join': z.object({ name: nameSchema, code: roomCodeSchema }),
+  'room:create': z.object({ name: nameSchema, gameId: gameIdSchema, skin: skinSchema.optional() }),
+  'room:join': z.object({ name: nameSchema, code: roomCodeSchema, skin: skinSchema.optional() }),
+  'room:setSkin': z.object({ skin: skinSchema }),
   'room:leave': z.object({}),
   'room:setGame': z.object({ gameId: gameIdSchema }),
   /** Validé ensuite par le `configSchema` du jeu. */
@@ -48,6 +51,7 @@ export type Ack<T extends object = object> = ({ ok: true } & T) | { ok: false; e
 export interface AckData {
   'room:create': { code: string };
   'room:join': { code: string };
+  'room:setSkin': object;
   'room:leave': object;
   'room:setGame': object;
   'room:setConfig': object;
@@ -70,6 +74,8 @@ export interface Seat {
   connected: boolean;
   /** Joueur déconnecté depuis trop longtemps : un bot joue à sa place. */
   autopilot: boolean;
+  /** Apparence de son personnage. */
+  skin: number;
 }
 
 export interface RoomState {

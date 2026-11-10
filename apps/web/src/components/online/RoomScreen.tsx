@@ -6,7 +6,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { NAME_MAX } from '@arcade/protocol';
 import { getClientGame } from '@/games/registry';
 import { getSocket, request, resetOnlineRoom, useOnline } from '@/lib/online';
-import { KEYS, storage } from '@/lib/storage';
+import { KEYS, storage, mySkin } from '@/lib/storage';
 import { Button, ErrorNote, Panel } from '../ui/kit';
 import { Chat } from './Chat';
 import { Lobby } from './Lobby';
@@ -32,7 +32,7 @@ export function RoomScreen({ code }: { code: string }) {
     if (!name) return;
     const socket = getSocket();
     const join = async () => {
-      const res = await request('room:join', { name, code });
+      const res = await request('room:join', { name, code, skin: mySkin() });
       setError(res.ok ? null : res.error);
     };
     if (socket.connected) void join();

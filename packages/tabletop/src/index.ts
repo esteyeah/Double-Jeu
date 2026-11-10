@@ -3,3 +3,4 @@ export { sfx, soundOn, setSoundOn, onSoundChange, startAmbient, type AmbientKind
 export { useSoundSetting, useAmbient, useOnChange, useMediaQuery, Flip } from './hooks';
 export type { StageSkin } from './skin';
 export { RoundTable, Cinematic, type TableLink, type SeatGeometry } from './table';
+export { Avatar, AvatarProvider, useSkin, avatarUri, type AvatarLook } from './avatars';

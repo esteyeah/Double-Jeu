@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import { Cinematic, RichIcon, sfx, useAmbient, useMediaQuery, type GameIconName } from '@arcade/tabletop';
+import { Avatar, Cinematic, RichIcon, sfx, useAmbient, useMediaQuery, type GameIconName } from '@arcade/tabletop';
 import { ACCUSATION_SECONDS, ROLE_LABEL, type InterrogationMove, type InterrogationPlayerView, type InterrogationView, type RevealedWord, type Role } from '../shared';
 import { INTERROGATION_CSS } from './theme';
 
@@ -327,9 +327,10 @@ function Polaroid({ p, view, viewer }: { p: InterrogationPlayerView; view: Inter
   return (
     <div className={`gv-pola ${p.id === viewer ? 'is-me' : ''}`}>
       <span className={`gv-photo ${inspector ? 'insp' : ''}`}>
-        <RichIcon name={inspector ? 'police-officer-head' : 'mug-shot'} metal={inspector ? 'gold' : 'bone'} size={inspector ? 68 : 74} />
+        <Avatar id={p.id} name={p.name} look={inspector ? 'detective' : 'suspect'} size={140} className="!h-full !w-full" />
+        {!inspector && <span className="gv-plaque">{p.name.slice(0, 10).toUpperCase()}</span>}
         {role && <span className={`gv-stamp st ${ROLE_STAMP[role]}`}>{ROLE_LABEL[role]}</span>}
-        {p.id === view.accused && <span className="gv-stamp absolute right-1 top-1 rotate-6 text-[11px]">accusé</span>}
+        {p.id === view.accused && <span className="gv-stamp absolute bottom-7 right-1 z-[1] rotate-6 text-[11px]">accusé</span>}
       </span>
       <span className="nm">{p.name}</span>
       <span className="sc">
@@ -471,7 +472,7 @@ function SuspectPicker({ suspects, value, onChange, label }: { suspects: Interro
       <div className="mt-1.5 flex flex-wrap gap-2">
         {suspects.map((s) => (
           <button key={s.id} type="button" role="radio" aria-checked={value === s.id} onClick={() => onChange(s.id)} className="gv-mini">
-            <RichIcon name="mug-shot" metal="iron" size={30} />
+            <Avatar id={s.id} name={s.name} look="suspect" size={46} className="overflow-hidden rounded bg-[linear-gradient(180deg,#5a6670,#2a3036)]" />
             <span className="nm">{s.name}</span>
           </button>
         ))}

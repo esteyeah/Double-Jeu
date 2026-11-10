@@ -16,6 +16,9 @@ import '@fontsource/special-elite';
 import '@fontsource/uncial-antiqua';
 import '@fontsource/cormorant-garamond/500.css';
 import '@fontsource/cormorant-garamond/600-italic.css';
+import '@fontsource/outfit/400.css';
+import '@fontsource/outfit/600.css';
+import '@fontsource/outfit/800.css';
 
 export const metadata: Metadata = {
   title: 'Double Jeu · jeux de société de bluff et de déduction',

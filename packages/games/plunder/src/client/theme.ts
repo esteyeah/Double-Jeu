@@ -2,7 +2,7 @@
 export const PLUNDER_CSS = `
 @font-face{font-family:'Bt Digits';src:local('Times New Roman'),local('TimesNewRomanPSMT'),local('Liberation Serif'),local('Noto Serif'),local('Droid Serif'),local('Tinos');unicode-range:U+0030-0039}
 .bt{--gold:#f0c35c;--ivory:#f4e6c4;--ink:#2a1b0b;--blood:#a3241a;position:relative;min-height:100dvh;color:var(--ivory);
-  font-family:'Bt Digits','IM Fell English',Georgia,serif;background:#120b06;overflow:hidden;isolation:isolate}
+  font-family:'Bt Digits','IM Fell English',Georgia,serif;background:#120b06;overflow:hidden;overflow:clip;isolation:isolate}
 .bt-deck{position:absolute;inset:0;z-index:-2;background:url(/themes/plunder/deck.jpg) center top/440px repeat}
 .bt-light{position:absolute;inset:0;z-index:-1;pointer-events:none;animation:bt-flicker 6s ease-in-out infinite;
   background:radial-gradient(55% 40% at 50% 34%,rgba(255,176,86,.32),transparent 70%),

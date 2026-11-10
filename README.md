@@ -197,6 +197,9 @@ commissariat des années 70 (Garde à vue), table de cartographe (Boussole).
 - `RoundTable` (kit) assoit les joueurs autour d'un centre et relie les places par des flèches (visées, cordées,
   gouvernements…) ; `Cinematic` affiche les grands moments (manche, vote, carte retournée…) ; une consigne en clair
   dit toujours quoi faire maintenant.
+- Personnages : `<Avatar id name look />` (kit) dessine le visage de chaque joueur dans le costume du jeu (`look` dans
+  le registre : pirate, explorateur polaire, suspect…). Le visage dépend du pseudo et du « skin » que le joueur choisit au
+  salon (flèches sous son portrait) ou à la préparation d'une partie locale (touche son portrait).
 - Textures dans `apps/web/public/themes/<id>/`, icônes de [game-icons.net](https://game-icons.net)
   (`pnpm --filter @arcade/tabletop icons` après avoir complété la liste dans `packages/tabletop/scripts/icons.mjs`),
   sons et ambiances synthétisés en direct (`sfx`, `useAmbient`) : aucun fichier audio.
@@ -212,8 +215,12 @@ commissariat des années 70 (Garde à vue), table de cartographe (Boussole).
 - Icônes : [game-icons.net](https://game-icons.net), par Lorc, Delapouite et leurs contributeurs, sous licence
   [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) (colorées et mises en relief pour les plateaux).
 - Textures : [Poly Haven](https://polyhaven.com) et [ambientCG](https://ambientcg.com), domaine public (CC0), retouchées.
+- Personnages : [Avataaars](https://www.dicebear.com/styles/avataaars/) de Pablo Stanley (libre d'usage, y compris commercial) et
+  [Toon Head](https://www.dicebear.com/styles/toon-head/) de Johan Melin
+  ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), générés avec [DiceBear](https://www.dicebear.com) (MIT) ;
+  chapeaux et masques ajoutés par-dessus avec les icônes game-icons.net.
 - Polices : Pirata One, IM Fell English, Orbitron, Rajdhani, Share Tech Mono, Cinzel, Cormorant Garamond, Special Elite,
-  Uncial Antiqua (SIL Open Font License ou Apache 2.0), servies par le site.
+  Uncial Antiqua, Outfit (SIL Open Font License ou Apache 2.0), servies par le site.
 
 ## Limites actuelles
 

@@ -1,7 +1,7 @@
 /** Décor de La Cité : bal masqué dans un palais de la cité marchande — damas, marbre, dorures, chandelles. */
 export const COURT_CSS = `
 @font-face{font-family:'Ct Digits';src:local('Times New Roman'),local('TimesNewRomanPSMT'),local('Liberation Serif'),local('Noto Serif'),local('Droid Serif'),local('Tinos');unicode-range:U+0030-0039}
-.ct{position:relative;min-height:100dvh;color:#f3e6cc;font-family:'Ct Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;background:#1a0608;overflow:hidden;isolation:isolate}
+.ct{position:relative;min-height:100dvh;color:#f3e6cc;font-family:'Ct Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;background:#1a0608;overflow:hidden;overflow:clip;isolation:isolate}
 .ct-wall{position:absolute;inset:0;z-index:-3;background:url(/themes/court/damask.jpg) center top/300px}
 .ct-light{position:absolute;inset:0;z-index:-2;pointer-events:none;animation:ct-flicker 6s ease-in-out infinite;
   background:radial-gradient(45% 30% at 50% 0%,rgba(255,214,140,.38),transparent 72%),radial-gradient(60% 50% at 50% 58%,rgba(255,190,110,.14),transparent 70%),

@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
 import {
+  Avatar,
   Cinematic,
   Icon,
   RichIcon,
@@ -44,7 +45,23 @@ const CHARGE_TEXT: Record<Charge, { title: string; icon: GameIconName; metal: Me
   wet: { title: 'Balle à blanc', icon: 'smoke-bomb', metal: 'silver', hint: 'du bruit, rien de plus' },
 };
 
-export default function PlunderBoard({ view, viewer, actingAs, mode, sendMove }: Props) {
+/** Pour dessiner un pirate où qu'on soit : son nom (son visage) et sa place (sa couleur). */
+const CrewContext = createContext<(id: PlayerId | null) => { name: string; seat: number }>(() => ({ name: '?', seat: 0 }));
+
+export default function PlunderBoard(props: Props) {
+  const { view } = props;
+  const crew = (id: PlayerId | null) => {
+    const seat = view.pirates.findIndex((p) => p.id === id);
+    return { name: view.pirates[seat]?.name ?? '?', seat: Math.max(0, seat) };
+  };
+  return (
+    <CrewContext.Provider value={crew}>
+      <PlunderTable {...props} />
+    </CrewContext.Provider>
+  );
+}
+
+function PlunderTable({ view, viewer, actingAs, mode, sendMove }: Props) {
   const nameOf: NameOf = (id) => view.pirates.find((p) => p.id === id)?.name ?? '?';
   const seatOf = (id: PlayerId | null) => Math.max(0, view.pirates.findIndex((p) => p.id === id));
   const self = view.pirates.find((p) => p.id === actingAs);
@@ -309,7 +326,7 @@ function DeckTable({
       <RoundTable
         ids={view.pirates.map((p) => p.id)}
         me={viewer}
-        seat={wide ? { w: 134, h: 150 } : { w: 88, h: 118 }}
+        seat={wide ? { w: 140, h: 172 } : { w: 92, h: 132 }}
         className={wide ? 'aspect-[1.36] max-h-[calc(100dvh-300px)] min-h-[470px]' : 'aspect-[0.84]'}
         links={links}
         under={<div className="bt-table-under" />}
@@ -376,7 +393,7 @@ function Seat({
     <>
       {status && <span className={`bt-seat-status tone-${status.tone}`}>{status.text}</span>}
       <span className="relative">
-        <Medal seat={seat} size={wide ? 64 : 50} captain={p.id === view.captain && !over} hurt={p.wounds > 0} sunk={p.sunk} />
+        <Medal id={p.id} size={wide ? 84 : 62} captain={p.id === view.captain && !over} hurt={p.wounds > 0} sunk={p.sunk} />
         <span className="bt-seat-score" title={`${p.score} doublons`}>
           {p.score}
         </span>
@@ -412,7 +429,7 @@ function Seat({
       <button
         type="button"
         className={cls}
-        style={{ width: wide ? 134 : 88 }}
+        style={{ width: wide ? 140 : 92 }}
         aria-label={`Viser ${p.name}`}
         aria-pressed={aimed}
         onClick={() => {
@@ -425,7 +442,7 @@ function Seat({
     );
   }
   return (
-    <div className={cls} style={{ width: wide ? 134 : 88 }}>
+    <div className={cls} style={{ width: wide ? 140 : 92 }}>
       {body}
     </div>
   );
@@ -466,7 +483,7 @@ function Ranking({ view, viewer, seatOf }: { view: PlunderView; viewer: PlayerId
         {ranked.map((p, i) => (
           <li key={p.id} className={`flex items-center gap-2 rounded-lg px-2 py-1 ${i === 0 && !p.sunk ? 'bg-[#f0c35c]/25' : ''}`}>
             <span className="bt-num w-6 text-center text-lg text-[#7a1d14]">{i + 1}</span>
-            <Medal seat={seatOf(p.id)} size={30} sunk={p.sunk} />
+            <Medal id={p.id} size={30} sunk={p.sunk} />
             <span className={`bt-title flex-1 truncate text-xl ${p.sunk ? 'line-through opacity-60' : ''}`}>
               {p.name}
               {p.id === viewer ? ' (toi)' : ''}
@@ -487,7 +504,7 @@ function LootDetails({ view, seatOf }: { view: PlunderView; seatOf: (id: PlayerI
       <ul className="mt-2 flex flex-col gap-1.5">
         {view.pirates.map((p) => (
           <li key={p.id} className="flex flex-wrap items-center gap-1.5">
-            <Medal seat={seatOf(p.id)} size={24} sunk={p.sunk} />
+            <Medal id={p.id} size={24} sunk={p.sunk} />
             <span className="bt-title min-w-[4.5rem] text-lg text-[#f6e3b8]">{p.name}</span>
             <Loot loot={p.loot} pearlLeader={view.pearlLeaders.includes(p.id)} />
             <span className="bt-num ml-auto text-[#f3cd6b]">{p.score}</span>
@@ -501,42 +518,43 @@ function LootDetails({ view, seatOf }: { view: PlunderView; seatOf: (id: PlayerI
 // ───────── Médaillons ─────────
 
 function Medal({
-  seat,
+  id,
   size = 54,
   captain = false,
   hurt = false,
   sunk = false,
 }: {
-  seat: number;
+  id: PlayerId | null;
   size?: number;
   captain?: boolean;
   hurt?: boolean;
   sunk?: boolean;
 }) {
-  const c = ENAMEL[seat % ENAMEL.length]!;
+  const who = useContext(CrewContext)(id);
+  const c = ENAMEL[who.seat % ENAMEL.length]!;
   return (
     <span
       className="bt-medal"
       style={{
         width: size,
         height: size,
-        background: `radial-gradient(circle at 35% 28%, color-mix(in srgb, ${c} 50%, white), ${c} 55%, color-mix(in srgb, ${c} 55%, black))`,
+        background: `radial-gradient(circle at 50% 30%, color-mix(in srgb, ${c} 45%, #f4d9a8), ${c} 60%, color-mix(in srgb, ${c} 55%, black))`,
         filter: sunk ? 'grayscale(1) brightness(.6)' : undefined,
       }}
     >
-      <RichIcon name={EMBLEM[seat % EMBLEM.length]!} metal="bone" size={size * 0.7} />
+      <Avatar id={id} name={who.name} look="pirate" size={size} round zoom={1.35} />
       {captain && (
-        <span className="bt-token absolute -right-2 -top-2" style={{ background: '#17171c', width: size * 0.48, height: size * 0.48 }}>
-          <RichIcon name="pirate-hat" metal="gold" size={size * 0.34} />
+        <span className="bt-token absolute -right-2 -top-2 z-[2]" style={{ background: '#17171c', width: size * 0.44, height: size * 0.44 }}>
+          <RichIcon name="ship-wheel" metal="gold" size={size * 0.32} />
         </span>
       )}
       {hurt && !sunk && (
-        <span className="bt-token absolute -bottom-1.5 -left-1.5" style={{ background: '#7a1d14', width: size * 0.42, height: size * 0.42 }}>
-          <RichIcon name="bandage-roll" metal="bone" size={size * 0.28} />
+        <span className="bt-token absolute -bottom-1.5 -left-1.5 z-[2]" style={{ background: '#7a1d14', width: size * 0.4, height: size * 0.4 }}>
+          <RichIcon name="bandage-roll" metal="bone" size={size * 0.26} />
         </span>
       )}
       {sunk && (
-        <span className="absolute inset-0 grid place-items-center rounded-full bg-black/45">
+        <span className="absolute inset-0 z-[2] grid place-items-center rounded-full bg-black/45">
           <RichIcon name="skull-crossed-bones" metal="bone" size={size * 0.6} />
         </span>
       )}
@@ -574,7 +592,7 @@ function Bastingage({ view, nameOf, seatOf }: { view: PlunderView; nameOf: NameO
           </div>
           {view.phase !== 'over' && (
             <span className="flex items-center gap-1.5 text-[13px] text-[#e9d3a8]">
-              <Medal seat={seatOf(view.captain)} size={22} />
+              <Medal id={view.captain} size={22} />
               Capitaine : <strong className="font-normal text-[#f6e3b8]">{nameOf(view.captain)}</strong>
             </span>
           )}
@@ -869,7 +887,7 @@ function Prepare({
             className="bt-pick relative"
           >
             <span className="relative">
-              <Medal seat={seatOf(p.id)} size={48} captain={p.id === view.captain} hurt={p.wounds > 0} />
+              <Medal id={p.id} size={48} captain={p.id === view.captain} hurt={p.wounds > 0} />
               {target === p.id && (
                 <span className="pointer-events-none absolute -inset-2 grid place-items-center text-[#b3261e]">
                   <Icon name="crosshair" size={64} />
@@ -918,7 +936,7 @@ function PortraitPicker({
     <div className="mt-1 flex flex-wrap justify-center gap-1.5" role="radiogroup" aria-label={label}>
       {items.map((p) => (
         <button key={p.id} type="button" role="radio" aria-checked={value === p.id} onClick={() => onPick(p.id)} className="bt-pick">
-          <Medal seat={seatOf(p.id)} size={44} captain={p.id === view.captain} hurt={p.wounds > 0} />
+          <Medal id={p.id} size={44} captain={p.id === view.captain} hurt={p.wounds > 0} />
           <span className="bt-title text-lg leading-none">{p.name}</span>
         </button>
       ))}
@@ -1000,7 +1018,7 @@ function Courage({ view, me, seatOf, sendMove }: { view: PlunderView; me: Player
         <div className="mt-1 flex flex-wrap justify-center gap-2">
           {threats.map((p) => (
             <span key={p.id} className="flex items-center gap-1 rounded-full bg-[#7a1d14]/15 py-0.5 pl-0.5 pr-2 text-sm">
-              <Medal seat={seatOf(p.id)} size={26} />
+              <Medal id={p.id} size={26} />
               <RichIcon name="blunderbuss" metal="steel" size={22} />
               {p.name}
             </span>
@@ -1026,7 +1044,7 @@ function ReportCowards({ view, nameOf, seatOf, sendMove }: { view: PlunderView; 
         {view.toReport.map((id) => (
           <button key={id} type="button" aria-pressed={fled.includes(id)} onClick={() => toggle(id)} className="bt-pick">
             <span className="relative">
-              <Medal seat={seatOf(id)} size={44} />
+              <Medal id={id} size={44} />
               {fled.includes(id) && (
                 <span className="absolute -bottom-1 -right-1">
                   <RichIcon name="floor-hatch" metal="brass" size={22} />
@@ -1065,6 +1083,8 @@ function Gunfight({
   captain: PlayerId;
   onDone: () => void;
 }) {
+  const roomy = useMediaQuery('(min-width: 640px)');
+  const duel = roomy ? 124 : 92;
   /** -1 : plongeons, puis un tir après l'autre. */
   const [step, setStep] = useState(-1);
   useEffect(() => {
@@ -1100,19 +1120,19 @@ function Gunfight({
           </div>
         ) : (
           <div key={step} className={shot.hit ? 'bt-shake' : ''}>
-            <div className="flex items-center justify-center gap-3 sm:gap-6">
+            <div className="flex items-center justify-center gap-1 sm:gap-6">
               <div className="flex flex-col items-center gap-2">
-                <Medal seat={seatOf(shot.shooter)} size={86} captain={shot.shooter === captain} />
+                <Medal id={shot.shooter} size={duel} captain={shot.shooter === captain} />
                 <span className="bt-title text-2xl text-[#f6e3b8]">{nameOf(shot.shooter)}</span>
               </div>
               <div className="relative">
                 <span className="bt-recoil inline-block">
-                  <RichIcon name="blunderbuss" metal="steel" size={110} />
+                  <RichIcon name="blunderbuss" metal="steel" size={roomy ? 110 : 76} />
                 </span>
                 {shot.charge === 'wet' ? <span className="bt-smoke" /> : <span className="bt-flash" />}
               </div>
               <div className="flex flex-col items-center gap-2">
-                <Medal seat={seatOf(shot.target)} size={86} captain={shot.target === captain} hurt={shot.hit} />
+                <Medal id={shot.target} size={duel} captain={shot.target === captain} hurt={shot.hit} />
                 <span className="bt-title text-2xl text-[#f6e3b8]">{nameOf(shot.target)}</span>
               </div>
             </div>
