@@ -2,7 +2,13 @@
 export const CAULDRON_CSS = `
 @font-face{font-family:'Ch Digits';src:local('Times New Roman'),local('TimesNewRomanPSMT'),local('Liberation Serif'),local('Noto Serif'),local('Droid Serif'),local('Tinos');unicode-range:U+0030-0039}
 .ch{position:relative;min-height:100dvh;color:#e7efd9;font-family:'Ch Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;background:#070a08;overflow:hidden;overflow:clip;isolation:isolate}
-.ch-stone{position:absolute;inset:0;z-index:-3;background:url(/themes/cauldron/stone.jpg) center top/420px}
+.ch-stone{position:absolute;inset:0;z-index:-3;background:radial-gradient(120% 70% at 50% 0%,rgba(40,70,48,.55),transparent 60%),linear-gradient(180deg,#0b120d,#050806 70%)}
+.ch-stone::before{content:'';position:absolute;inset:0;background:url(/themes/cauldron/stone.jpg) center top/520px;opacity:.32;filter:saturate(.6) contrast(1.15);mix-blend-mode:luminosity}
+.ch-stone::after{content:'';position:absolute;left:8%;top:-10%;width:34%;height:120%;transform:skewX(-18deg);background:linear-gradient(180deg,rgba(190,255,210,.10),rgba(190,255,210,0) 70%);filter:blur(18px)}
+.ch-motes{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.ch-motes i{position:absolute;bottom:-12px;width:5px;height:5px;border-radius:50%;background:#d6ffc4;box-shadow:0 0 10px 2px rgba(120,255,150,.7);opacity:0;animation:ch-mote 12s linear infinite}
+.ch-motes i:nth-child(3n){width:3px;height:3px;background:#f2d9ff;box-shadow:0 0 8px 2px rgba(190,130,255,.6)}
+@keyframes ch-mote{0%{transform:translate(0,0);opacity:0}12%{opacity:.85}50%{transform:translate(24px,-52vh)}88%{opacity:.5}100%{transform:translate(-12px,-104vh);opacity:0}}
 .ch-glow{position:absolute;inset:0;z-index:-2;pointer-events:none;animation:ch-breathe 7s ease-in-out infinite;
   background:radial-gradient(50% 40% at 50% 58%,rgba(90,255,140,.22),transparent 70%),radial-gradient(30% 30% at 12% 20%,rgba(255,170,70,.18),transparent 70%),
     radial-gradient(30% 30% at 88% 22%,rgba(180,110,255,.16),transparent 70%),radial-gradient(140% 100% at 50% 35%,transparent 42%,rgba(0,0,0,.88) 100%)}
@@ -17,15 +23,21 @@ export const CAULDRON_CSS = `
 .ch-num{font-family:'Ch Digits',serif;font-weight:700}
 
 /* L'alambic : force annoncée contre force visée */
-.ch-gauge{position:relative;height:30px;border-radius:15px;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.04));
-  box-shadow:inset 0 0 0 2px rgba(220,255,220,.35),inset 0 6px 10px rgba(0,0,0,.6),0 6px 14px rgba(0,0,0,.5);overflow:hidden}
-.ch-gauge .fill{position:absolute;left:0;top:0;bottom:0;border-radius:15px;transition:width .8s cubic-bezier(.3,1.2,.5,1);
-  background:linear-gradient(180deg,#b6ff9e,#3fbf5a 55%,#1d6b33);box-shadow:0 0 18px rgba(110,255,140,.7)}
-.ch-gauge .fill.low{background:linear-gradient(180deg,#d9a8ff,#8a4fd1 55%,#4a2380);box-shadow:0 0 18px rgba(180,110,255,.6)}
-.ch-gauge .fill::after{content:'';position:absolute;inset:0;background:radial-gradient(4px 4px at 20% 60%,rgba(255,255,255,.7),transparent),radial-gradient(3px 3px at 55% 40%,rgba(255,255,255,.6),transparent),radial-gradient(3px 3px at 80% 70%,rgba(255,255,255,.6),transparent);animation:ch-fizz 2.4s linear infinite}
-@keyframes ch-fizz{from{transform:translateY(8px)}to{transform:translateY(-8px)}}
-.ch-gauge .mark{position:absolute;top:-4px;bottom:-4px;width:3px;background:#ffd27a;box-shadow:0 0 8px #ffd27a}
-.ch-gauge .tick{position:absolute;top:8px;bottom:8px;width:1px;background:rgba(255,255,255,.18)}
+.ch-glass{position:relative;border-radius:18px;background:linear-gradient(180deg,rgba(28,44,32,.62),rgba(8,14,10,.72));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:inset 0 1px 0 rgba(220,255,220,.18),inset 0 0 0 1px rgba(170,255,170,.16),0 14px 34px rgba(0,0,0,.55)}
+.ch-gauge{position:relative;height:34px;border-radius:17px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(220,255,230,.12),rgba(255,255,255,.03) 45%,rgba(0,0,0,.4));
+  box-shadow:inset 0 0 0 1.5px rgba(220,255,220,.42),inset 0 -6px 12px rgba(0,0,0,.55),0 0 0 4px #1a140a,0 0 0 6px #a88a4a,0 0 0 7px #3b2a14,0 10px 20px rgba(0,0,0,.6)}
+.ch-gauge::after{content:'';position:absolute;left:14px;right:14px;top:4px;height:8px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0));pointer-events:none;z-index:3}
+.ch-gauge .fill{position:absolute;left:0;top:0;bottom:0;border-radius:17px;transition:width .9s cubic-bezier(.3,1.2,.5,1),background .6s}
+.ch-gauge .fill::before{content:'';position:absolute;right:0;top:0;bottom:0;width:10px;border-radius:0 17px 17px 0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45))}
+.ch-gauge .fill.brew{background:linear-gradient(180deg,#d8ffb8,#4fcf68 50%,#145a28);box-shadow:0 0 22px rgba(110,255,140,.75)}
+.ch-gauge .fill.ready{background:linear-gradient(180deg,#fffbd0,#cde84a 50%,#5a8a12);box-shadow:0 0 24px rgba(230,255,120,.8)}
+.ch-gauge .fill.poison{background:linear-gradient(180deg,#f0d2ff,#9b50e6 50%,#4a1d80);box-shadow:0 0 22px rgba(180,110,255,.7)}
+.ch-gauge .fill::after{content:'';position:absolute;inset:0;background:radial-gradient(4px 4px at 20% 60%,rgba(255,255,255,.8),transparent),radial-gradient(3px 3px at 45% 35%,rgba(255,255,255,.7),transparent),radial-gradient(3px 3px at 70% 70%,rgba(255,255,255,.7),transparent),radial-gradient(2px 2px at 88% 40%,rgba(255,255,255,.7),transparent);animation:ch-fizz 2.4s linear infinite}
+@keyframes ch-fizz{from{transform:translateY(10px)}to{transform:translateY(-10px)}}
+.ch-gauge .mark{position:absolute;top:-2px;bottom:-2px;width:4px;margin-left:-2px;z-index:4;border-radius:2px;background:linear-gradient(180deg,#fff2b8,#d8a948);box-shadow:0 0 10px #ffd27a,0 0 0 1px #3b2a14}
+.ch-gauge .tick{position:absolute;top:9px;bottom:9px;width:1px;background:rgba(255,255,255,.22)}
 
 /* Consigne */
 .ch-call{display:flex;align-items:center;gap:12px;margin-top:10px;padding:9px 16px 9px 9px;border-radius:14px;color:#e7efd9;font-size:1.13rem;line-height:1.3;
@@ -36,16 +48,23 @@ export const CAULDRON_CSS = `
 @keyframes ch-pulse{0%,100%{box-shadow:0 0 0 2px #3fbf5a,0 0 18px rgba(110,255,140,.35),0 8px 18px rgba(0,0,0,.5)}50%{box-shadow:0 0 0 2px #b6ff9e,0 0 34px rgba(110,255,140,.7),0 8px 18px rgba(0,0,0,.5)}}
 
 /* L'antre : la guilde autour du chaudron */
-.ch-floor{position:absolute;inset:9% 6%;border-radius:50%;
-  background:radial-gradient(40% 38% at 50% 50%,rgba(90,255,140,.35),rgba(60,200,100,.10) 55%,transparent 75%),url(/themes/cauldron/stone.jpg) center/300px;
-  box-shadow:0 0 0 3px rgba(150,255,160,.25),0 24px 60px rgba(0,0,0,.8),inset 0 0 80px rgba(0,0,0,.85)}
-.ch-floor::after{content:'';position:absolute;inset:14%;border-radius:50%;border:2px solid rgba(150,255,160,.28);box-shadow:inset 0 0 30px rgba(90,255,140,.15),0 0 20px rgba(90,255,140,.15)}
+.ch-floor{position:absolute;inset:7% 4%;border-radius:50%;color:#9dffb2;
+  background:radial-gradient(34% 32% at 50% 50%,var(--brew-floor,rgba(90,255,140,.30)),transparent 72%),radial-gradient(closest-side,#18221b,#0c120e 72%,#060907);
+  box-shadow:0 0 0 2px rgba(150,255,160,.18),0 30px 70px rgba(0,0,0,.85),inset 0 0 90px rgba(0,0,0,.9)}
+.ch-floor::before{content:'';position:absolute;inset:0;border-radius:50%;background:url(/themes/cauldron/stone.jpg) center/260px;opacity:.22;mix-blend-mode:luminosity}
+.ch-circle{position:absolute;inset:3%;width:94%;height:94%;opacity:.78;animation:ch-breathe 5s ease-in-out infinite}
+.ch-spin{transform-origin:100px 100px;animation:ch-spin 140s linear infinite}
+.ch-spin.rev{animation-duration:200s;animation-direction:reverse}
+@keyframes ch-spin{to{transform:rotate(360deg)}}
 .ch-pot{position:relative;display:grid;place-items:center}
-.ch-pot::before{content:'';position:absolute;inset:-30px;border-radius:50%;background:radial-gradient(circle,rgba(110,255,140,.55),transparent 65%);animation:ch-breathe 2.6s ease-in-out infinite}
-.ch-bubbles{position:absolute;left:18%;right:18%;top:-26px;height:40px;pointer-events:none}
-.ch-bubbles i{position:absolute;bottom:0;width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#eaffde,#7dff9a 60%,transparent 70%);animation:ch-rise 2.2s ease-in infinite;opacity:0}
-.ch-bubbles i:nth-child(2){left:30%;animation-delay:.5s;width:7px;height:7px}.ch-bubbles i:nth-child(3){left:58%;animation-delay:1s}.ch-bubbles i:nth-child(4){left:80%;animation-delay:1.5s;width:6px;height:6px}
-@keyframes ch-rise{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1}100%{transform:translateY(-40px) scale(1.2);opacity:0}}
+.ch-pot::before{content:'';position:absolute;left:-10%;right:-10%;top:5%;bottom:30%;border-radius:50%;background:radial-gradient(circle,var(--brew,rgba(110,255,140,.55)),transparent 66%);animation:ch-breathe 2.6s ease-in-out infinite;transition:background .6s}
+.ch-art{position:relative;filter:drop-shadow(0 14px 14px rgba(0,0,0,.75))}
+.ch-flame{transform-box:fill-box;transform-origin:50% 100%;animation:ch-flick .7s ease-in-out infinite alternate}
+@keyframes ch-flick{0%{transform:scale(1,1) skewX(0)}50%{transform:scale(.92,1.12) skewX(3deg)}100%{transform:scale(1.05,.9) skewX(-3deg)}}
+.ch-steam{transform-box:fill-box;transform-origin:50% 100%;animation:ch-steam 4.2s ease-in infinite;opacity:0}
+@keyframes ch-steam{0%{transform:translateY(24px) scale(.6);opacity:0}30%{opacity:.9}100%{transform:translateY(-34px) scale(1.4);opacity:0}}
+.ch-pop{transform-box:fill-box;transform-origin:center;animation:ch-pop 2.6s ease-in infinite;opacity:0}
+@keyframes ch-pop{0%{transform:scale(.2);opacity:0}35%{transform:scale(1);opacity:1}70%{transform:scale(1.15);opacity:.95}78%{transform:scale(1.6);opacity:0}100%{opacity:0}}
 .ch-splash{animation:ch-splash .7s ease-out}
 @keyframes ch-splash{30%{transform:scale(1.12) rotate(-3deg)}100%{transform:none}}
 .ch-seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;text-align:center}
@@ -78,8 +97,9 @@ button.ch-seat{cursor:pointer;transition:transform .15s}button.ch-seat:hover{tra
 .ch-dock h4,.ch-page h4{font-family:'Uncial Antiqua',serif;font-size:1.2rem;color:#1d4a26;text-align:center;line-height:1.25}
 .ch-dock .muted,.ch-page .muted{color:#5f4a2a}
 .ch-card{position:relative;flex:none;width:var(--w,104px);aspect-ratio:5/7;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px;text-align:center;color:#2a1d0e;
-  background:radial-gradient(120% 90% at 50% 30%,#fff9e8,rgba(255,250,235,0) 70%),url(/themes/compass/parchment.jpg) center/200px;
-  box-shadow:inset 0 0 0 2px #a88a4a,inset 0 0 0 5px rgba(255,250,235,.6),inset 0 0 0 6px rgba(120,90,40,.5),0 8px 16px rgba(0,0,0,.5);transition:transform .2s cubic-bezier(.3,1.4,.5,1)}
+  background:radial-gradient(70% 42% at 50% 34%,color-mix(in srgb,var(--tint,#a87a14) 38%,transparent),transparent 72%),radial-gradient(120% 90% at 50% 30%,#fff9e8,rgba(255,250,235,0) 70%),url(/themes/compass/parchment.jpg) center/200px;
+  box-shadow:inset 0 0 0 2px #a88a4a,inset 0 0 0 5px rgba(255,250,235,.6),inset 0 0 0 6px color-mix(in srgb,var(--tint,#a87a14) 60%,#5a4020),0 10px 20px rgba(0,0,0,.55);transition:transform .2s cubic-bezier(.3,1.4,.5,1)}
+.ch-card::before{content:'';position:absolute;inset:7px;border-radius:7px;border:1px solid color-mix(in srgb,var(--tint,#a87a14) 45%,transparent);pointer-events:none}
 .ch-card .v{font-family:'Ch Digits',serif;font-weight:700;font-size:1.6rem;line-height:1}
 .ch-card .n{font-family:'Uncial Antiqua',serif;font-size:12px;line-height:1.1}
 .ch-card .h{font-size:11.5px;line-height:1.15;color:#5f4a2a;font-style:italic}

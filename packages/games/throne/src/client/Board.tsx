@@ -74,6 +74,11 @@ export default function ThroneBoard({ view, viewer, actingAs, mode, sendMove }: 
       </style>
       <div className="tv-wall" />
       <div className="tv-light" />
+      <div className="tv-motes" aria-hidden="true">
+        {Array.from({ length: 14 }, (_, i) => (
+          <i key={i} style={{ left: `${(i * 41 + 7) % 100}%`, animationDelay: `${(i * 1.7) % 12}s`, animationDuration: `${14 + (i % 4) * 3}s` }} />
+        ))}
+      </div>
 
       <Header view={view} wide={wide} />
       <div className="mx-auto w-[min(1240px,calc(100%-20px))]">
@@ -220,12 +225,14 @@ function Header({ view, wide }: { view: ThroneView; wide: boolean }) {
   return (
     <header className="relative px-3 pb-1 pt-[3.6rem] sm:pt-4">
       {wide ? (
-        <div className="flex flex-col items-center">
+        <div className="relative flex flex-col items-center">
+          <HangingBanner team="crown" />
+          <HangingBanner team="shadow" />
           <div className="tv-throne">
-            <RichIcon name="stone-throne" metal="gold" size={70} />
+            <RichIcon name="stone-throne" metal="gold" size={74} />
           </div>
           <div className="tv-title tv-gold mt-1 text-[2rem] leading-none">Le Trône Vide</div>
-          <div className="mt-2 flex items-center gap-4 text-[14px] text-[#d9c08a]">
+          <div className="tv-anger mt-2 flex items-center gap-4 text-[14px] text-[#d9c08a]">
             <span className="italic">Colère du peuple</span>
             {torches(24)}
             <span className="text-[#bba77f]">
@@ -252,6 +259,42 @@ function Header({ view, wide }: { view: ThroneView; wide: boolean }) {
         <Track team="shadow" view={view} />
       </div>
     </header>
+  );
+}
+
+/** Bannière de velours suspendue à une tringle dorée, aux armes de son camp. */
+function HangingBanner({ team }: { team: Edict }) {
+  const crown = team === 'crown';
+  const id = `tvb-${team}`;
+  return (
+    <div className={`tv-pennant ${crown ? 'is-left' : 'is-right'}`} aria-hidden="true">
+      <svg viewBox="0 0 100 200" width="100%" height="100%">
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor={crown ? '#0f2462' : '#3e0604'} />
+            <stop offset=".22" stopColor={crown ? '#2a56b8' : '#a3201a'} />
+            <stop offset=".5" stopColor={crown ? '#173a8c' : '#6e0f0a'} />
+            <stop offset=".78" stopColor={crown ? '#2f62c8' : '#b52a20'} />
+            <stop offset="1" stopColor={crown ? '#0f2462' : '#3e0604'} />
+          </linearGradient>
+          <linearGradient id="tvb-gold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fff2bf" />
+            <stop offset=".45" stopColor="#d8a948" />
+            <stop offset="1" stopColor="#7a5414" />
+          </linearGradient>
+        </defs>
+        <path d="M12,10 H88 V182 L50,160 L12,182 Z" fill={`url(#${id})`} />
+        <path d="M18,16 H82 V172 L50,152 L18,172 Z" fill="none" stroke="url(#tvb-gold)" strokeWidth="2" />
+        <path d="M22,20 H78" stroke="url(#tvb-gold)" strokeWidth="1" opacity=".7" />
+        <path d="M12,182 L50,160 L88,182" fill="none" stroke="#d8a948" strokeWidth="1.5" opacity=".6" />
+        <rect x="4" y="5" width="92" height="7" rx="3.5" fill="url(#tvb-gold)" />
+        <circle cx="5" cy="8.5" r="5" fill="url(#tvb-gold)" />
+        <circle cx="95" cy="8.5" r="5" fill="url(#tvb-gold)" />
+      </svg>
+      <span className="emb">
+        <RichIcon name={crown ? 'fleur-de-lys' : 'all-seeing-eye'} metal="gold" size={46} />
+      </span>
+    </div>
   );
 }
 
@@ -455,7 +498,11 @@ function CouncilTable({
         seat={wide ? { w: 128, h: 182 } : { w: 84, h: 138 }}
         className={wide ? 'aspect-[1.3] max-h-[calc(100dvh-120px)] min-h-[500px]' : 'aspect-[0.84]'}
         links={links}
-        under={<div className="tv-table-under" />}
+        under={
+          <div className="tv-table-under">
+            <TableCloth />
+          </div>
+        }
         center={<CouncilHeart view={view} nameOf={nameOf} />}
         renderSeat={(id) => {
           const p = view.players.find((x) => x.id === id)!;
@@ -473,6 +520,23 @@ function CouncilTable({
         }}
       />
     </section>
+  );
+}
+
+/** Tapis brodé au centre de la table : fleurs de lys de la Couronne et yeux de l'Ombre, en alternance. */
+function TableCloth() {
+  return (
+    <div className="tv-cloth" aria-hidden="true">
+      {Array.from({ length: 8 }, (_, i) => {
+        const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+        const crown = i % 2 === 0;
+        return (
+          <span key={i} className="motif" style={{ left: `${50 + 41 * Math.cos(a)}%`, top: `${50 + 41 * Math.sin(a)}%` }}>
+            <RichIcon name={crown ? 'fleur-de-lys' : 'all-seeing-eye'} metal="gold" size={18} />
+          </span>
+        );
+      })}
+    </div>
   );
 }
 

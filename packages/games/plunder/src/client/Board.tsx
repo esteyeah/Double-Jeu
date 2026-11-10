@@ -116,6 +116,12 @@ function PlunderTable({ view, viewer, actingAs, mode, sendMove }: Props) {
       </style>
       <div className="bt-deck" />
       <div className="bt-light" />
+      {wide && (
+        <>
+          <Lantern side="left" />
+          <Lantern side="right" />
+        </>
+      )}
 
       <Bastingage view={view} nameOf={nameOf} seatOf={seatOf} />
       <div className="mx-auto w-[min(1240px,calc(100%-20px))]">
@@ -570,6 +576,14 @@ function Bastingage({ view, nameOf, seatOf }: { view: PlunderView; nameOf: NameO
     <header className="bt-sky">
       <div className="bt-stars" />
       <div className="bt-moonpath" />
+      <svg className="bt-farship" viewBox="0 0 60 40" aria-hidden="true">
+        <path d="M6,30 L54,30 L48,37 L12,37 Z" fill="#06101c" />
+        <path d="M22,4 V30 M38,8 V30" stroke="#06101c" strokeWidth="1.6" />
+        <path d="M23,6 Q34,14 23,26 Z M39,10 Q48,17 39,27 Z M21,8 Q12,16 21,26 Z" fill="#0b1a2c" />
+        <circle cx="44" cy="27" r="1" fill="#ffd27a" />
+      </svg>
+      <span className="bt-gull" aria-hidden="true" />
+      <span className="bt-gull b" aria-hidden="true" />
       <div className="bt-sea" aria-hidden>
         <svg viewBox="0 0 400 60" preserveAspectRatio="none" className="bt-wave1">
           <path d={wave} fill="#0f2a40" transform="scale(1 1)" />
@@ -701,50 +715,88 @@ function Treasure({
   bare?: boolean;
 }) {
   const myTurn = view.phase === 'loot' && actingAs !== null && view.picker === actingAs;
+  const count = `${view.board.length} trésor${view.board.length > 1 ? 's' : ''}`;
+  const items = view.board.map((item, i) => {
+    const inner = (
+      <>
+        <span className="bt-obj grid h-[60px] place-items-center" style={{ animationDelay: `${(i % 4) * 0.5}s` }}>
+          <LootObject item={item} />
+        </span>
+        <span className="bt-label">{item.kind === 'coin' ? `${item.value} ${SHORT.coin}` : SHORT[item.kind]}</span>
+      </>
+    );
+    // Sur le pont, les trésors sont jetés en vrac : chacun garde un petit angle qui lui est propre.
+    const tilt = bare ? { transform: `rotate(${((i * 37) % 11) - 5}deg) translateY(${((i * 23) % 9) - 4}px)` } : undefined;
+    return (
+      <li key={i} className="flex justify-center" style={tilt}>
+        {myTurn ? (
+          <button type="button" className="bt-item bt-take" onClick={() => sendMove({ type: 'take', index: i })} aria-label={`Prendre : ${itemText(item)}`} title={ITEM_HINT[item.kind]}>
+            {inner}
+          </button>
+        ) : (
+          <div className="bt-item" title={`${itemText(item)} — ${ITEM_HINT[item.kind]}`}>
+            {inner}
+          </div>
+        )}
+      </li>
+    );
+  });
+  if (bare) {
+    return (
+      <section className="flex w-full flex-col items-center" aria-label="Sur le pont">
+        <h3 className="sr-only">Sur le pont</h3>
+        {view.board.length === 0 ? (
+          <p className="py-6 text-center italic text-[#3a2410]">Le pont est vide… pour l’instant.</p>
+        ) : (
+          <ul className={`flex max-w-[430px] flex-wrap justify-center gap-x-3 gap-y-1 ${myTurn ? 'bt-loot-mine' : ''}`}>{items}</ul>
+        )}
+        <span className="bt-label mt-1.5">{count}</span>
+      </section>
+    );
+  }
   return (
-    <section className={`${bare ? 'w-full' : 'bt-cloth'} ${myTurn ? 'is-mine' : ''}`} aria-label="Sur le pont">
+    <section className={`bt-cloth ${myTurn ? 'is-mine' : ''}`} aria-label="Sur le pont">
       <div className="mb-1 flex items-baseline justify-between px-2">
         <h3 className="bt-title text-[1.55rem] text-[#3a2410] [text-shadow:0_1px_0_rgba(255,235,190,.55)]">Sur le pont</h3>
-        <span className="bt-label">
-          {view.board.length} trésor{view.board.length > 1 ? 's' : ''}
-        </span>
+        <span className="bt-label">{count}</span>
       </div>
       {view.board.length === 0 ? (
         <p className="py-6 text-center italic text-[#3a2410]">Le pont est vide… pour l’instant.</p>
       ) : (
-        <ul className={`grid grid-cols-4 gap-y-2 ${bare ? '' : 'sm:grid-cols-8'}`}>
-          {view.board.map((item, i) => {
-            const inner = (
-              <>
-                <span className="bt-obj grid h-[60px] place-items-center" style={{ animationDelay: `${(i % 4) * 0.5}s` }}>
-                  <LootObject item={item} />
-                </span>
-                <span className="bt-label">{item.kind === 'coin' ? `${item.value} ${SHORT.coin}` : SHORT[item.kind]}</span>
-              </>
-            );
-            return (
-              <li key={i} className="flex justify-center">
-                {myTurn ? (
-                  <button
-                    type="button"
-                    className="bt-item bt-take"
-                    onClick={() => sendMove({ type: 'take', index: i })}
-                    aria-label={`Prendre : ${itemText(item)}`}
-                    title={ITEM_HINT[item.kind]}
-                  >
-                    {inner}
-                  </button>
-                ) : (
-                  <div className="bt-item" title={`${itemText(item)} — ${ITEM_HINT[item.kind]}`}>
-                    {inner}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <ul className="grid grid-cols-4 gap-y-2 sm:grid-cols-8">{items}</ul>
       )}
     </section>
+  );
+}
+
+/** Lanterne de pont qui se balance doucement et éclaire l'équipage. */
+function Lantern({ side }: { side: 'left' | 'right' }) {
+  return (
+    <div className={`bt-lantern ${side}`} aria-hidden="true">
+      <svg viewBox="0 0 60 130" width="60" height="130">
+        <defs>
+          <radialGradient id="bt-lamp" cx="50%" cy="55%" r="55%">
+            <stop offset="0" stopColor="#fffbe0" />
+            <stop offset=".4" stopColor="#ffd36a" />
+            <stop offset="1" stopColor="#c86a12" />
+          </radialGradient>
+          <linearGradient id="bt-brass" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#5e3f12" />
+            <stop offset=".4" stopColor="#e9c06a" />
+            <stop offset="1" stopColor="#6e4c18" />
+          </linearGradient>
+        </defs>
+        <path d="M30,0 V30" stroke="#2a1a0a" strokeWidth="2.5" />
+        <circle cx="30" cy="34" r="5" fill="none" stroke="url(#bt-brass)" strokeWidth="2.5" />
+        <path d="M18,48 L30,38 L42,48 Z" fill="url(#bt-brass)" />
+        <rect x="16" y="48" width="28" height="4" rx="1.5" fill="url(#bt-brass)" />
+        <path d="M18,52 L42,52 L44,100 L16,100 Z" fill="url(#bt-lamp)" opacity=".95" />
+        <path d="M30,64 C24,74 26,84 30,88 C34,84 36,74 30,64 Z" fill="#fff" opacity=".9" className="bt-wick" />
+        <path d="M18,52 L16,100 M42,52 L44,100 M30,52 V100" stroke="#3a2410" strokeWidth="2.2" />
+        <rect x="13" y="100" width="34" height="6" rx="2" fill="url(#bt-brass)" />
+        <path d="M20,106 L40,106 L34,114 L26,114 Z" fill="#4a2c10" />
+      </svg>
+    </div>
   );
 }
 

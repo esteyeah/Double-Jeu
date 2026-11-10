@@ -3,7 +3,17 @@ export const PLUNDER_CSS = `
 @font-face{font-family:'Bt Digits';src:local('Times New Roman'),local('TimesNewRomanPSMT'),local('Liberation Serif'),local('Noto Serif'),local('Droid Serif'),local('Tinos');unicode-range:U+0030-0039}
 .bt{--gold:#f0c35c;--ivory:#f4e6c4;--ink:#2a1b0b;--blood:#a3241a;position:relative;min-height:100dvh;color:var(--ivory);
   font-family:'Bt Digits','IM Fell English',Georgia,serif;background:#120b06;overflow:hidden;overflow:clip;isolation:isolate}
-.bt-deck{position:absolute;inset:0;z-index:-2;background:url(/themes/plunder/deck.jpg) center top/440px repeat}
+.bt-deck{position:absolute;inset:0;z-index:-2;background:linear-gradient(180deg,#24150a,#140b05)}
+.bt-deck::before{content:'';position:absolute;inset:0;background:url(/themes/plunder/deck.jpg) center top/440px repeat;opacity:.62;filter:saturate(.85) contrast(1.08)}
+.bt-deck::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(0,0,0,.28) 0 2px,transparent 2px 110px),linear-gradient(180deg,rgba(0,0,0,.35),transparent 30%,transparent 70%,rgba(0,0,0,.5))}
+.bt-lantern{position:absolute;top:58px;z-index:2;pointer-events:none;transform-origin:50% 0;animation:bt-swing 4.5s ease-in-out infinite}
+.bt-lantern.left{left:calc(50% - 330px)}.bt-lantern.right{right:calc(50% - 330px);animation-delay:-2.2s}
+.bt-lantern::after{content:'';position:absolute;left:50%;top:78px;width:300px;height:300px;margin:-150px 0 0 -150px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,200,110,.38),rgba(255,160,60,.12) 40%,transparent 70%);animation:bt-flicker 3s ease-in-out infinite;z-index:-1}
+.bt-lantern svg{filter:drop-shadow(0 0 10px rgba(255,190,90,.8)) drop-shadow(0 8px 8px rgba(0,0,0,.6))}
+.bt-wick{transform-box:fill-box;transform-origin:50% 100%;animation:bt-wick .8s ease-in-out infinite alternate}
+@keyframes bt-wick{to{transform:scale(.88,1.12)}}
+@keyframes bt-swing{0%,100%{transform:rotate(3deg)}50%{transform:rotate(-3deg)}}
 .bt-light{position:absolute;inset:0;z-index:-1;pointer-events:none;animation:bt-flicker 6s ease-in-out infinite;
   background:radial-gradient(55% 40% at 50% 34%,rgba(255,176,86,.32),transparent 70%),
     radial-gradient(38% 30% at 8% 82%,rgba(255,140,60,.16),transparent 70%),
@@ -34,6 +44,12 @@ export const PLUNDER_CSS = `
 .bt-moonpath{position:absolute;bottom:58px;left:72%;width:26%;height:46px;background:repeating-linear-gradient(180deg,rgba(255,240,200,.35) 0 2px,transparent 2px 7px);
   -webkit-mask:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);animation:bt-shimmer 3s ease-in-out infinite}
 @keyframes bt-shimmer{0%,100%{opacity:.6}50%{opacity:1}}
+.bt-farship{position:absolute;left:14%;bottom:96px;width:58px;height:38px;opacity:.85;animation:bt-drift 60s linear infinite alternate}
+@keyframes bt-drift{from{transform:translateX(0)}to{transform:translateX(70px)}}
+.bt-gull{position:absolute;top:30px;left:30%;width:16px;height:6px;border-top:2px solid rgba(220,230,245,.7);border-radius:50% 50% 0 0;animation:bt-gull 22s linear infinite}
+.bt-gull::after{content:'';position:absolute;left:14px;top:-2px;width:14px;height:6px;border-top:2px solid rgba(220,230,245,.7);border-radius:50% 50% 0 0}
+.bt-gull.b{top:46px;left:60%;transform:scale(.7);animation-duration:30s;animation-delay:-12s}
+@keyframes bt-gull{0%{translate:-30vw 0}50%{translate:10vw -10px}100%{translate:50vw 4px}}
 .bt-posts{position:absolute;left:0;right:0;bottom:22px;height:40px;background:repeating-linear-gradient(90deg,transparent 0 46px,#2b170a 46px 58px,#4a2c14 58px 60px,transparent 60px 104px)}
 .bt-rail{position:absolute;left:0;right:0;bottom:0;height:30px;background:linear-gradient(180deg,rgba(255,215,160,.18),rgba(0,0,0,.35)),url(/themes/plunder/plank.jpg) 0 0/260px;
   border-top:3px solid #1f1006;box-shadow:inset 0 2px 0 rgba(255,220,160,.22),0 12px 20px rgba(0,0,0,.65)}
@@ -158,13 +174,18 @@ export const PLUNDER_CSS = `
 
 /* Le pont : l'équipage autour du trésor */
 .bt-table{position:relative;margin-top:4px}
-.bt-table-under{position:absolute;inset:9% 7%;border-radius:50%;
-  background:radial-gradient(60% 55% at 50% 45%,rgba(255,200,120,.32),transparent 72%),url(/themes/plunder/canvas.jpg) center/320px;
-  box-shadow:0 0 0 8px #6b4a22,0 0 0 10px #241104,0 22px 50px rgba(0,0,0,.7),inset 0 0 60px rgba(60,30,5,.8)}
-.bt-table-under::before{content:'';position:absolute;inset:-9px;border-radius:50%;pointer-events:none;
-  background:repeating-conic-gradient(from 0deg,#d8b67a 0 2.5deg,#8a6434 2.5deg 5deg);
-  -webkit-mask:radial-gradient(closest-side,transparent calc(100% - 9px),#000 calc(100% - 8px));mask:radial-gradient(closest-side,transparent calc(100% - 9px),#000 calc(100% - 8px))}
-.bt-table-under::after{content:'';position:absolute;inset:18%;border-radius:50%;pointer-events:none;border:1.5px dashed rgba(90,55,20,.35)}
+.bt-table-under{position:absolute;inset:8% 6%;border-radius:50%;
+  background:radial-gradient(60% 55% at 50% 45%,rgba(255,200,120,.30),transparent 72%),repeating-linear-gradient(90deg,rgba(0,0,0,.32) 0 2px,transparent 2px 54px),
+    linear-gradient(180deg,rgba(255,215,160,.08),rgba(0,0,0,.35)),url(/themes/plunder/plank.jpg) center/300px;
+  box-shadow:0 0 0 5px #3a2410,0 0 0 9px #c8953a,0 0 0 10px #f5d98d,0 0 0 13px #5e3f12,0 0 0 15px #1a0d04,0 30px 60px rgba(0,0,0,.75),inset 0 0 80px rgba(20,8,0,.88)}
+.bt-table-under::before{content:'';position:absolute;inset:-12px;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg,#fff1bf 0 .9deg,transparent .9deg 15deg);
+  -webkit-mask:radial-gradient(closest-side,transparent calc(100% - 6px),#000 calc(100% - 5px),#000 calc(100% - 2px),transparent calc(100% - 1px));
+  mask:radial-gradient(closest-side,transparent calc(100% - 6px),#000 calc(100% - 5px),#000 calc(100% - 2px),transparent calc(100% - 1px))}
+.bt-table-under::after{content:'';position:absolute;inset:15% 13%;border-radius:46% 54% 50% 50% / 52% 46% 54% 48%;pointer-events:none;transform:rotate(-2deg);
+  background:radial-gradient(70% 60% at 45% 40%,rgba(255,240,205,.32),transparent 70%),linear-gradient(160deg,rgba(255,255,255,.08),transparent 40%,rgba(0,0,0,.18) 70%,transparent),url(/themes/plunder/canvas.jpg) center/280px;
+  box-shadow:0 14px 24px rgba(0,0,0,.55),inset 0 0 36px rgba(80,45,10,.55),inset 0 0 0 2px rgba(255,235,190,.18)}
+.bt-loot-mine .bt-label{box-shadow:0 0 0 1.5px #f0c35c,0 0 10px rgba(240,195,92,.7)}
 .bt-seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;border-radius:14px;text-align:center;transition:transform .2s}
 .bt-seat .bt-medal{transition:outline-color .2s}
 .bt-seat-plate{display:flex;align-items:baseline;justify-content:center;gap:4px;max-width:150px;white-space:nowrap;padding:1px 8px 2px;border-radius:8px;

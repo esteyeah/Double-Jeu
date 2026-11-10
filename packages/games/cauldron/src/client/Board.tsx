@@ -88,6 +88,11 @@ export default function CauldronBoard({ view, viewer, actingAs, mode, sendMove }
       </style>
       <div className="ch-stone" />
       <div className="ch-glow" />
+      <div className="ch-motes" aria-hidden="true">
+        {Array.from({ length: 16 }, (_, i) => (
+          <i key={i} style={{ left: `${(i * 37 + 11) % 100}%`, animationDelay: `${(i * 1.3) % 10}s`, animationDuration: `${10 + (i % 5) * 2.5}s` }} />
+        ))}
+      </div>
 
       <header className="relative pt-[3.4rem] sm:pt-3">
         <div className="ch-shelf" aria-hidden="true">
@@ -206,7 +211,7 @@ function Gauge({ view }: { view: CauldronView }) {
   const pct = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
   const reached = total >= view.target;
   return (
-    <section className="rounded-2xl bg-[rgba(6,10,6,.72)] px-4 py-3 shadow-[inset_0_0_0_1px_rgba(170,255,170,.22),0_10px_24px_rgba(0,0,0,.5)] backdrop-blur-[2px]" aria-label="Force du chaudron">
+    <section className="ch-glass px-4 py-3" aria-label="Force du chaudron">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="ch-title text-[15px] text-[#c9ffb8]">{view.realTotal === null ? 'Force annoncée' : 'Force réelle'}</span>
         <span className="text-[15px]">
@@ -219,7 +224,7 @@ function Gauge({ view }: { view: CauldronView }) {
         {Array.from({ length: max - 1 }, (_, i) => (
           <span key={i} className="tick" style={{ left: pct(i + 1) }} />
         ))}
-        <span className={`fill ${reached ? '' : 'low'}`} style={{ width: pct(total) }} />
+        <span className={`fill ${brewOf(view)}`} style={{ width: pct(total) }} />
         <span className="mark" style={{ left: pct(view.target) }} title={`Force visée : ${view.target}`} />
       </div>
       {view.realTotal === null && <p className="mt-1.5 text-[13px] italic text-[#a8c49a]">Ce sont les valeurs annoncées : certaines sont peut-être des mensonges.</p>}
@@ -291,8 +296,8 @@ function Lair({ view, viewer, wide, nameOf, splash }: { view: CauldronView; view
         me={viewer}
         seat={wide ? { w: 128, h: 176 } : { w: 84, h: 140 }}
         className={wide ? 'aspect-[1.32] max-h-[calc(100dvh-140px)] min-h-[480px]' : 'aspect-[0.86]'}
-        under={<div className="ch-floor" />}
-        center={<Pot view={view} nameOf={nameOf} splash={splash} />}
+        under={<RitualFloor brew={brewOf(view)} />}
+        center={<Pot view={view} nameOf={nameOf} splash={splash} wide={wide} />}
         renderSeat={(id) => {
           const p = view.players.find((x) => x.id === id)!;
           return <Seat p={p} seat={view.players.indexOf(p)} view={view} viewer={viewer} wide={wide} />;
@@ -355,29 +360,187 @@ function Seat({ p, seat, view, viewer, wide }: { p: CauldronPlayerView; seat: nu
   );
 }
 
-function Pot({ view, nameOf, splash }: { view: CauldronView; nameOf: NameOf; splash: number }) {
+type BrewTone = 'poison' | 'brew' | 'ready';
+
+/** Teinte de la potion : violette si elle tourne au poison, verte en cours, dorée quand la force visée est atteinte. */
+function brewOf(view: CauldronView): BrewTone {
+  const total = view.realTotal ?? view.announcedTotal;
+  return total < 0 ? 'poison' : total >= view.target ? 'ready' : 'brew';
+}
+
+const LIQUID: Record<BrewTone, [string, string, string, string]> = {
+  poison: ['#f0d2ff', '#a85cf0', '#4a1d80', 'rgba(180,110,255,.6)'],
+  brew: ['#e6ffc8', '#5fe076', '#145a28', 'rgba(110,255,140,.55)'],
+  ready: ['#fffbd0', '#d7f25a', '#5a8a12', 'rgba(230,255,120,.6)'],
+};
+
+function Pot({ view, nameOf, splash, wide }: { view: CauldronView; nameOf: NameOf; splash: number; wide: boolean }) {
   const last = view.pours.at(-1);
+  const brew = brewOf(view);
   return (
-    <div className="flex flex-col items-center text-center">
+    <div className="flex flex-col items-center text-center" style={{ '--brew': LIQUID[brew][3] } as CSSProperties}>
       <span key={splash} className={`ch-pot ${splash ? 'ch-splash' : ''}`}>
-        <span className="ch-bubbles" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          <i />
-        </span>
-        <RichIcon name="cauldron" metal="iron" size={84} />
+        <CauldronArt brew={brew} size={wide ? 164 : 124} />
       </span>
-      <span className="ch-title mt-1 text-[14px] text-[#d9ffc9] [text-shadow:0_2px_4px_rgba(0,0,0,.9)]">
+      <span className="ch-title mt-1 text-[14px] text-[#e6ffd8] [text-shadow:0_2px_6px_rgba(0,0,0,.95)]">
         {view.pours.length} ingrédient{view.pours.length > 1 ? 's' : ''}
       </span>
       {last && view.phase !== 'over' && (
-        <span className="mt-0.5 text-[13.5px] italic text-[#e7efd9] [text-shadow:0_2px_4px_rgba(0,0,0,.9)]">
+        <span className="mt-0.5 text-[13.5px] italic text-[#e7efd9] [text-shadow:0_2px_6px_rgba(0,0,0,.95)]">
           {nameOf(last.by)} a versé « {signed(last.announced)} »
         </span>
       )}
     </div>
   );
+}
+
+/** Le chaudron de fonte sur son feu de bois : la potion bouillonne et fume. */
+function CauldronArt({ brew, size }: { brew: BrewTone; size: number }) {
+  const [hi, mid, deep] = LIQUID[brew];
+  return (
+    <svg viewBox="0 0 200 250" width={size} height={size * 1.25} aria-hidden="true" className="ch-art">
+      <defs>
+        <radialGradient id="ch-iron" cx="34%" cy="26%" r="85%">
+          <stop offset="0" stopColor="#6b736d" />
+          <stop offset=".35" stopColor="#2c322e" />
+          <stop offset="1" stopColor="#080a09" />
+        </radialGradient>
+        <linearGradient id="ch-rim" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#151816" />
+          <stop offset=".3" stopColor="#9aa39c" />
+          <stop offset=".55" stopColor="#2e3330" />
+          <stop offset="1" stopColor="#5d655f" />
+        </linearGradient>
+        <radialGradient id="ch-liq" cx="45%" cy="38%" r="62%">
+          <stop offset="0" stopColor={hi} />
+          <stop offset=".5" stopColor={mid} />
+          <stop offset="1" stopColor={deep} />
+        </radialGradient>
+        <radialGradient id="ch-fireglow" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stopColor="#ffb347" stopOpacity=".75" />
+          <stop offset="1" stopColor="#ff6a1a" stopOpacity="0" />
+        </radialGradient>
+        <filter id="ch-soft" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" />
+        </filter>
+      </defs>
+      {/* Vapeur */}
+      <g filter="url(#ch-soft)" fill={hi} opacity=".55">
+        <ellipse className="ch-steam" cx="78" cy="52" rx="14" ry="20" />
+        <ellipse className="ch-steam" cx="112" cy="46" rx="12" ry="18" style={{ animationDelay: '1.4s' }} />
+        <ellipse className="ch-steam" cx="96" cy="58" rx="10" ry="16" style={{ animationDelay: '2.6s' }} />
+      </g>
+      {/* Lueur du feu */}
+      <ellipse cx="100" cy="238" rx="96" ry="20" fill="url(#ch-fireglow)" />
+      {/* Pieds */}
+      <path d="M58,168 L44,226 L56,226 L70,174 Z" fill="#161917" />
+      <path d="M142,168 L156,226 L144,226 L130,174 Z" fill="#121513" />
+      {/* Bûches */}
+      <g>
+        <rect x="44" y="228" width="112" height="13" rx="6.5" fill="#4a2a14" transform="rotate(-8 100 234)" />
+        <rect x="44" y="228" width="112" height="13" rx="6.5" fill="#62391a" transform="rotate(8 100 234)" />
+        <circle cx="154" cy="242" r="5" fill="#d29455" opacity=".85" />
+        <circle cx="46" cy="242" r="5" fill="#d29455" opacity=".85" />
+      </g>
+      {/* Flammes qui lèchent le fond */}
+      <g>
+        <path className="ch-flame" d="M58,234 C50,214 62,204 60,184 C76,196 84,214 78,234 Z" fill="#ff6a14" />
+        <path className="ch-flame" d="M80,234 C70,206 86,192 88,166 C106,188 114,210 104,234 Z" fill="#ff8a22" style={{ animationDelay: '.25s' }} />
+        <path className="ch-flame" d="M104,234 C98,208 114,196 118,172 C132,192 136,214 126,234 Z" fill="#ff8a22" style={{ animationDelay: '.5s' }} />
+        <path className="ch-flame" d="M126,234 C122,216 132,206 140,188 C150,202 150,220 142,234 Z" fill="#ff6a14" style={{ animationDelay: '.35s' }} />
+        <path className="ch-flame" d="M86,234 C82,214 94,204 96,188 C106,202 108,220 102,234 Z" fill="#ffd36a" style={{ animationDelay: '.15s' }} />
+        <path className="ch-flame" d="M108,234 C106,220 114,212 118,200 C124,212 124,224 120,234 Z" fill="#ffe9a8" style={{ animationDelay: '.45s' }} />
+      </g>
+      {/* Anses */}
+      <path d="M30,92 C12,92 12,124 32,122" fill="none" stroke="#3b423d" strokeWidth="6" strokeLinecap="round" />
+      <path d="M170,92 C188,92 188,124 168,122" fill="none" stroke="#2a2f2c" strokeWidth="6" strokeLinecap="round" />
+      {/* Panse */}
+      <path d="M26,82 C18,140 52,186 100,186 C148,186 182,140 174,82 Z" fill="url(#ch-iron)" />
+      <path d="M40,100 C38,130 52,156 76,170" fill="none" stroke="rgba(255,255,255,.2)" strokeWidth="5" strokeLinecap="round" />
+      <path d="M26,82 C24,96 26,104 30,112" fill="none" stroke="rgba(0,0,0,.4)" strokeWidth="2" />
+      {/* Reflet de la potion sur la fonte */}
+      <path d="M34,90 C60,104 140,104 166,90" fill="none" stroke={mid} strokeOpacity=".35" strokeWidth="4" />
+      {/* Bord */}
+      <ellipse cx="100" cy="82" rx="78" ry="21" fill="url(#ch-rim)" />
+      <ellipse cx="100" cy="82" rx="69" ry="15" fill="#0b0d0c" />
+      {/* Potion */}
+      <ellipse cx="100" cy="84" rx="66" ry="13" fill="url(#ch-liq)" />
+      <ellipse cx="86" cy="80" rx="26" ry="4" fill="#fff" opacity=".22" />
+      <g fill={hi} stroke={deep} strokeWidth=".8">
+        <circle className="ch-pop" cx="72" cy="86" r="5" />
+        <circle className="ch-pop" cx="104" cy="82" r="6.5" style={{ animationDelay: '.8s' }} />
+        <circle className="ch-pop" cx="130" cy="87" r="4" style={{ animationDelay: '1.5s' }} />
+        <circle className="ch-pop" cx="90" cy="90" r="3.5" style={{ animationDelay: '2.1s' }} />
+      </g>
+    </svg>
+  );
+}
+
+/** Le sol de l'antre : un cercle de transmutation gravé qui luit doucement et tourne. */
+function RitualFloor({ brew }: { brew: BrewTone }) {
+  const glyphs = ['fire', 'water', 'air', 'earth', 'sun', 'salt', 'moon', 'sulfur'] as const;
+  return (
+    <div className="ch-floor" style={{ '--brew-floor': LIQUID[brew][3].replace(/[\d.]+\)$/, '.32)'), color: brew === 'poison' ? '#d9a8ff' : brew === 'ready' ? '#efff9e' : '#9dffb2' } as CSSProperties}>
+      <svg viewBox="0 0 200 200" preserveAspectRatio="none" className="ch-circle" aria-hidden="true">
+        <defs>
+          <filter id="ch-glow-line" x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur stdDeviation="1.1" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <g filter="url(#ch-glow-line)" fill="none" stroke="currentColor" strokeLinecap="round">
+          <circle cx="100" cy="100" r="97" strokeWidth="1" vectorEffect="non-scaling-stroke" opacity=".55" />
+          <circle cx="100" cy="100" r="92" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+          <circle cx="100" cy="100" r="74" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+          <g className="ch-spin">
+            {Array.from({ length: 16 }, (_, i) => (
+              <g key={i} transform={`rotate(${i * 22.5} 100 100) translate(100 17)`}>
+                <Glyph kind={glyphs[i % glyphs.length]!} />
+              </g>
+            ))}
+          </g>
+          <g className="ch-spin rev">
+            <path d="M100,30 L160.6,135 L39.4,135 Z" strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
+            <path d="M100,170 L39.4,65 L160.6,65 Z" strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
+            {[0, 60, 120, 180, 240, 300].map((a) => (
+              <circle key={a} cx="100" cy="30" r="3" transform={`rotate(${a} 100 100)`} fill="currentColor" strokeWidth="0" />
+            ))}
+          </g>
+          <circle cx="100" cy="100" r="44" strokeWidth="1.2" vectorEffect="non-scaling-stroke" opacity=".7" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function Glyph({ kind }: { kind: 'fire' | 'water' | 'air' | 'earth' | 'sun' | 'salt' | 'moon' | 'sulfur' }) {
+  const w = { strokeWidth: 1.3, vectorEffect: 'non-scaling-stroke' as const };
+  switch (kind) {
+    case 'fire':
+      return <path d="M0,-5 L4.5,3.5 L-4.5,3.5 Z" {...w} />;
+    case 'water':
+      return <path d="M0,5 L4.5,-3.5 L-4.5,-3.5 Z" {...w} />;
+    case 'air':
+      return <path d="M0,-5 L4.5,3.5 L-4.5,3.5 Z M-5,0 L5,0" {...w} />;
+    case 'earth':
+      return <path d="M0,5 L4.5,-3.5 L-4.5,-3.5 Z M-5,0 L5,0" {...w} />;
+    case 'sun':
+      return (
+        <>
+          <circle r="4.2" {...w} />
+          <circle r="1" fill="currentColor" strokeWidth="0" />
+        </>
+      );
+    case 'salt':
+      return <path d="M-4.2,0 A4.2,4.2 0 1 0 4.2,0 A4.2,4.2 0 1 0 -4.2,0 M-4.2,0 L4.2,0" {...w} />;
+    case 'moon':
+      return <path d="M2,-4.5 A5,5 0 1 0 2,4.5 A3.6,3.6 0 1 1 2,-4.5 Z" {...w} />;
+    case 'sulfur':
+      return <path d="M0,-5 L3.5,0 L-3.5,0 Z M0,0 L0,5 M-2.5,3 L2.5,3" {...w} />;
+  }
 }
 
 // ───────── Rôle secret ─────────
@@ -419,7 +582,7 @@ function CardFace({ card, w = 104 }: { card: Card; w?: number }) {
   if (card.kind === 'ingredient') {
     const d = ING[card.value];
     return (
-      <span className="ch-card" style={{ '--w': `${w}px` } as CSSProperties}>
+      <span className="ch-card" style={{ '--w': `${w}px`, '--tint': d.color } as CSSProperties}>
         <RichIcon name={d.icon} metal={d.metal} size={w * 0.48} />
         <span className="v" style={{ color: d.color }}>
           {signed(card.value)}
@@ -430,7 +593,7 @@ function CardFace({ card, w = 104 }: { card: Card; w?: number }) {
   }
   const a = ACT[card.action];
   return (
-    <span className="ch-card" style={{ '--w': `${w}px` } as CSSProperties}>
+    <span className="ch-card" style={{ '--w': `${w}px`, '--tint': '#3a6b8a' } as CSSProperties}>
       <span className="text-[10px] uppercase tracking-[0.2em] text-[#7a3a14]">Action</span>
       <RichIcon name={a.icon} metal={a.metal} size={w * 0.44} />
       <span className="n">{ACTION_LABEL[card.action]}</span>

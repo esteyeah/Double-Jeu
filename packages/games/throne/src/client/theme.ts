@@ -3,7 +3,19 @@ export const THRONE_CSS = `
 @font-face{font-family:'Tv Digits';src:local('Times New Roman'),local('TimesNewRomanPSMT'),local('Liberation Serif'),local('Noto Serif'),local('Droid Serif'),local('Tinos');unicode-range:U+0030-0039}
 .tv{position:relative;min-height:100dvh;color:#efe3c8;font-family:'Tv Digits','Cormorant Garamond','IM Fell English',Georgia,serif;font-weight:500;font-size:17px;
   background:#0d0906;overflow:hidden;overflow:clip;isolation:isolate}
-.tv-wall{position:absolute;inset:0;z-index:-3;background:url(/themes/throne/wall.jpg) center top/460px}
+.tv-wall{position:absolute;inset:0;z-index:-3;background:radial-gradient(70% 45% at 50% 0%,rgba(120,80,40,.45),transparent 70%),linear-gradient(180deg,#1a120b,#0b0705 75%)}
+.tv-wall::before{content:'';position:absolute;inset:0;background:url(/themes/throne/wall.jpg) center top/520px;opacity:.38;mix-blend-mode:luminosity;filter:contrast(1.1)}
+.tv-wall::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 18%,rgba(170,200,255,.07) 24%,transparent 34%),linear-gradient(65deg,transparent 64%,rgba(170,200,255,.07) 72%,transparent 80%)}
+.tv-motes{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.tv-motes i{position:absolute;bottom:-10px;width:4px;height:4px;border-radius:50%;background:#ffe7b0;box-shadow:0 0 8px 2px rgba(255,200,120,.55);opacity:0;animation:tv-mote 16s linear infinite}
+.tv-motes i:nth-child(2n){width:2.5px;height:2.5px}
+@keyframes tv-mote{0%{transform:translate(0,0);opacity:0}15%{opacity:.7}50%{transform:translate(-30px,-50vh)}85%{opacity:.35}100%{transform:translate(10px,-104vh);opacity:0}}
+.tv-pennant{position:absolute;top:-8px;width:clamp(70px,8vw,98px);aspect-ratio:1/2;filter:drop-shadow(0 12px 14px rgba(0,0,0,.7));transform-origin:50% 0;animation:tv-sway 7s ease-in-out infinite}
+.tv-pennant.is-left{left:clamp(8px,13vw,240px)}.tv-pennant.is-right{right:clamp(8px,13vw,240px);animation-delay:-3.5s}
+.tv-pennant .emb{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+@keyframes tv-sway{50%{transform:rotate(.8deg) skewX(.6deg)}}
+.tv-anger{padding:4px 14px;border-radius:999px;background:linear-gradient(180deg,rgba(30,18,8,.72),rgba(10,6,3,.78));border:1px solid rgba(233,196,106,.25);box-shadow:0 6px 16px rgba(0,0,0,.45);backdrop-filter:blur(6px)}
 .tv-light{position:absolute;inset:0;z-index:-2;pointer-events:none;animation:tv-flicker 5s ease-in-out infinite;
   background:radial-gradient(46% 32% at 50% 10%,rgba(255,184,96,.30),transparent 70%),radial-gradient(55% 45% at 50% 62%,rgba(255,160,70,.16),transparent 72%),
     radial-gradient(28% 40% at 4% 40%,rgba(255,150,60,.14),transparent 70%),radial-gradient(28% 40% at 96% 40%,rgba(255,150,60,.14),transparent 70%),
@@ -15,14 +27,17 @@ export const THRONE_CSS = `
 .tv-num{font-family:'Cinzel',serif;font-weight:700}
 
 /* Bannières de velours et pistes d'édits */
-.tv-track{position:relative;padding:8px 10px 10px;border-radius:12px;color:#f6e7c4;
-  box-shadow:inset 0 0 0 1px rgba(233,196,106,.45),inset 0 0 0 5px rgba(0,0,0,.22),inset 0 0 0 6px rgba(233,196,106,.18),0 12px 26px rgba(0,0,0,.65)}
-.tv-track.crown{background:linear-gradient(180deg,rgba(40,80,170,.84),rgba(14,30,84,.92)),url(/themes/throne/velvet.jpg) center/240px}
-.tv-track.shadow{background:linear-gradient(180deg,rgba(120,14,10,.55),rgba(36,4,3,.85)),url(/themes/throne/velvet.jpg) center/240px}
+.tv-track{position:relative;padding:10px 12px 12px;border-radius:14px;color:#f6e7c4;border:2px solid transparent;
+  box-shadow:inset 0 0 0 4px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.12),0 16px 32px rgba(0,0,0,.65),0 0 0 1px #1a0f05}
+.tv-track::before{content:'';position:absolute;inset:5px;border-radius:10px;border:1px dashed rgba(240,205,110,.35);pointer-events:none}
+.tv-track.crown{background:radial-gradient(90% 120% at 50% 0%,rgba(120,160,255,.28),transparent 60%) padding-box,linear-gradient(180deg,rgba(40,80,170,.80),rgba(10,24,72,.94)) padding-box,url(/themes/throne/velvet.jpg) center/240px padding-box,linear-gradient(135deg,#fff2bf,#c99b3a 30%,#6d4b12 55%,#f0cd6e 80%,#8a6418) border-box}
+.tv-track.shadow{background:radial-gradient(90% 120% at 50% 0%,rgba(255,110,90,.22),transparent 60%) padding-box,linear-gradient(180deg,rgba(130,16,12,.62),rgba(32,3,2,.92)) padding-box,url(/themes/throne/velvet.jpg) center/240px padding-box,linear-gradient(135deg,#fff2bf,#c99b3a 30%,#6d4b12 55%,#f0cd6e 80%,#8a6418) border-box}
 .tv-track-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
 .tv-slots{display:grid;gap:6px}
-.tv-slot{position:relative;height:84px;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px;
-  background:rgba(0,0,0,.38);box-shadow:inset 0 2px 7px rgba(0,0,0,.85),inset 0 0 0 1px rgba(233,196,106,.25);color:rgba(246,231,196,.62);font-size:10.5px;line-height:1.05;text-align:center}
+.tv-slot{position:relative;height:84px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:2px;
+  background:radial-gradient(80% 70% at 50% 40%,rgba(255,255,255,.06),transparent 70%),rgba(0,0,0,.42);box-shadow:inset 0 3px 9px rgba(0,0,0,.9),inset 0 0 0 1px rgba(233,196,106,.28),0 1px 0 rgba(255,255,255,.08);
+  color:rgba(246,231,196,.66);font-size:10.5px;line-height:1.05;text-align:center}
+.tv-slot > :first-child:not(.mark){opacity:.85}
 .tv-slot.goal{box-shadow:inset 0 2px 7px rgba(0,0,0,.85),inset 0 0 0 1.5px rgba(233,196,106,.7)}
 .tv-slot.filled{background:radial-gradient(120% 90% at 50% 30%,#fbf1d6,rgba(250,240,210,0) 70%),url(/themes/throne/parchment.jpg) center/160px;
   box-shadow:0 3px 7px rgba(0,0,0,.6),inset 0 0 12px rgba(120,75,25,.45);animation:tv-enact .8s cubic-bezier(.2,1.4,.4,1)}
@@ -37,7 +52,10 @@ export const THRONE_CSS = `
 .tv-torch.lit{filter:none;animation:tv-burn 1.2s ease-in-out infinite}
 @keyframes tv-burn{50%{filter:drop-shadow(0 -4px 8px rgba(255,140,40,.9))}}
 .tv-throne{position:relative;display:grid;place-items:center}
-.tv-throne::before{content:'';position:absolute;inset:-26px;border-radius:50%;background:radial-gradient(circle,rgba(255,205,120,.45),transparent 66%);animation:tv-flicker 4s ease-in-out infinite}
+.tv-throne::before{content:'';position:absolute;inset:-26px;border-radius:50%;background:radial-gradient(circle,rgba(255,205,120,.5),transparent 66%);animation:tv-flicker 4s ease-in-out infinite}
+.tv-throne::after{content:'';position:absolute;inset:-70px;z-index:-1;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,215,140,.16) 0 5deg,transparent 5deg 15deg);
+  -webkit-mask:radial-gradient(circle,#000 18%,transparent 68%);mask:radial-gradient(circle,#000 18%,transparent 68%);animation:tv-rays 80s linear infinite}
+@keyframes tv-rays{to{transform:rotate(360deg)}}
 
 @media (max-width:1023px){.tv-slot{height:46px;font-size:0;gap:0}.tv-slot .mark{font-size:9px}}
 
@@ -61,7 +79,12 @@ export const THRONE_CSS = `
 .tv-table-under{position:absolute;inset:9% 7%;border-radius:50%;
   background:radial-gradient(58% 52% at 50% 44%,rgba(255,196,120,.30),transparent 72%),url(/themes/throne/table.jpg) center/420px;
   box-shadow:0 0 0 10px #3a2210,0 0 0 12px #140a03,0 0 0 13px rgba(233,196,106,.4),0 26px 60px rgba(0,0,0,.78),inset 0 0 80px rgba(18,8,2,.88)}
-.tv-table-under::after{content:'';position:absolute;inset:15%;border-radius:50%;border:2px solid rgba(233,196,106,.25);box-shadow:inset 0 0 0 7px rgba(0,0,0,.14),0 0 0 7px rgba(0,0,0,.12)}
+.tv-cloth{position:absolute;inset:13% 11%;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,190,110,.18),transparent 70%),repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.035) 0 2px,transparent 2px 6px),radial-gradient(closest-side,#6e1410,#4a0a08 70%,#2a0504);
+  box-shadow:0 0 0 2px #d8a948,0 0 0 5px #3a0806,0 0 0 6px rgba(240,205,110,.55),0 10px 24px rgba(0,0,0,.55),inset 0 0 40px rgba(0,0,0,.6)}
+.tv-cloth::before{content:'';position:absolute;inset:7%;border-radius:50%;border:1.5px solid rgba(240,205,110,.55);box-shadow:0 0 0 5px rgba(240,205,110,.08),inset 0 0 0 4px rgba(0,0,0,.18)}
+.tv-cloth::after{content:'';position:absolute;inset:24%;border-radius:50%;border:1px dashed rgba(240,205,110,.4)}
+.tv-cloth .motif{position:absolute;transform:translate(-50%,-50%);opacity:.75;filter:drop-shadow(0 1px 1px rgba(0,0,0,.7))}
 .tv-seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;text-align:center;transition:transform .2s}
 .tv-crest-wrap{position:relative;display:inline-block;filter:drop-shadow(0 5px 6px rgba(0,0,0,.75));transition:filter .2s}
 .tv-frame{position:relative;display:block;border-radius:999px 999px 9px 9px;padding:4px;
