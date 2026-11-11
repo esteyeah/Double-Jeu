@@ -2,12 +2,14 @@
 export const CUPS_CSS = `
 @font-face{font-family:'Go Digits';src:local('Times New Roman'),local('TimesNewRomanPSMT'),local('Liberation Serif'),local('Noto Serif'),local('Droid Serif'),local('Tinos');unicode-range:U+0030-0039}
 .go{position:relative;min-height:100dvh;color:#efe6d6;font-family:'Go Digits','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:17px;background:#101215;overflow:hidden;overflow:clip;isolation:isolate}
-.go-wall{position:absolute;inset:0;z-index:-4;background:linear-gradient(180deg,rgba(18,22,30,.45),rgba(10,11,14,.75)),url(/themes/cups/wall.jpg) center top/380px;filter:saturate(.35) brightness(.85)}
-.go-vault{position:absolute;left:0;right:0;top:0;height:min(560px,70vh);z-index:-3;pointer-events:none}
+.go-wall{position:absolute;inset:0;z-index:-4;background:#15171b}
+.go-vault{position:fixed;inset:0;z-index:-3;pointer-events:none;overflow:hidden}
 .go-vault svg{display:block;width:100%;height:100%}
-.go-light{position:absolute;inset:0;z-index:-2;pointer-events:none;animation:go-flicker 5s ease-in-out infinite;
-  background:radial-gradient(20% 26% at 34% 22%,rgba(255,154,60,.34),transparent 70%),radial-gradient(20% 26% at 66% 22%,rgba(255,154,60,.34),transparent 70%),
-    radial-gradient(60% 50% at 50% 62%,rgba(255,160,80,.12),transparent 72%),radial-gradient(140% 100% at 50% 40%,transparent 40%,rgba(0,0,0,.88) 100%)}
+.go-glow{animation:go-flicker 4s ease-in-out infinite}
+.go-fire{transform-box:fill-box;transform-origin:50% 100%;animation:go-fire 1.6s ease-in-out infinite alternate}
+@keyframes go-fire{0%{transform:scale(1,1)}50%{transform:scale(.92,1.08)}100%{transform:scale(1.05,.95)}}
+.go-light{position:absolute;inset:0;z-index:-2;pointer-events:none;
+  background:radial-gradient(60% 50% at 50% 60%,rgba(255,160,80,.08),transparent 72%),radial-gradient(140% 100% at 50% 40%,transparent 45%,rgba(0,0,0,.82) 100%)}
 @keyframes go-flicker{0%,100%{opacity:1}35%{opacity:.86}40%{opacity:.97}72%{opacity:.9}}
 .go-title{font-family:'Cinzel','Cormorant Garamond',serif;font-weight:700;letter-spacing:.06em}
 .go-amber{color:#f2c27a;text-shadow:0 0 22px rgba(255,140,40,.5),0 3px 0 #000}

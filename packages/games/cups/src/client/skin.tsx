@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { RichIcon, type StageSkin } from '@arcade/tabletop';
 import { CUPS_CSS } from './theme';
+import { Vault } from './vault';
 
 /** Habillage des écrans communs de Gobelets : taverne, cuir, bois et chandelle. */
 export const skin: StageSkin = {
@@ -9,6 +10,7 @@ export const skin: StageSkin = {
   scenery: (
     <div className="go" style={{ position: 'fixed', inset: 0, minHeight: 0 }} aria-hidden="true">
       <div className="go-wall" />
+      <Vault />
       <div className="go-light" />
     </div>
   ),

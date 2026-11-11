@@ -5,6 +5,7 @@ import type { BoardProps, PlayerId } from '@arcade/game-sdk';
 import { Avatar, Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, type GameIconName } from '@arcade/tabletop';
 import { CUPS_RULES, FACES, FACE_NAME, bidText, countFace, minQuantity, wild, type CupsMove, type CupsPlayerView, type CupsView, type Face, type Reveal } from '../shared';
 import { CUPS_CSS } from './theme';
+import { Vault } from './vault';
 
 export { skin } from './skin';
 
@@ -615,42 +616,6 @@ function RulesCodex({ open, onClose, view }: { open: boolean; onClose: () => voi
         </div>
       </div>
     </dialog>
-  );
-}
-
-// ───────── Décor : voûtes, fûts couchés, torches ─────────
-
-function Vault() {
-  return (
-    <div className="go-vault" aria-hidden="true">
-      <svg viewBox="0 0 1280 560" preserveAspectRatio="xMidYMin slice">
-        <defs>
-          <g id="go-cask">
-            <path d="M0 20 Q110 0 220 20 V120 Q110 140 0 120 Z" fill="#5e3a1d" stroke="#0c0d10" strokeWidth="3" />
-            <path d="M0 46 Q110 30 220 46 M0 94 Q110 110 220 94" stroke="#43280f" strokeWidth="2" fill="none" />
-            <path d="M30 14 V126 M60 9 V131 M160 9 V131 M190 14 V126" stroke="#17171a" strokeWidth="7" />
-            <ellipse cx="220" cy="70" rx="18" ry="50" fill="#4c2d16" stroke="#0c0d10" strokeWidth="3" />
-          </g>
-          <g id="go-torch">
-            <rect x="-5" y="0" width="10" height="70" fill="#3a2414" />
-            <path d="M-14 0 H14 L10 -12 H-10 Z" fill="#2a2c30" />
-            <path d="M0 -70 Q22 -40 12 -18 Q6 -8 0 -12 Q-6 -8 -12 -18 Q-22 -40 0 -70 Z" fill="#ff7a1c" />
-            <path d="M0 -50 Q12 -32 6 -18 Q0 -14 -6 -18 Q-12 -32 0 -50 Z" fill="#ffd27a" />
-          </g>
-        </defs>
-        <path d="M80 560 V280 Q80 140 220 140 Q360 140 360 280 V560 Z M500 560 V260 Q500 110 640 110 Q780 110 780 260 V560 Z M920 560 V280 Q920 140 1060 140 Q1200 140 1200 280 V560 Z" fill="#0a0b0e" opacity="0.9" />
-        <path d="M80 560 V280 Q80 140 220 140 Q360 140 360 280 V560 M500 560 V260 Q500 110 640 110 Q780 110 780 260 V560 M920 560 V280 Q920 140 1060 140 Q1200 140 1200 280 V560" fill="none" stroke="#3f444c" strokeWidth="18" />
-        <use href="#go-cask" x="108" y="410" />
-        <use href="#go-cask" x="108" y="280" />
-        <use href="#go-cask" x="948" y="410" />
-        <use href="#go-cask" x="948" y="280" />
-        <use href="#go-cask" x="528" y="410" />
-        <g className="go-flame">
-          <use href="#go-torch" x="430" y="270" />
-          <use href="#go-torch" x="850" y="270" />
-        </g>
-      </svg>
-    </div>
   );
 }
 
