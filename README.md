@@ -197,6 +197,9 @@ commissariat des années 70 (Garde à vue), table de cartographe (Boussole).
 - `RoundTable` (kit) assoit les joueurs autour d'un centre et relie les places par des flèches (visées, cordées,
   gouvernements…) ; `Cinematic` affiche les grands moments (manche, vote, carte retournée…) ; une consigne en clair
   dit toujours quoi faire maintenant.
+- Butin se joue sur le pont d'un navire en 3D, vu à la première personne (`<PirateDeck3D />` dans le kit) : l'équipage
+  modélisé se tient autour du butin, la nuit tombe à mi-voyage, et chaque fusillade est jouée par-dessus l'épaule du
+  tireur, sous l'orage (pluie et éclairs). Les étiquettes au-dessus des pirates sont en HTML : on les touche pour viser.
 - Plateau 3D : `<Table3D scene={...} fallback={...} />` (kit, dossier `packages/tabletop/src/three/`) se pose en
   `under` d'une `RoundTable` et dessine la table en 3D temps réel avec three.js / React Three Fiber : caméra
   orthographique inclinée calée sur l'ellipse des places, lumière et ombres, reflets métalliques, flammes, halo
@@ -227,6 +230,8 @@ commissariat des années 70 (Garde à vue), table de cartographe (Boussole).
   chapeaux et masques ajoutés par-dessus avec les icônes game-icons.net.
 - Polices : Pirata One, IM Fell English, Orbitron, Rajdhani, Share Tech Mono, Cinzel, Cormorant Garamond, Special Elite,
   Uncial Antiqua, Outfit, Lilita One (SIL Open Font License ou Apache 2.0), servies par le site.
+- Modèles 3D de Butin (équipage, navire, butin) : « Pirate Kit » de [Quaternius](https://quaternius.com), domaine public
+  (CC0), dans `apps/web/public/themes/plunder/3d/` ; texture de la mer issue des exemples de three.js (MIT).
 - 3D : [three.js](https://threejs.org), [React Three Fiber](https://github.com/pmndrs/react-three-fiber) et
   [drei](https://github.com/pmndrs/drei) (MIT), [postprocessing](https://github.com/pmndrs/postprocessing) (Zlib).
 

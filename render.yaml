@@ -9,6 +9,9 @@ services:
     # Serveurs en Europe (Francfort) : moins de latence pour les joueurs en France.
     region: frankfurt
     plan: free
+    # Redéploie tout seul à chaque push sur la branche principale.
+    autoDeploy: true
+    branch: main
     buildCommand: npm install -g pnpm@10.28.0 && NODE_ENV=development pnpm install --frozen-lockfile && pnpm build
     startCommand: node scripts/play.mjs --no-build
     healthCheckPath: /

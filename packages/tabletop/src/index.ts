@@ -3,5 +3,15 @@ export { sfx, soundOn, setSoundOn, onSoundChange, startAmbient, type AmbientKind
 export { useSoundSetting, useAmbient, useOnChange, useMediaQuery, Flip } from './hooks';
 export type { StageSkin } from './skin';
 export { RoundTable, Cinematic, type TableLink, type SeatGeometry } from './table';
-export { Avatar, AvatarProvider, useSkin, avatarUri, type AvatarLook } from './avatars';
+export { Avatar, AvatarProvider, useSkin, useSkins, avatarUri, type AvatarLook } from './avatars';
 export { Table3D, useWebGL, table3DEnabled, setTable3DEnabled, type Scene3D } from './three/Table3D';
+export {
+  PirateDeck3D,
+  type PirateDeckProps,
+  type DeckPirate,
+  type DeckDuel,
+  type DeckAim,
+  type DeckLoot,
+  type DeckAnchors,
+  type PiratePose,
+} from './three/PirateDeck3D';

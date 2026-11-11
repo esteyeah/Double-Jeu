@@ -244,6 +244,11 @@ export function AvatarProvider({ skins, children }: { skins: Record<string, numb
   return <SkinContext.Provider value={skins}>{children}</SkinContext.Provider>;
 }
 
+/** Tous les skins choisis (joueur → numéro). */
+export function useSkins(): Record<string, number> {
+  return useContext(SkinContext);
+}
+
 export function useSkin(playerId: string | null | undefined): number {
   const skins = useContext(SkinContext);
   return playerId ? (skins[playerId] ?? 0) : 0;
