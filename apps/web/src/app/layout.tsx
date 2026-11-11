@@ -5,6 +5,8 @@ import './globals.css';
 import '@fontsource/pirata-one';
 import '@fontsource/im-fell-english';
 import '@fontsource/im-fell-english/400-italic.css';
+import '@fontsource/im-fell-english-sc';
+import '@fontsource/unifrakturmaguntia';
 import '@fontsource/orbitron/600.css';
 import '@fontsource/orbitron/800.css';
 import '@fontsource/rajdhani/500.css';

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
 import { Avatar, Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, type GameIconName } from '@arcade/tabletop';
-import { FACES, FACE_NAME, bidText, countFace, minQuantity, wild, type CupsMove, type CupsPlayerView, type CupsView, type Face, type Reveal } from '../shared';
+import { CUPS_RULES, FACES, FACE_NAME, bidText, countFace, minQuantity, wild, type CupsMove, type CupsPlayerView, type CupsView, type Face, type Reveal } from '../shared';
 import { CUPS_CSS } from './theme';
 
 export { skin } from './skin';
@@ -19,6 +19,11 @@ export default function CupsBoard({ view, viewer, actingAs, mode, sendMove }: Pr
   const hotseatName = mode === 'hotseat' && actor ? `${actor.name}, ` : '';
   const wide = useMediaQuery('(min-width: 1024px)');
   useAmbient('hearth');
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const openRules = () => {
+    sfx.click();
+    setRulesOpen(true);
+  };
 
   // Nouvelle manche : on secoue les gobelets.
   const [shake, setShake] = useState(0);
@@ -52,6 +57,7 @@ export default function CupsBoard({ view, viewer, actingAs, mode, sendMove }: Pr
         {CUPS_CSS}
       </style>
       <div className="go-wall" />
+      <Vault />
       <div className="go-light" />
 
       <header className="relative px-3 pt-[3.6rem] text-center sm:pt-4">
@@ -61,14 +67,20 @@ export default function CupsBoard({ view, viewer, actingAs, mode, sendMove }: Pr
             <span className="go-title go-amber text-[2rem] leading-none sm:text-[2.5rem]">Gobelets</span>
             <RichIcon name="rolling-dice-cup" metal="copper" size={wide ? 34 : 26} />
           </span>
-          <span className="mt-1 flex gap-4 text-[14px] text-[#e9d3a8]">
+          <span className="meta mt-1 flex gap-4">
             <span>
-              <span>Manche</span> <strong className="go-num">{view.round}</strong>
+              <span>Manche</span> <strong className="go-num text-[16px] text-[#efe6d6]">{view.round}</strong>
             </span>
             <span>
-              <strong className="go-num">{view.totalDice}</strong> dés en jeu
+              <strong className="go-num text-[16px] text-[#f2c27a]">{view.totalDice}</strong> dés en jeu
             </span>
           </span>
+        </div>
+        <div className="mt-3 flex justify-center">
+          <button type="button" className="go-rulesbtn" onClick={openRules} aria-haspopup="dialog">
+            <BookIcon />
+            Règles
+          </button>
         </div>
       </header>
       <div className="mx-auto w-[min(1240px,calc(100%-20px))]">
@@ -88,7 +100,7 @@ export default function CupsBoard({ view, viewer, actingAs, mode, sendMove }: Pr
         </div>
         <div className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-2">
           {view.phase === 'bid' && view.history.length > 1 && <Bids view={view} nameOf={nameOf} />}
-          <Reference view={view} />
+          <Reference view={view} onOpen={openRules} />
           <Journal lines={view.log} open={wide} />
         </div>
       </div>
@@ -96,6 +108,7 @@ export default function CupsBoard({ view, viewer, actingAs, mode, sendMove }: Pr
       <Cinematic trigger={shout.current || 'calm'} onMount={false} duration={2200}>
         {view.reveal && <ShoutBanner reveal={view.reveal} nameOf={nameOf} />}
       </Cinematic>
+      <RulesCodex open={rulesOpen} onClose={() => setRulesOpen(false)} view={view} />
     </div>
   );
 }
@@ -160,14 +173,17 @@ function Instruction({ icon, mine, text }: { icon: GameIconName; mine: boolean; 
 // ───────── La table de la taverne ─────────
 
 function Tavern({ view, viewer, wide, nameOf, shake }: { view: CupsView; viewer: PlayerId | null; wide: boolean; nameOf: NameOf; shake: number }) {
+  // La table (un dessus de tonneau) déborde un peu l'anneau des places : les gobelets sont posés dessus.
+  // Plus il y a de monde, plus elle s'agrandit.
+  const crowded = view.players.length >= 6;
   return (
-    <section className="relative pb-7 lg:pb-3" aria-label="La table">
+    <section className="relative py-6 lg:py-5" aria-label="La table">
       <h3 className="sr-only">La table</h3>
       <RoundTable
         ids={view.players.map((p) => p.id)}
         me={viewer}
         seat={wide ? { w: 132, h: 166 } : { w: 88, h: 132 }}
-        className={wide ? 'aspect-[1.3] max-h-[calc(100dvh-140px)] min-h-[500px]' : 'aspect-[0.84]'}
+        className={wide ? `aspect-[1.3] max-h-[calc(100dvh-140px)] ${crowded ? 'min-h-[600px]' : 'min-h-[520px]'}` : crowded ? 'aspect-[0.76]' : 'aspect-[0.84]'}
         under={<div className="go-table" />}
         center={<Slate view={view} nameOf={nameOf} />}
         renderSeat={(id) => {
@@ -480,11 +496,11 @@ function Bids({ view, nameOf }: { view: CupsView; nameOf: NameOf }) {
   );
 }
 
-function Reference({ view }: { view: CupsView }) {
+function Reference({ view, onOpen }: { view: CupsView; onOpen: () => void }) {
   return (
-    <details className="rounded-xl border border-[rgba(255,208,122,.3)] bg-[rgba(14,6,2,.72)] px-4 py-3">
-      <summary className="go-title cursor-pointer select-none text-[1.35rem] text-[#ffd07a]">Les règles de la maison</summary>
-      <ul className="mt-2 flex list-disc flex-col gap-1 pl-4 text-[#d9c3a0]">
+    <details className="rounded border-2 border-[#4a4f57] bg-[rgba(14,15,18,.85)] px-4 py-3">
+      <summary className="go-title cursor-pointer select-none text-[1.1rem] text-[#f2c27a]">Les règles de la maison</summary>
+      <ul className="mt-2 flex list-disc flex-col gap-1 pl-4 text-[#c9c2b4]">
         <li>Une enchère porte sur tous les dés de la table : « au moins N dés de cette valeur ».</li>
         <li>Les As (dorés) sont jokers, sauf en manche sèche ou quand on parie sur les As.</li>
         <li>Monter : plus de dés, ou autant d’une valeur plus forte.</li>
@@ -493,7 +509,148 @@ function Reference({ view }: { view: CupsView }) {
         {view.config.exact && <li>« Pile ! » : exact, on gagne un dé (même au-delà du départ) ; sinon on en perd un.</li>}
         {view.config.dry && <li>Manche sèche quand un joueur tombe à son dernier dé : pas de jokers, valeur fixe.</li>}
       </ul>
+      <button type="button" className="go-rulesbtn mt-3" onClick={onOpen} aria-haspopup="dialog">
+        <BookIcon />
+        Lire le grimoire complet
+      </button>
     </details>
+  );
+}
+
+// ───────── Grimoire des règles (manuscrit enluminé) ─────────
+
+function BookIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f2c27a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z" />
+      <path d="M20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z" />
+    </svg>
+  );
+}
+
+/** Fleuron d'angle : rosace rouge et or, feuille verte, feuille bleue. */
+function Fleuron({ style }: { style: CSSProperties }) {
+  return (
+    <svg className="go-codex-fleur" style={style} viewBox="-16 -16 70 70" aria-hidden="true">
+      <circle r="13" fill="#a8321e" stroke="#2b1d12" strokeWidth="2" />
+      <circle r="5" fill="#c79a2e" />
+      <path d="M13 0 q18 -14 36 0 q-18 14 -36 0 Z" fill="#3f6b3a" stroke="#2b1d12" strokeWidth="1.5" />
+      <path d="M0 13 q-14 18 0 36 q14 -18 0 -36 Z" fill="#1f3f8a" stroke="#2b1d12" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+/** Une règle commençant par « Titre court : … » est rubriquée (titre à l'encre rouge). */
+function splitRubric(rule: string): [string | null, string] {
+  const m = /^(.{3,30}?) : (.*)$/s.exec(rule);
+  return m ? [m[1]!, m[2]!.charAt(0).toUpperCase() + m[2]!.slice(1)] : [null, rule];
+}
+
+function RulesCodex({ open, onClose, view }: { open: boolean; onClose: () => void; view: CupsView }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    else if (!open && d.open) d.close();
+  }, [open]);
+  const [first, ...rest] = CUPS_RULES;
+  // Variantes non retenues pour cette partie : affichées, mais estompées.
+  const off = (rule: string) => (rule.includes('« Pile ! »') && rule.startsWith('Variante') && !view.config.exact) || (rule.includes('Manche sèche') && !view.config.dry);
+  return (
+    <dialog
+      ref={ref}
+      className="go-codex"
+      aria-labelledby="go-codex-title"
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="go-codex-page">
+        <Fleuron style={{ left: -10, top: -10 }} />
+        <Fleuron style={{ right: -10, top: -10, transform: 'rotate(90deg)' }} />
+        <Fleuron style={{ right: -10, bottom: -10, transform: 'rotate(180deg)' }} />
+        <Fleuron style={{ left: -10, bottom: -10, transform: 'rotate(270deg)' }} />
+        <div className="go-codex-head">
+          <div>
+            <div className="go-codex-kicker">Ici commencent</div>
+            <h2 id="go-codex-title" className="go-codex-title">
+              Les Règles du Jeu des Gobelets
+            </h2>
+          </div>
+          <button type="button" className="go-codex-close" onClick={onClose} aria-label="Fermer les règles" autoFocus>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+        <div className="go-codex-body">
+          {first && (
+            <p>
+              <span className="go-codex-lettrine" aria-hidden="true">
+                {first.charAt(0)}
+              </span>
+              <span className="sr-only">{first.charAt(0)}</span>
+              {first.slice(1)}
+            </p>
+          )}
+          {rest.map((rule, i) => {
+            const [rubric, text] = splitRubric(rule);
+            const disabled = off(rule);
+            return (
+              <p key={i} className={disabled ? 'go-codex-off' : undefined}>
+                {rubric && <span className="go-codex-rubric">{rubric}. </span>}
+                {text}
+                {disabled && <span className="go-codex-tag"> (non retenue pour cette partie)</span>}
+              </p>
+            );
+          })}
+        </div>
+        <div className="go-codex-foot">
+          <span>Ainsi finissent les règles. Que les dés vous soient favorables.</span>
+          <button type="button" className="go-codex-seal" onClick={onClose}>
+            Retour au jeu
+          </button>
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
+// ───────── Décor : voûtes, fûts couchés, torches ─────────
+
+function Vault() {
+  return (
+    <div className="go-vault" aria-hidden="true">
+      <svg viewBox="0 0 1280 560" preserveAspectRatio="xMidYMin slice">
+        <defs>
+          <g id="go-cask">
+            <path d="M0 20 Q110 0 220 20 V120 Q110 140 0 120 Z" fill="#5e3a1d" stroke="#0c0d10" strokeWidth="3" />
+            <path d="M0 46 Q110 30 220 46 M0 94 Q110 110 220 94" stroke="#43280f" strokeWidth="2" fill="none" />
+            <path d="M30 14 V126 M60 9 V131 M160 9 V131 M190 14 V126" stroke="#17171a" strokeWidth="7" />
+            <ellipse cx="220" cy="70" rx="18" ry="50" fill="#4c2d16" stroke="#0c0d10" strokeWidth="3" />
+          </g>
+          <g id="go-torch">
+            <rect x="-5" y="0" width="10" height="70" fill="#3a2414" />
+            <path d="M-14 0 H14 L10 -12 H-10 Z" fill="#2a2c30" />
+            <path d="M0 -70 Q22 -40 12 -18 Q6 -8 0 -12 Q-6 -8 -12 -18 Q-22 -40 0 -70 Z" fill="#ff7a1c" />
+            <path d="M0 -50 Q12 -32 6 -18 Q0 -14 -6 -18 Q-12 -32 0 -50 Z" fill="#ffd27a" />
+          </g>
+        </defs>
+        <path d="M80 560 V280 Q80 140 220 140 Q360 140 360 280 V560 Z M500 560 V260 Q500 110 640 110 Q780 110 780 260 V560 Z M920 560 V280 Q920 140 1060 140 Q1200 140 1200 280 V560 Z" fill="#0a0b0e" opacity="0.9" />
+        <path d="M80 560 V280 Q80 140 220 140 Q360 140 360 280 V560 M500 560 V260 Q500 110 640 110 Q780 110 780 260 V560 M920 560 V280 Q920 140 1060 140 Q1200 140 1200 280 V560" fill="none" stroke="#3f444c" strokeWidth="18" />
+        <use href="#go-cask" x="108" y="410" />
+        <use href="#go-cask" x="108" y="280" />
+        <use href="#go-cask" x="948" y="410" />
+        <use href="#go-cask" x="948" y="280" />
+        <use href="#go-cask" x="528" y="410" />
+        <g className="go-flame">
+          <use href="#go-torch" x="430" y="270" />
+          <use href="#go-torch" x="850" y="270" />
+        </g>
+      </svg>
+    </div>
   );
 }
 

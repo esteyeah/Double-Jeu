@@ -140,3 +140,14 @@ export const FACE_NAME: Record<Face, string> = { 1: 'As', 2: 'Deux', 3: 'Trois',
 
 /** « 4 × Cinq », « 1 × As ». */
 export const bidText = (b: { quantity: number; face: Face }) => `${b.quantity} × ${FACE_NAME[b.face]}`;
+
+/** Règles du jeu, affichées avant la partie et dans le grimoire du plateau. */
+export const CUPS_RULES: string[] = [
+  'Chacun cache ses dés sous son gobelet et les secoue : tu ne vois que les tiens. Les As (les 1) sont jokers : ils comptent pour n’importe quelle valeur.',
+  'À tour de rôle, on enchérit sur TOUS les dés de la table : « 4 × Cinq » veut dire « il y a au moins quatre Cinq (As compris) sous l’ensemble des gobelets ». Chaque enchère doit monter : plus de dés, ou autant de dés d’une valeur plus forte.',
+  'Parier sur les As : la moitié de la quantité suffit (arrondie au-dessus). Revenir des As vers une autre valeur : il faut le double plus un. On ne peut pas ouvrir une manche sur les As.',
+  'Au lieu de monter, tu peux crier « Menteur ! » : on soulève les gobelets. S’il y a au moins la quantité annoncée, tu perds un dé ; sinon, c’est l’enchérisseur qui en perd un.',
+  'Variante « Pile ! » : tu paries que l’enchère est exactement juste. Si c’est le cas, tu gagnes un dé, même au-delà de ton nombre de départ ; sinon, tu en perds un.',
+  'Celui qui vient de perdre un dé ouvre la manche suivante, et tout le monde relance ses dés. Sans dé, on est éliminé ; le dernier à garder des dés gagne.',
+  'Variante « Manche sèche » : quand un joueur tombe à son dernier dé (une fois par joueur, à trois joueurs ou plus), la manche suivante se joue sans jokers et la valeur annoncée à l’ouverture ne change plus.',
+];

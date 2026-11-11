@@ -122,6 +122,9 @@ importers:
       '@fontsource/im-fell-english':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/im-fell-english-sc':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/lilita-one':
         specifier: ^5.3.0
         version: 5.3.0
@@ -144,6 +147,9 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource/uncial-antiqua':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/unifrakturmaguntia':
         specifier: ^5.3.0
         version: 5.3.0
       next:
@@ -834,6 +840,9 @@ packages:
   '@fontsource/cormorant-garamond@5.3.0':
     resolution: {integrity: sha512-weuGsCirGVWBWqpt6YUp0yLThTe4G8YO45noq8wxeJCRvEpq5lFrxNMFSTxcyOyV5k5otzJ8guDzYegdYlcLMQ==}
 
+  '@fontsource/im-fell-english-sc@5.3.0':
+    resolution: {integrity: sha512-jKnCJ22tgVwxWVs1YQ/GCWmP60ulVq49IJZ7c0wgv0MXHe8T8LPbl0sOteYLOkCURW5+ZKwFiLNU2h/l9fHgrg==}
+
   '@fontsource/im-fell-english@5.3.0':
     resolution: {integrity: sha512-FcgdWfY9WeUM2gQkfmwhn4Ed9LVtlll8LSSZvHfbsUrnHK5tHHnGg6BgwAfHogp52adU3eE89J/3B52qV3b+Vw==}
 
@@ -860,6 +869,9 @@ packages:
 
   '@fontsource/uncial-antiqua@5.3.0':
     resolution: {integrity: sha512-HA/cOSbmAt+RQniolOzckWYOzVUBg3YgczkVD01rRO61ErT9PYN3frgqvH7JqN5/7wg+W05EYY/7MbPdtgT0gw==}
+
+  '@fontsource/unifrakturmaguntia@5.3.0':
+    resolution: {integrity: sha512-z8NGOUeAu0T534Z8tEyuNbuUZsUiRoQKzg3gRB5sb2o2DipxEqmYQqHdlwxsbN0gpwhgcClKrCuB/AhVeY2UOQ==}
 
   '@iconify-json/game-icons@1.2.4':
     resolution: {integrity: sha512-/HDDZxowXgDJcOEwPspUCq5RuDdl25OyZKdtxqqiPJQNTrWIym7r4StLzIVs77DyNzOWWhH5wDqwYR3WHeDfkg==}
@@ -2587,6 +2599,8 @@ snapshots:
 
   '@fontsource/cormorant-garamond@5.3.0': {}
 
+  '@fontsource/im-fell-english-sc@5.3.0': {}
+
   '@fontsource/im-fell-english@5.3.0': {}
 
   '@fontsource/lilita-one@5.3.0': {}
@@ -2604,6 +2618,8 @@ snapshots:
   '@fontsource/special-elite@5.3.0': {}
 
   '@fontsource/uncial-antiqua@5.3.0': {}
+
+  '@fontsource/unifrakturmaguntia@5.3.0': {}
 
   '@iconify-json/game-icons@1.2.4':
     dependencies:
