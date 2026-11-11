@@ -1,15 +1,16 @@
 'use client';
 
-import { Component, lazy, Suspense, type ReactNode } from 'react';
+import { Component, lazy, Suspense, type ReactNode, type RefObject } from 'react';
 import { useWebGL } from './Table3D';
 
 /**
  * Le pont d'un navire pirate en 3D, vu à la première personne : l'équipage modélisé se tient
- * autour du butin, face au joueur. Pendant une fusillade, la caméra passe par-dessus l'épaule
- * du tireur, sous l'orage. Les étiquettes (noms, vies, clics pour viser) restent en HTML :
- * la scène donne leur position à l'écran par `onAnchors`.
+ * autour du butin, face au joueur, qui peut tourner la tête en faisant glisser. Les pirates qui
+ * visent lèvent leur pistolet vers leur cible. Pendant une fusillade, la caméra cadre le duel de
+ * côté, sous l'orage. Les étiquettes (noms, vies, clics pour viser) restent en HTML : la scène les
+ * place elle-même au-dessus des têtes, image par image.
  */
-export type PiratePose = 'idle' | 'duck' | 'hit' | 'down' | 'cheer' | 'shoot';
+export type PiratePose = 'idle' | 'aim' | 'duck' | 'hit' | 'down' | 'cheer';
 
 export interface DeckPirate {
   id: string;
@@ -17,16 +18,20 @@ export interface DeckPirate {
   model: number;
   tint?: string;
   pose: PiratePose;
+  /** Pour `aim` : le pirate visé. */
+  aimAt?: string | null;
   hidden?: boolean;
 }
 
 export interface DeckDuel {
-  /** Change à chaque tir (rejoue l'éclair du coup de feu). */
+  /** Change à chaque tir. */
   key: string;
   shooter: string;
   target: string;
   charge: 'dry' | 'wet';
   hit: boolean;
+  /** Le coup est parti (éclair, recul, la cible encaisse). */
+  fired: boolean;
 }
 
 export interface DeckAim {
@@ -36,13 +41,11 @@ export interface DeckAim {
   dashed?: boolean;
 }
 
-export interface DeckLoot {
-  coins: number;
-  rum: number;
-  powder: number;
+export type DeckLootKind = 'coin' | 'pearl' | 'map' | 'rum' | 'powder' | 'bicorne';
+export interface DeckLootItem {
+  kind: DeckLootKind;
+  value?: number;
 }
-
-export type DeckAnchors = Record<string, { x: number; y: number }>;
 
 export interface PirateDeckProps {
   crew: DeckPirate[];
@@ -51,14 +54,17 @@ export interface PirateDeckProps {
   storm: boolean;
   duel: DeckDuel | null;
   aims: DeckAim[];
-  loot: DeckLoot;
+  /** Les trésors de la manche, dans l'ordre du pont. */
+  loot: DeckLootItem[];
   /** Dossier des modèles (ex. `/themes/plunder/3d/`). */
   base: string;
-  /** Position à l'écran (px dans la scène) du haut de la tête de chaque pirate ; `null` pendant un duel. */
-  onAnchors: (anchors: DeckAnchors | null) => void;
+  /** Étiquettes HTML à placer au-dessus des pirates (par identifiant). */
+  tags: RefObject<Map<string, HTMLElement>>;
   /** Toucher un pirate dans la scène. */
   onPick?: (id: string) => void;
   pickable?: string[];
+  /** Toucher un trésor dans la scène (quand c'est à soi de se servir). */
+  onLoot?: (index: number) => void;
 }
 
 const Deck = lazy(() => import('./pirate-deck'));

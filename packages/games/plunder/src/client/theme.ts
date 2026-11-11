@@ -311,10 +311,10 @@ button.bt-seat:hover .bt-medal{outline:2px dashed #ff8a7a;outline-offset:3px}
 .bt3-me-mobile{position:absolute;right:10px;top:min(calc(62dvh - 52px),568px);z-index:3}
 .bt3-below{position:relative;z-index:3;width:min(1240px,calc(100% - 20px));margin:12px auto 0}
 
-.bt3-tag{position:absolute;z-index:2;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:3px;padding:0;background:none;border:0;color:#fff;
+.bt3-tag{position:absolute;left:0;top:0;z-index:2;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0;background:none;border:0;color:#fff;
   font-family:'Outfit',sans-serif;cursor:default;transition:transform .15s}
 button.bt3-tag{cursor:pointer}
-button.bt3-tag:hover{transform:translate(-50%,-100%) translateY(-3px)}
+button.bt3-tag:hover .bt3-tag-name{filter:brightness(1.18)}
 button.bt3-tag:focus-visible{outline:none}
 button.bt3-tag:focus-visible .bt3-tag-name{box-shadow:0 0 0 3px #fff}
 .bt3-tag-name{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-weight:800;font-size:15px;padding:4px 5px 4px 12px;border-radius:999px;
@@ -326,6 +326,13 @@ button.bt3-tag:focus-visible .bt3-tag-name{box-shadow:0 0 0 3px #fff}
 .bt3-tag.is-turn .bt3-tag-name{border-color:#ffd36a;box-shadow:0 0 0 2px rgba(255,211,106,.45),0 0 22px rgba(255,211,106,.5)}
 .bt3-tag.is-sunk{opacity:.6}
 button.bt3-tag:not(.is-aimed) .bt3-tag-name{border-color:rgba(255,211,106,.7)}
+.bt3-tag-aim{font-weight:700;font-size:12px;line-height:1.3;padding:1px 9px;border-radius:999px;color:#ffe3a8;background:rgba(14,9,5,.78);border:1px solid rgba(255,211,106,.45);white-space:nowrap}
+.bt3-stage.is-threat .bt3-roll::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;box-shadow:inset 0 0 90px 10px rgba(214,40,30,.55);animation:bt3-threat 1.4s ease-in-out infinite}
+@keyframes bt3-threat{50%{box-shadow:inset 0 0 130px 24px rgba(214,40,30,.75)}}
+.bt3-lookhint{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:3;pointer-events:none;font-weight:700;font-size:13px;color:#fff;padding:6px 14px;border-radius:999px;
+  background:rgba(14,9,5,.55);border:1px solid rgba(255,255,255,.22);animation:bt3-hint 9s ease forwards}
+@keyframes bt3-hint{0%,75%{opacity:1}100%{opacity:0}}
+@media (max-width:1023px){.bt3-lookhint{bottom:auto;top:min(calc(62dvh - 104px),516px)}}
 .bt3-reticle{position:absolute;left:50%;top:calc(100% + 34px);width:96px;height:96px;margin-left:-48px;border-radius:50%;border:3px solid #ff4d3d;
   box-shadow:0 0 0 2px rgba(0,0,0,.25),0 0 24px rgba(255,77,61,.6);animation:bt3-pulse 1.4s ease-in-out infinite;pointer-events:none}
 @keyframes bt3-pulse{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.1);opacity:1}}
@@ -340,10 +347,10 @@ button.bt3-tag:not(.is-aimed) .bt3-tag-name{border-color:rgba(255,211,106,.7)}
 .bt3-lightning{position:absolute;inset:0;background:#e8f4ff;opacity:0;pointer-events:none;animation:bt3-lightning 4.6s linear infinite 1.2s}
 @keyframes bt3-lightning{0%,62%{opacity:0}63%{opacity:.5}65%{opacity:0}67%{opacity:.32}70%,100%{opacity:0}}
 .bt3-pan{position:absolute;left:50%;top:9%;transform:translateX(-50%);pointer-events:none;font-family:'Lilita One',sans-serif;line-height:1;white-space:nowrap;
-  font-size:clamp(4.5rem,11vw,9.5rem);color:#ffe27a;text-shadow:0 8px 0 #7a2e00,0 0 50px rgba(255,190,80,.6);animation:bt3-pan 2.1s cubic-bezier(.2,1.4,.4,1) both}
+  font-size:clamp(4.5rem,11vw,9.5rem);color:#ffe27a;text-shadow:0 8px 0 #7a2e00,0 0 50px rgba(255,190,80,.6);animation:bt3-pan 2.3s cubic-bezier(.2,1.4,.4,1) both}
 .bt3-pan .wet{color:#d6e2ea;text-shadow:0 6px 0 #2a3a44,0 0 30px rgba(200,220,235,.4)}
 .bt3-pan .miss{color:#ffd36a}
-@keyframes bt3-pan{0%,14%{opacity:0;transform:translateX(-50%) scale(.3) rotate(-12deg)}22%{opacity:1;transform:translateX(-50%) scale(1.12) rotate(-4deg)}30%,85%{opacity:1;transform:translateX(-50%) scale(1) rotate(-4deg)}100%{opacity:0;transform:translateX(-50%) scale(1) rotate(-4deg)}}
+@keyframes bt3-pan{0%,31%{opacity:0;transform:translateX(-50%) scale(.3) rotate(-12deg)}37%{opacity:1;transform:translateX(-50%) scale(1.12) rotate(-4deg)}43%,86%{opacity:1;transform:translateX(-50%) scale(1) rotate(-4deg)}100%{opacity:0;transform:translateX(-50%) scale(1) rotate(-4deg)}}
 .bt3-duel-bar{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px 16px;
   width:max-content;max-width:calc(100% - 24px);box-sizing:border-box;padding:12px 12px 12px 22px;border-radius:28px;color:#fff;font-family:'Outfit',sans-serif;
   background:rgba(8,14,18,.74);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(12px) saturate(1.15);-webkit-backdrop-filter:blur(12px) saturate(1.15);box-shadow:0 20px 50px rgba(0,0,0,.5);cursor:default}

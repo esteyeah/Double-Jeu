@@ -11,7 +11,7 @@ export {
   type DeckPirate,
   type DeckDuel,
   type DeckAim,
-  type DeckLoot,
-  type DeckAnchors,
+  type DeckLootItem,
+  type DeckLootKind,
   type PiratePose,
 } from './three/PirateDeck3D';

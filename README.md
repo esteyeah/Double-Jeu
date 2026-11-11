@@ -198,8 +198,11 @@ commissariat des années 70 (Garde à vue), table de cartographe (Boussole).
   gouvernements…) ; `Cinematic` affiche les grands moments (manche, vote, carte retournée…) ; une consigne en clair
   dit toujours quoi faire maintenant.
 - Butin se joue sur le pont d'un navire en 3D, vu à la première personne (`<PirateDeck3D />` dans le kit) : l'équipage
-  modélisé se tient autour du butin, la nuit tombe à mi-voyage, et chaque fusillade est jouée par-dessus l'épaule du
-  tireur, sous l'orage (pluie et éclairs). Les étiquettes au-dessus des pirates sont en HTML : on les touche pour viser.
+  modélisé se tient autour du butin (posé et éclairé au milieu du pont, on peut le toucher pour se servir), on tourne la
+  tête en faisant glisser, la nuit tombe à mi-voyage. Ceux qui visent lèvent leur pistolet vers leur cible (arcs animés en
+  plus) ; chaque tir est cadré automatiquement (épaule du tireur, contrechamp ou de côté, sans que le navire masque la
+  scène), sous l'orage. Les plongeurs restent dans la cale jusqu'à la manche suivante, les coulés gisent sur le pont.
+  Les étiquettes au-dessus des pirates sont en HTML (la scène les place) : on les touche pour viser.
 - Plateau 3D : `<Table3D scene={...} fallback={...} />` (kit, dossier `packages/tabletop/src/three/`) se pose en
   `under` d'une `RoundTable` et dessine la table en 3D temps réel avec three.js / React Three Fiber : caméra
   orthographique inclinée calée sur l'ellipse des places, lumière et ombres, reflets métalliques, flammes, halo

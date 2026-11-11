@@ -17,7 +17,6 @@ import {
   useSkins,
   useWebGL,
   type DeckAim,
-  type DeckAnchors,
   type DeckDuel,
   type DeckPirate,
   type GameIconName,
@@ -78,12 +77,17 @@ function PlunderTable({ view, viewer, actingAs, mode, sendMove }: Props) {
   const wide = useMediaQuery('(min-width: 1024px)');
 
   useAmbient('sea');
-  const [fight, setFight] = useState<{ shots: Shot[]; divers: PlayerId[] } | null>(null);
+  const [fight, setFight] = useState<Fight | null>(null);
+  // Qui était déjà à terre avant cette fusillade (les autres tombent pendant, sous nos yeux).
+  const sunkBefore = useRef<PlayerId[]>([]);
   const shotsKey = `${view.round}|${view.shots.map((s) => `${s.shooter}${s.charge}${s.hit}`).join(',')}`;
   useOnChange(shotsKey, () => {
     if (view.shots.length > 0 && view.phase !== 'prepare') {
-      setFight({ shots: view.shots, divers: view.pirates.filter((p) => p.fled).map((p) => p.id) });
+      setFight({ shots: view.shots, divers: view.pirates.filter((p) => p.fled).map((p) => p.id), sunkBefore: sunkBefore.current });
     }
+  });
+  useEffect(() => {
+    sunkBefore.current = view.pirates.filter((p) => p.sunk).map((p) => p.id);
   });
   useOnChange(`${view.round}|${view.board.length}`, (prev) => {
     const [round, count] = prev.split('|').map(Number);
@@ -159,6 +163,7 @@ function PlunderTable({ view, viewer, actingAs, mode, sendMove }: Props) {
           steps={<StepTrack view={view} fighting={!!fight} />}
           treasure={<Treasure view={view} actingAs={actingAs} sendMove={sendMove} bare />}
           nameOf={nameOf}
+          onLoot={view.phase === 'loot' && !!actingAs && view.picker === actingAs && !fight ? (index) => sendMove({ type: 'take', index }) : undefined}
         />
         <div className="mx-auto mt-4 grid w-[min(1240px,calc(100%-20px))] gap-4 pb-16 lg:grid-cols-2 lg:items-start">
           {view.phase === 'over' && <Ranking view={view} viewer={viewer} seatOf={seatOf} />}
@@ -244,6 +249,8 @@ function assignModels(pirates: PirateView[], skins: Record<string, number>): Map
   return out;
 }
 
+type Fight = { shots: Shot[]; divers: PlayerId[]; sunkBefore: PlayerId[] };
+
 function DeckStage({
   stageRef,
   view,
@@ -259,13 +266,14 @@ function DeckStage({
   steps,
   treasure,
   nameOf,
+  onLoot,
 }: {
   stageRef: RefObject<HTMLElement | null>;
   view: PlunderView;
   viewer: PlayerId | null;
   actingAs: PlayerId | null;
   wide: boolean;
-  fight: { shots: Shot[]; divers: PlayerId[] } | null;
+  fight: Fight | null;
   duel: DeckDuel | null;
   aim: PlayerId | null;
   onAim?: (id: PlayerId) => void;
@@ -274,28 +282,40 @@ function DeckStage({
   steps: ReactNode;
   treasure: ReactNode;
   nameOf: NameOf;
+  onLoot?: (index: number) => void;
 }) {
   const skins = useSkins();
   const skinKey = view.pirates.map((p) => `${p.id}:${skins[p.id] ?? 0}`).join(',');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const models = useMemo(() => assignModels(view.pirates, skins), [skinKey]);
-  const [anchors, setAnchors] = useState<DeckAnchors | null>(null);
+  const tags = useRef(new Map<PlayerId, HTMLElement>());
   const me = viewer ?? actingAs;
   const over = view.phase === 'over';
   const best = over ? Math.max(...view.pirates.map((p) => p.score)) : -1;
+  const aiming = view.phase === 'order' || view.phase === 'courage';
+  // Ceux qui ont plongé dans la cale n'en ressortent qu'à la manche suivante.
+  const inHold = (p: PirateView) => (fight ? fight.divers.includes(p.id) : view.phase === 'loot' && !!p.fled);
 
   const crew: DeckPirate[] = view.pirates.map((p) => {
     const m = models.get(p.id) ?? { model: 0 };
     let pose: DeckPirate['pose'] = 'idle';
-    if (p.sunk) pose = 'down';
-    else if (duel?.shooter === p.id) pose = 'shoot';
-    else if (duel?.target === p.id) pose = duel.hit ? 'hit' : 'duck';
-    else if (over && p.score === best) pose = 'cheer';
-    return { id: p.id, model: m.model, tint: m.tint, pose, hidden: !!fight && fight.divers.includes(p.id) };
+    let aimAt: PlayerId | null = null;
+    const fallsNow = !!fight && p.sunk && !fight.sunkBefore.includes(p.id);
+    if (p.sunk && !fallsNow) pose = 'down';
+    else if (duel?.shooter === p.id) {
+      pose = 'aim';
+      aimAt = duel.target;
+    } else if (duel?.target === p.id && duel.fired) pose = duel.charge === 'wet' ? 'duck' : duel.hit ? 'hit' : 'idle';
+    else if (fallsNow) pose = 'hit';
+    else if (aiming && p.aim && !fight) {
+      pose = 'aim';
+      aimAt = p.aim;
+    } else if (over && p.score === best) pose = 'cheer';
+    return { id: p.id, model: m.model, tint: m.tint, pose, aimAt, hidden: inHold(p) };
   });
 
   const aims: DeckAim[] = [];
-  if (view.phase === 'order' || view.phase === 'courage') {
+  if (aiming) {
     for (const p of view.pirates) {
       if (!p.aim || p.sunk) continue;
       const atMe = p.aim === me;
@@ -305,20 +325,13 @@ function DeckStage({
     const target = aim ?? view.me?.prepared?.target ?? null;
     if (target) aims.push({ from: me, to: target, color: '#ff3b2e' });
   }
-
-  let coins = 0;
-  let rum = 0;
-  let powder = 0;
-  for (const item of view.board) {
-    if (item.kind === 'rum') rum++;
-    else if (item.kind === 'powder') powder++;
-    else coins++;
-  }
+  const threats = aiming ? view.pirates.filter((p) => !p.sunk && p.aim === me && p.id !== me).length : 0;
+  const divers = view.phase === 'loot' && !fight ? view.pirates.filter((p) => p.fled) : [];
   const time = over || view.round > Math.ceil(view.rounds / 2) ? 'night' : 'sunset';
   const self = view.pirates.find((p) => p.id === me);
 
   return (
-    <section ref={stageRef} className="bt3-stage" aria-label="Le pont du navire">
+    <section ref={stageRef} className={`bt3-stage ${threats ? 'is-threat' : ''}`} aria-label="Le pont du navire">
       <div className="bt3-roll">
         <PirateDeck3D
           crew={crew}
@@ -327,21 +340,36 @@ function DeckStage({
           storm={!!fight}
           duel={duel}
           aims={aims}
-          loot={{ coins, rum, powder }}
+          loot={view.board.map((item) => ({ kind: item.kind, value: item.value }))}
           base="/themes/plunder/3d/"
-          onAnchors={setAnchors}
+          tags={tags}
           onPick={onAim}
           pickable={view.pirates.filter((p) => !p.sunk && p.id !== me).map((p) => p.id)}
+          onLoot={onLoot}
           fallback={<div className="bt3-loading">Le navire approche…</div>}
         />
-        {anchors &&
-          view.pirates.map((p) => {
-            const a = anchors[p.id];
-            if (!a) return null;
-            return <DeckTag key={p.id} p={p} view={view} viewer={me} at={a} aimed={aim === p.id} onAim={onAim && !p.sunk ? () => onAim(p.id) : undefined} />;
-          })}
+        {view.pirates
+          .filter((p) => p.id !== me)
+          .map((p) => (
+            <DeckTag
+              key={p.id}
+              p={p}
+              view={view}
+              viewer={me}
+              nameOf={nameOf}
+              register={(el) => {
+                if (el) tags.current.set(p.id, el);
+                else tags.current.delete(p.id);
+              }}
+              aimed={aim === p.id}
+              onAim={onAim && !p.sunk ? () => onAim(p.id) : undefined}
+            />
+          ))}
       </div>
       <div className="bt3-shade" />
+      <div className="bt3-lookhint" aria-hidden="true">
+        Glisse pour regarder autour
+      </div>
 
       <div className="bt3-top">
         <div className="bt3-brand">
@@ -350,6 +378,11 @@ function DeckStage({
           {!over && (
             <span className="bt3-chip bt3-cap">
               <RichIcon name="ship-wheel" metal="gold" size={18} /> Capitaine : {nameOf(view.captain)}
+            </span>
+          )}
+          {divers.length > 0 && (
+            <span className="bt3-chip">
+              <RichIcon name="water-splash" metal="silver" size={18} /> Dans la cale : {divers.map((p) => p.name).join(', ')}
             </span>
           )}
         </div>
@@ -403,24 +436,27 @@ function MeBadge({ p }: { p: PirateView }) {
   );
 }
 
-/** Étiquette flottant au-dessus d'un pirate : nom, état, vies, doublons ; on la touche pour viser. */
+/** Étiquette flottant au-dessus d'un pirate (la scène 3D la place) : nom, état, cible, vies ; on la touche pour viser. */
 function DeckTag({
   p,
   view,
   viewer,
-  at,
+  nameOf,
+  register,
   aimed,
   onAim,
 }: {
   p: PirateView;
   view: PlunderView;
   viewer: PlayerId | null;
-  at: { x: number; y: number };
+  nameOf: NameOf;
+  register: (el: HTMLElement | null) => void;
   aimed: boolean;
   onAim?: () => void;
 }) {
   const status = seatStatus(view, p);
-  const threat = (view.phase === 'order' || view.phase === 'courage') && !!viewer && p.aim === viewer && !p.sunk;
+  const aiming = (view.phase === 'order' || view.phase === 'courage') && !!p.aim && !p.sunk;
+  const threat = aiming && !!viewer && p.aim === viewer;
   const captain = p.id === view.captain && view.phase !== 'over';
   const turn = view.phase === 'loot' && view.picker === p.id;
   const cls = `bt3-tag ${aimed ? 'is-aimed' : ''} ${threat ? 'is-threat' : ''} ${turn ? 'is-turn' : ''} ${p.sunk ? 'is-sunk' : ''}`;
@@ -429,10 +465,12 @@ function DeckTag({
       {threat ? <span className="bt3-tag-chip tone-red">te vise !</span> : status && <span className={`bt3-tag-chip tone-${status.tone}`}>{status.text}</span>}
       <span className="bt3-tag-name">
         {captain && <RichIcon name="ship-wheel" metal="gold" size={16} />}
+        {p.sunk && <RichIcon name="skull-crossed-bones" metal="bone" size={16} />}
         {p.name}
         {p.isBot && <span className="text-[11px] font-semibold opacity-70">bot</span>}
         <span className="bt3-coin">{p.score}</span>
       </span>
+      {aiming && !threat && <span className="bt3-tag-aim">vise {nameOf(p.aim)}</span>}
       {!p.sunk && (
         <span className="bt3-tag-life" aria-label={`${MAX_WOUNDS - p.wounds} vie(s) sur ${MAX_WOUNDS}, ${p.charges} balles`}>
           {Array.from({ length: MAX_WOUNDS }, (_, i) => (
@@ -446,10 +484,11 @@ function DeckTag({
       {aimed && <span className="bt3-reticle" aria-hidden="true" />}
     </>
   );
-  const style = { left: at.x, top: at.y };
+  const style = { visibility: 'hidden' as const };
   if (onAim) {
     return (
       <button
+        ref={register}
         type="button"
         className={cls}
         style={style}
@@ -465,7 +504,7 @@ function DeckTag({
     );
   }
   return (
-    <div className={cls} style={style}>
+    <div ref={register} className={cls} style={style}>
       {body}
     </div>
   );
@@ -1501,10 +1540,17 @@ function StormDuel({
       t = setTimeout(() => setStep(0), divers.length ? 1400 : 600);
     } else if (step < shots.length) {
       const s = shots[step]!;
-      onStep?.({ key: `${round}-${step}`, shooter: s.shooter, target: s.target, charge: s.charge, hit: s.hit });
-      if (s.charge === 'wet') sfx.blank(0.6);
-      else sfx.bang(0.6, s.hit ? 0.75 : 0.45);
-      t = setTimeout(() => setStep(step + 1), 2100);
+      // Le tireur lève son pistolet, la caméra se place… puis le coup part.
+      const duel = { key: `${round}-${step}`, shooter: s.shooter, target: s.target, charge: s.charge, hit: s.hit };
+      onStep?.({ ...duel, fired: false });
+      if (s.charge === 'wet') sfx.blank(0.75);
+      else sfx.bang(0.75, s.hit ? 0.75 : 0.45);
+      const shot = setTimeout(() => onStep?.({ ...duel, fired: true }), 750);
+      t = setTimeout(() => setStep(step + 1), 2300);
+      return () => {
+        clearTimeout(t);
+        clearTimeout(shot);
+      };
     } else {
       onStep?.(null);
       t = setTimeout(onDone, 300);
