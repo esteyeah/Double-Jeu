@@ -217,6 +217,37 @@ button[aria-pressed=true] > .tv-edict{transform:translateY(-10px);box-shadow:0 0
 .tv-ui-panel::before{display:none}
 .tv-ui-kicker,.tv-ui-text{font-family:'Outfit',sans-serif}
 .tv-ui-drawer,.tv-ui-pill{font-family:'Outfit',sans-serif}
+/* ───── Cases d'édits : filigrane gravé, numéro, et édit promulgué scellé sur son ruban ───── */
+.tv-track.crown .tv-slot{background:radial-gradient(80% 70% at 50% 35%,rgba(150,185,255,.12),transparent 70%),linear-gradient(180deg,rgba(6,14,46,.6),rgba(0,0,0,.55))}
+.tv-track.shadow .tv-slot{background:radial-gradient(80% 70% at 50% 35%,rgba(255,130,110,.12),transparent 70%),linear-gradient(180deg,rgba(46,5,3,.6),rgba(0,0,0,.55))}
+.tv-slot .ghost{opacity:.17;filter:drop-shadow(0 1px 0 rgba(255,255,255,.12))}
+.tv-slot .numeral{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:9px;letter-spacing:.14em;color:rgba(246,231,196,.32)}
+.tv-track .tv-slot.filled{overflow:hidden;background:radial-gradient(120% 90% at 50% 22%,#fffaf0,#f1e2c3 58%,#d8bd8c);
+  box-shadow:0 4px 10px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.65),inset 0 0 16px rgba(140,95,35,.4)}
+.tv-slot.filled .ribbon{position:absolute;top:-2px;bottom:-2px;left:50%;width:30%;transform:translateX(-50%);box-shadow:0 0 6px rgba(0,0,0,.35)}
+.tv-track.crown .tv-slot.filled .ribbon{background:linear-gradient(90deg,#122f74,#3468d0 45%,#5c88e0 52%,#163a8c)}
+.tv-track.shadow .tv-slot.filled .ribbon{background:linear-gradient(90deg,#5a0a07,#b52a20 45%,#d24a3c 52%,#6e0f0a)}
+.tv-slot.filled .tv-seal{position:relative;z-index:1;box-shadow:0 3px 6px rgba(0,0,0,.55),inset 0 -2px 4px rgba(0,0,0,.4),inset 0 2px 3px rgba(255,255,255,.35);
+  animation:tv-stamp .7s .3s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes tv-stamp{0%{transform:scale(2.4) rotate(-20deg);opacity:0}60%{opacity:1}100%{transform:none}}
+@media (max-width:1023px){.tv-slot .numeral{display:none}.tv-slot .ghost{transform:scale(.8)}}
+
+/* ───── Vitraux de la salle du Conseil, de part et d'autre de la table ───── */
+.tv-windows{position:absolute;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.tv-windows .win{position:absolute;top:190px;width:clamp(80px,6.4vw,130px);aspect-ratio:1/2.7;border-radius:999px 999px 6px 6px;border:7px solid #23160b;
+  box-shadow:0 0 0 2px rgba(233,196,106,.28),inset 0 0 0 2px rgba(0,0,0,.6),0 18px 40px rgba(0,0,0,.6);opacity:.72}
+.tv-windows .win::before{content:'';position:absolute;inset:0;border-radius:inherit;
+  background:repeating-linear-gradient(0deg,rgba(18,10,4,.85) 0 2px,transparent 2px 28px),repeating-linear-gradient(90deg,rgba(18,10,4,.85) 0 2px,transparent 2px 24px),
+    radial-gradient(60% 18% at 50% 14%,rgba(255,236,170,.9),transparent 70%),var(--glass)}
+.tv-windows .win::after{content:'';position:absolute;top:30%;left:50%;width:520%;height:330%;transform-origin:0 0;filter:blur(14px);mix-blend-mode:screen;
+  background:linear-gradient(180deg,var(--shaft),transparent 75%);clip-path:polygon(0 0,18% 0,100% 100%,40% 100%);animation:tv-shaft 9s ease-in-out infinite}
+.tv-windows .win.is-left{left:calc((100vw - 1240px) / 4 - 40px);
+  --glass:linear-gradient(180deg,#2c5bd0,#1b3a8e 35%,#c79a3a 36% 38%,#2a4fb5 39%,#16307a);--shaft:rgba(120,160,255,.16)}
+.tv-windows .win.is-right{right:calc((100vw - 1240px) / 4 - 40px);
+  --glass:linear-gradient(180deg,#d0402e,#8e1a12 35%,#c79a3a 36% 38%,#b02a1e 39%,#5e0c08);--shaft:rgba(255,120,90,.14)}
+.tv-windows .win.is-right::after{left:auto;right:50%;transform-origin:100% 0;clip-path:polygon(82% 0,100% 0,60% 100%,0 100%)}
+@keyframes tv-shaft{50%{opacity:.6}}
+@media (max-width:1599px){.tv-windows{display:none}}
 @media (prefers-reduced-motion:reduce){.tv *{animation:none!important;transition:none!important}.tv-banner,.tv-scroll{animation:tv-fade .2s both!important}}
 @keyframes tv-fade{from{opacity:0}to{opacity:1}}
 `;

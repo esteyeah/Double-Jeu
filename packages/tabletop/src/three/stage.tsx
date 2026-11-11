@@ -6,7 +6,8 @@ import { Environment, Lightformer } from '@react-three/drei';
 import { Bloom, EffectComposer } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import type { Scene3D } from './Table3D';
-import { CouncilScene, DeckScene, LairScene } from './scenes';
+import { DeckScene, LairScene } from './scenes';
+import { CouncilScene } from './council';
 import { ELEVATION, type Fit } from './parts';
 
 /**
@@ -86,7 +87,7 @@ function Fitted({ scene, inset }: { scene: Scene3D; inset: { x: number; y: numbe
     case 'deck':
       return <DeckScene fit={fit} />;
     case 'council':
-      return <CouncilScene fit={fit} />;
+      return <CouncilScene fit={fit} seats={scene.seats ?? 0} />;
     case 'lair':
       return <LairScene fit={fit} brew={scene.brew} />;
   }

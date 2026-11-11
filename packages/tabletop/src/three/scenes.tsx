@@ -4,29 +4,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
-import { Flame, FlickerLight, hdr, Rim, Studs, TableBody, useTex, type Fit } from './parts';
-
-/** Lumière principale qui projette les ombres sur toute la table. */
-function KeyLight({ A, B, u, color, intensity }: { A: number; B: number; u: number; color: string; intensity: number }) {
-  const r = Math.max(A, B) * 1.35;
-  return (
-    <directionalLight
-      position={[-A * 0.45, u * 3.2, B * 0.9]}
-      color={color}
-      intensity={intensity}
-      castShadow
-      shadow-mapSize={[1024, 1024]}
-      shadow-camera-left={-r}
-      shadow-camera-right={r}
-      shadow-camera-top={r}
-      shadow-camera-bottom={-r}
-      shadow-camera-near={1}
-      shadow-camera-far={u * 10}
-      shadow-bias={-0.0004}
-      shadow-normalBias={0.6}
-    />
-  );
-}
+import { Flame, FlickerLight, hdr, KeyLight, Rim, Studs, TableBody, useTex, type Fit } from './parts';
 
 // ───────── Butin : le pont du navire ─────────
 
@@ -101,69 +79,6 @@ function Sail({ A, B, u, material }: { A: number; B: number; u: number; material
     return g;
   }, [A, B, u]);
   return <mesh geometry={geo} material={material} rotation={[-Math.PI / 2, 0, 0.07]} position={[0, u * 0.004, 0]} receiveShadow castShadow />;
-}
-
-// ───────── Le Trône Vide : la table du Conseil ─────────
-
-export function CouncilScene({ fit }: { fit: Fit }) {
-  const { A, B, u } = fit;
-  const T = u * 0.08;
-  const wood = useTex('/themes/throne/table.jpg', A / 240, B / 240);
-  const velvet = useTex('/themes/throne/velvet.jpg', 3, 3);
-  const mats = useMemo(
-    () => ({
-      top: new THREE.MeshPhysicalMaterial({ map: wood, color: '#d39a64', roughness: 0.4, clearcoat: 0.8, clearcoatRoughness: 0.18 }),
-      side: new THREE.MeshStandardMaterial({ map: wood, color: '#5e3418', roughness: 0.5 }),
-      gold: new THREE.MeshStandardMaterial({ color: '#e5b24c', metalness: 1, roughness: 0.22 }),
-      cloth: new THREE.MeshPhysicalMaterial({ map: velvet, color: '#8e1a14', roughness: 0.92, sheen: 1, sheenColor: new THREE.Color('#ff8a70'), sheenRoughness: 0.42 }),
-      wax: new THREE.MeshStandardMaterial({ color: '#f4e8cc', roughness: 0.55, emissive: new THREE.Color('#ffcf8a'), emissiveIntensity: 0.18 }),
-    }),
-    [wood, velvet],
-  );
-  const cloth = 0.78;
-  const ch = u * 0.012;
-  const candles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
-  return (
-    <>
-      <hemisphereLight args={['#ffe2b0', '#26120a', 1.3]} />
-      <KeyLight A={A} B={B} u={u} color="#ffe3b8" intensity={2.6} />
-      <TableBody A={A} B={B} thickness={T} top={mats.top} side={mats.side} />
-      <Rim A={A} B={B} y={u * 0.003} radius={u * 0.018} material={mats.gold} />
-      <mesh scale={[A * cloth, ch, B * cloth]} position={[0, ch / 2, 0]} material={mats.cloth} receiveShadow>
-        <cylinderGeometry args={[1, 1, 1, 128]} />
-      </mesh>
-      <Rim A={A * cloth} B={B * cloth} y={ch} radius={u * 0.01} material={mats.gold} />
-      <Rim A={A * cloth * 0.9} B={B * cloth * 0.9} y={ch + u * 0.002} radius={u * 0.004} material={mats.gold} />
-      <Rim A={A * cloth * 0.52} B={B * cloth * 0.52} y={ch + u * 0.002} radius={u * 0.004} material={mats.gold} />
-      <Studs A={A * cloth * 0.71} B={B * cloth * 0.71} y={ch + u * 0.003} count={16} size={u * 0.012} material={mats.gold} />
-      {candles.map((a, i) => (
-        <Candle key={a} position={[A * 0.66 * Math.cos(a), ch, B * 0.66 * Math.sin(a)]} u={u} gold={mats.gold} wax={mats.wax} seed={i} />
-      ))}
-      <Sparkles count={30} scale={[A * 1.8, u * 0.9, B * 1.8]} position={[0, u * 0.45, 0]} size={u * 0.016} speed={0.15} color="#ffe2a8" opacity={0.5} />
-    </>
-  );
-}
-
-function Candle({ position, u, gold, wax, seed }: { position: [number, number, number]; u: number; gold: THREE.Material; wax: THREE.Material; seed: number }) {
-  const s = u * 0.085;
-  return (
-    <group position={position}>
-      <mesh material={gold} position={[0, s * 0.08, 0]} castShadow>
-        <cylinderGeometry args={[s * 0.5, s * 0.62, s * 0.16, 32]} />
-      </mesh>
-      <mesh material={gold} position={[0, s * 0.45, 0]} castShadow>
-        <cylinderGeometry args={[s * 0.1, s * 0.16, s * 0.65, 16]} />
-      </mesh>
-      <mesh material={gold} position={[0, s * 0.82, 0]} castShadow>
-        <cylinderGeometry args={[s * 0.34, s * 0.18, s * 0.12, 24]} />
-      </mesh>
-      <mesh material={wax} position={[0, s * 1.38, 0]} castShadow>
-        <cylinderGeometry args={[s * 0.2, s * 0.2, s, 20]} />
-      </mesh>
-      <Flame position={[0, s * 1.9, 0]} size={s * 0.34} seed={seed} />
-      <FlickerLight position={[0, s * 2.3, 0]} color="#ffb257" intensity={1.8} distance={u * 1.6} seed={seed} />
-    </group>
-  );
 }
 
 // ───────── Le Chaudron : l'antre ─────────

@@ -9,7 +9,7 @@ import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from '
  */
 export type Scene3D =
   | { kind: 'deck' }
-  | { kind: 'council' }
+  | { kind: 'council'; seats?: number }
   | { kind: 'lair'; brew: 'poison' | 'brew' | 'ready' };
 
 const Stage = lazy(() => import('./stage'));

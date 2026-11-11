@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
 import {
   Avatar,
@@ -74,6 +74,10 @@ export default function ThroneBoard({ view, viewer, actingAs, mode, sendMove }: 
         {THRONE_CSS}
       </style>
       <div className="tv-wall" />
+      <div className="tv-windows" aria-hidden="true">
+        <span className="win is-left" />
+        <span className="win is-right" />
+      </div>
       <div className="tv-light" />
       <div className="tv-motes" aria-hidden="true">
         {Array.from({ length: 14 }, (_, i) => (
@@ -307,6 +311,8 @@ function Seal({ team, size = 34, usurper = false }: { team: Edict; size?: number
   );
 }
 
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+
 function Track({ team, view }: { team: Edict; view: ThroneView }) {
   const crown = team === 'crown';
   const total = crown ? CROWN_TO_WIN : SHADOW_TO_WIN;
@@ -334,7 +340,10 @@ function Track({ team, view }: { team: Edict; view: ThroneView }) {
               title={filled ? EDICT_LABEL[team] : last ? 'Victoire' : power ? POWER_LABEL[power] : undefined}
             >
               {filled ? (
-                <Seal team={team} size={28} />
+                <>
+                  <span className="ribbon" aria-hidden="true" />
+                  <Seal team={team} size={32} />
+                </>
               ) : last ? (
                 <>
                   <RichIcon name={crown ? 'laurel-crown' : 'crowned-skull'} metal={crown ? 'gold' : 'bone'} size={22} />
@@ -345,7 +354,12 @@ function Track({ team, view }: { team: Edict; view: ThroneView }) {
                   <RichIcon name={POWER_ICON[power]} metal="bone" size={20} />
                   {POWER_LABEL[power]}
                 </>
-              ) : null}
+              ) : (
+                <span className="ghost" aria-hidden="true">
+                  <RichIcon name={crown ? 'fleur-de-lys' : 'all-seeing-eye'} metal={crown ? 'gold' : 'bone'} size={26} />
+                </span>
+              )}
+              {!filled && <span className="numeral" aria-hidden="true">{ROMAN[i]}</span>}
               {!crown && i + 1 === USURPER_DANGER && <span className="mark" title="Dès ce 3e édit, élire l’Usurpateur Sénéchal le couronne">danger</span>}
               {!crown && i + 1 === VETO_AT && <span className="mark" title="Le Sénéchal peut proposer un veto">veto</span>}
             </div>
@@ -485,6 +499,8 @@ function CouncilTable({
   pick: PlayerId | null;
   setPick: (id: PlayerId) => void;
 }) {
+  const seats = view.players.length;
+  const scene = useMemo(() => ({ kind: 'council', seats }) as const, [seats]);
   const links: TableLink[] = [];
   const target = ['vote', 'regent', 'seneschal', 'veto'].includes(view.phase) ? view.nominee : view.phase === 'nomination' ? pick : null;
   if (target && target !== view.regent) links.push({ id: 'gov', from: view.regent, to: target, color: '#f0cd6e', width: 3.5, flow: true, glow: true });
@@ -501,7 +517,7 @@ function CouncilTable({
         links={links}
         under={
           <Table3D
-            scene={COUNCIL}
+            scene={scene}
             fallback={
               <div className="tv-table-under">
                 <TableCloth />
@@ -528,8 +544,6 @@ function CouncilTable({
     </section>
   );
 }
-
-const COUNCIL = { kind: 'council' } as const;
 
 /** Tapis brodé au centre de la table : fleurs de lys de la Couronne et yeux de l'Ombre, en alternance. */
 function TableCloth() {

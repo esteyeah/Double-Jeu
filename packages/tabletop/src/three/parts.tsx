@@ -44,6 +44,28 @@ export function useTex(url: string, rx = 1, ry = rx) {
   }, [base, rx, ry]);
 }
 
+/** Lumière principale qui projette les ombres sur toute la table. */
+export function KeyLight({ A, B, u, color, intensity, mapSize = 1024 }: { A: number; B: number; u: number; color: string; intensity: number; mapSize?: number }) {
+  const r = Math.max(A, B) * 1.35;
+  return (
+    <directionalLight
+      position={[-A * 0.45, u * 3.2, B * 0.9]}
+      color={color}
+      intensity={intensity}
+      castShadow
+      shadow-mapSize={[mapSize, mapSize]}
+      shadow-camera-left={-r}
+      shadow-camera-right={r}
+      shadow-camera-top={r}
+      shadow-camera-bottom={-r}
+      shadow-camera-near={1}
+      shadow-camera-far={u * 10}
+      shadow-bias={-0.0004}
+      shadow-normalBias={0.6}
+    />
+  );
+}
+
 /** Corps de la table : un cylindre elliptique (dessus, chant), qui reçoit et projette des ombres. */
 export function TableBody({ A, B, thickness, top, side }: { A: number; B: number; thickness: number; top: THREE.Material; side: THREE.Material }) {
   const geo = useMemo(() => new THREE.CylinderGeometry(1, 0.97, 1, 128, 1), []);
