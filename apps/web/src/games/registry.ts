@@ -56,7 +56,7 @@ const games: Record<string, ClientGame> = {
   expedition: { module: expedition, Board: ExpeditionBoard, immersive: expeditionSkin, look: 'polar' },
   court: { module: court, Board: CourtBoard, immersive: courtSkin, look: 'masked' },
   cauldron: { module: cauldron, Board: CauldronBoard, immersive: cauldronSkin, look: 'alchemist', table3d: true },
-  cups: { module: cups, Board: CupsBoard, immersive: cupsSkin, look: 'tavern' },
+  cups: { module: cups, Board: CupsBoard, immersive: cupsSkin, look: 'tavern', table3d: true },
   compass: { module: compass, Board: CompassBoard, immersive: compassSkin, look: 'explorer' },
 };
 

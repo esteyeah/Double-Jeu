@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import { Avatar, Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, type GameIconName } from '@arcade/tabletop';
+import { Avatar, Cellar3D, Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, useWebGL, type CellarDrinker, type GameIconName } from '@arcade/tabletop';
 import { CUPS_RULES, FACES, FACE_NAME, bidText, countFace, minQuantity, wild, type CupsMove, type CupsPlayerView, type CupsView, type Face, type Reveal } from '../shared';
 import { CUPS_CSS } from './theme';
 import { Vault } from './vault';
@@ -173,7 +173,113 @@ function Instruction({ icon, mine, text }: { icon: GameIconName; mine: boolean; 
 
 // ───────── La table de la taverne ─────────
 
-function Tavern({ view, viewer, wide, nameOf, shake }: { view: CupsView; viewer: PlayerId | null; wide: boolean; nameOf: NameOf; shake: number }) {
+function Tavern(props: { view: CupsView; viewer: PlayerId | null; wide: boolean; nameOf: NameOf; shake: number }) {
+  const ok = useWebGL();
+  return ok ? <Tavern3D {...props} /> : <TavernFlat {...props} />;
+}
+
+const MODEL_TINT = ['#c9d8ff', '#ffd6c2', '#d8ffd0'];
+
+/**
+ * La tablée en 3D : un tonneau debout, les joueurs assis autour sur des tabourets, chacun devant
+ * son gobelet d'étain. Même encombrement que la table à plat ; le décor de la cave reste derrière.
+ * Noms, dés et enchères sont des étiquettes HTML que la scène place au-dessus des têtes.
+ */
+function Tavern3D({ view, viewer, wide, nameOf, shake }: { view: CupsView; viewer: PlayerId | null; wide: boolean; nameOf: NameOf; shake: number }) {
+  const tags = useRef(new Map<string, HTMLElement>());
+  const drinkers = useMemo<CellarDrinker[]>(
+    () =>
+      view.players.map((p, i) => {
+        const revealed = view.phase !== 'bid' ? view.reveal?.dice[p.id] : undefined;
+        return {
+          id: p.id,
+          model: i % 5,
+          tint: i >= 5 ? MODEL_TINT[(i - 5) % MODEL_TINT.length] : undefined,
+          pose: p.out ? 'out' : p.id === view.winner ? 'cheer' : 'sit',
+          cup: p.out ? 'none' : revealed ? 'lift' : 'down',
+          dice: revealed ? revealed.length : p.dice,
+          active: view.phase === 'bid' && p.id === view.active,
+        };
+      }),
+    [view.players, view.phase, view.reveal, view.winner, view.active],
+  );
+  const register = (id: string) => (el: HTMLElement | null) => {
+    if (el) tags.current.set(id, el);
+    else tags.current.delete(id);
+  };
+  return (
+    <section
+      className={`relative w-full overflow-hidden ${wide ? 'aspect-[1.45] max-h-[calc(100dvh-170px)] min-h-[440px]' : 'aspect-[0.95]'}`}
+      aria-label="La table"
+    >
+      <h3 className="sr-only">La table</h3>
+      <Cellar3D
+        drinkers={drinkers}
+        viewer={viewer}
+        base="/themes/throne/3d/"
+        tags={tags}
+        shake={shake}
+        fallback={<div className="go-tablee-wait">La tablée s’installe…</div>}
+      />
+      <div className="pointer-events-none absolute inset-0">
+        <div ref={register('__center')} className="go-tag3d is-center" style={{ visibility: 'hidden' }}>
+          <Slate view={view} nameOf={nameOf} />
+        </div>
+        {view.players.map((p) => (
+          <div key={p.id} ref={register(p.id)} data-anchor={p.id === viewer ? 'below' : undefined} className="go-tag3d" style={{ visibility: 'hidden' }}>
+            <SeatInfo p={p} view={view} viewer={viewer} wide={wide} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Statut, nom, dés (cachés ou révélés) et dernière enchère d'un joueur. */
+function SeatInfo({ p, view, viewer, wide }: { p: CupsPlayerView; view: CupsView; viewer: PlayerId | null; wide: boolean }) {
+  const last = view.phase === 'bid' ? [...view.history].reverse().find((b) => b.by === p.id) : undefined;
+  const revealed = view.phase !== 'bid' ? view.reveal?.dice[p.id] : undefined;
+  const bid = view.reveal?.bid;
+  const hit = (d: Face) => !!bid && (d === bid.face || (d === 1 && wild(bid.face, view.reveal!.dry)));
+  const tiny = wide ? 16 : 13;
+  let chip: { text: string; tone: string } | null = null;
+  if (p.out) chip = { text: 'éliminé', tone: 'dim' };
+  else if (p.id === view.winner) chip = { text: 'vainqueur', tone: 'green' };
+  else if (view.reveal && view.phase === 'reveal' && view.reveal.loser === p.id) chip = { text: '−1 dé', tone: 'red' };
+  else if (view.reveal && view.phase === 'reveal' && view.reveal.gainer === p.id) chip = { text: '+1 dé', tone: 'green' };
+  else if (p.id === view.active && view.phase === 'bid') chip = { text: 'enchérit…', tone: 'gold' };
+  return (
+    <div className={`go-seat ${p.id === view.active && view.phase === 'bid' ? 'is-active' : ''} ${p.id === viewer ? 'is-me' : ''} ${p.out ? 'is-out' : ''}`}>
+      {chip && <span className={`go-chip tone-${chip.tone}`}>{chip.text}</span>}
+      <span className="go-plate">
+        <span className="go-name">{p.name}</span>
+        {(p.id === viewer || p.isBot) && <span className="go-tag">{p.id === viewer ? 'toi' : 'bot'}</span>}
+      </span>
+      {revealed ? (
+        <span className="flex max-w-[150px] flex-wrap justify-center gap-[3px]">
+          {revealed.map((d, i) => (
+            <Die key={i} face={d} size={tiny} hit={hit(d)} dim={!hit(d)} roll delay={i * 0.05} />
+          ))}
+        </span>
+      ) : (
+        !p.out && (
+          <span className="flex flex-wrap justify-center gap-[3px]" aria-label={`${p.dice} dé${p.dice > 1 ? 's' : ''}`}>
+            {Array.from({ length: p.dice }, (_, i) => (
+              <span key={i} className="go-hidden" style={{ width: tiny - 4, height: tiny - 4 }} />
+            ))}
+          </span>
+        )
+      )}
+      {last && (
+        <span className="go-bubble">
+          {last.quantity} × <Die face={last.face} size={14} />
+        </span>
+      )}
+    </div>
+  );
+}
+
+function TavernFlat({ view, viewer, wide, nameOf, shake }: { view: CupsView; viewer: PlayerId | null; wide: boolean; nameOf: NameOf; shake: number }) {
   // La table (un dessus de tonneau) déborde un peu l'anneau des places : les gobelets sont posés dessus.
   // Plus il y a de monde, plus elle s'agrandit.
   const crowded = view.players.length >= 6;

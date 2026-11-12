@@ -25,3 +25,4 @@ export {
   type HallLink,
   type ThroneHallProps,
 } from './three/ThroneHall3D';
+export { Cellar3D, type CellarDrinker, type CellarProps, type DrinkerPose } from './three/Cellar3D';

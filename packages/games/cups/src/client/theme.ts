@@ -82,6 +82,15 @@ export const CUPS_CSS = `
 .tone-gold{color:#1d1206;border-color:#6d4b12;background:linear-gradient(180deg,#ffe3a0,#e0a840)}.tone-red{color:#fff;border-color:#ff8a7a;background:#8e1b14}
 .tone-green{color:#062a14;border-color:#1f7a46;background:#9ff0bd}.tone-dim{color:#d9c3a0;border-color:rgba(200,160,110,.45)}
 
+/* La tablée en 3D : étiquettes posées par la scène au-dessus des têtes */
+.go-tag3d{position:absolute;left:0;top:0;will-change:transform;z-index:2}
+.go-tag3d.is-center{z-index:1}
+.go-tag3d.is-center .go-slate{transform:scale(.68);opacity:.94}
+.go-tag3d .go-seat{padding:0;gap:2px}
+.go-tag3d .go-chip{position:static;transform:none;margin-bottom:1px}
+@media (max-width:640px){.go-tag3d.is-center .go-slate{transform:scale(.56)}}
+.go-tablee-wait{position:absolute;inset:0;display:grid;place-items:center;font-family:'Cinzel',serif;letter-spacing:.14em;text-transform:uppercase;font-size:14px;color:#c9c2b4}
+
 /* Panneaux, boutons */
 .go-dock{position:relative;color:#efe6d6;border-radius:4px;padding:18px 16px 16px;
   background:linear-gradient(180deg,rgba(255,255,255,.03),transparent 40%),rgba(14,15,18,.95);border:3px solid #4a4f57;
