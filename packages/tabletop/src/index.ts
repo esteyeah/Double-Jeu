@@ -15,3 +15,13 @@ export {
   type DeckLootKind,
   type PiratePose,
 } from './three/PirateDeck3D';
+export {
+  ThroneHall3D,
+  CENTER_TAG,
+  type CouncilPose,
+  type CouncilRing,
+  type HallCouncillor,
+  type HallFrame,
+  type HallLink,
+  type ThroneHallProps,
+} from './three/ThroneHall3D';

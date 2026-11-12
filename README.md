@@ -232,9 +232,12 @@ commissariat des années 70 (Garde à vue), table de cartographe (Boussole).
   ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), générés avec [DiceBear](https://www.dicebear.com) (MIT) ;
   chapeaux et masques ajoutés par-dessus avec les icônes game-icons.net.
 - Polices : Pirata One, IM Fell English, Orbitron, Rajdhani, Share Tech Mono, Cinzel, Cormorant Garamond, Special Elite,
-  Uncial Antiqua, Outfit, Lilita One (SIL Open Font License ou Apache 2.0), servies par le site.
+  Uncial Antiqua, Outfit, Lilita One, Cinzel Decorative, Marcellus SC, Limelight, UnifrakturMaguntia
+  (SIL Open Font License ou Apache 2.0), servies par le site.
 - Modèles 3D de Butin (équipage, navire, butin) : « Pirate Kit » de [Quaternius](https://quaternius.com), domaine public
   (CC0), dans `apps/web/public/themes/plunder/3d/` ; texture de la mer issue des exemples de three.js (MIT).
+- Conseillers 3D du Trône Vide : « Adventurers Character Pack » de [Kay Lousberg](https://www.kaylousberg.com) (KayKit),
+  domaine public (CC0), armes retirées et animations réduites, dans `apps/web/public/themes/throne/3d/`.
 - 3D : [three.js](https://threejs.org), [React Three Fiber](https://github.com/pmndrs/react-three-fiber) et
   [drei](https://github.com/pmndrs/drei) (MIT), [postprocessing](https://github.com/pmndrs/postprocessing) (Zlib).
 

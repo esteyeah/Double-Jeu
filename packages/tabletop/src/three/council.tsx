@@ -118,10 +118,10 @@ export function CouncilScene({ fit, seats }: { fit: Fit; seats: number }) {
   );
 }
 
-type Mats = Record<'gold' | 'brass' | 'wax' | 'parchment' | 'seal' | 'ink' | 'wine' | 'feather' | 'shadow', THREE.Material>;
+export type Mats = Record<'gold' | 'brass' | 'wax' | 'parchment' | 'seal' | 'ink' | 'wine' | 'feather' | 'shadow', THREE.Material>;
 
 /** Candélabre à trois branches, bougies coulées et flammes vivantes. */
-function Candelabrum({ position, yaw, u, mats, seed }: { position: [number, number, number]; yaw: number; u: number; mats: Mats; seed: number }) {
+export function Candelabrum({ position, yaw, u, mats, seed }: { position: [number, number, number]; yaw: number; u: number; mats: Mats; seed: number }) {
   const s = u * 0.13;
   const arms = useMemo(() => new THREE.TorusGeometry(s * 0.36, s * 0.035, 10, 32, Math.PI), [s]);
   const knob = useMemo(() => lathe([[0, 0], [0.5, 0], [0.62, 0.05], [0.5, 0.12], [0.2, 0.16], [0.13, 0.22], [0.2, 0.3], [0.1, 0.38], [0, 0.38]], s), [s]);
@@ -166,7 +166,7 @@ function Candelabrum({ position, yaw, u, mats, seed }: { position: [number, numb
 }
 
 /** Objet de séance posé entre deux conseillers. */
-function Keepsake({ kind, position, yaw, u, mats }: { kind: number; position: [number, number, number]; yaw: number; u: number; mats: Mats }) {
+export function Keepsake({ kind, position, yaw, u, mats }: { kind: number; position: [number, number, number]; yaw: number; u: number; mats: Mats }) {
   const s = u * 0.11;
   const goblet = useMemo(
     () => lathe([[0, 0], [0.32, 0], [0.34, 0.03], [0.12, 0.08], [0.06, 0.16], [0.06, 0.42], [0.12, 0.48], [0.3, 0.62], [0.36, 0.9], [0.33, 0.9], [0.27, 0.64], [0.1, 0.52], [0, 0.52]], s),
@@ -235,7 +235,7 @@ function Keepsake({ kind, position, yaw, u, mats }: { kind: number; position: [n
 }
 
 /** Pièce tournée à partir d'un profil (rayon, hauteur) exprimé en fraction de `s`. */
-function lathe(profile: [number, number][], s: number) {
+export function lathe(profile: [number, number][], s: number) {
   return new THREE.LatheGeometry(
     profile.map(([r, y]) => new THREE.Vector2(r * s, y * s)),
     32,
@@ -244,22 +244,22 @@ function lathe(profile: [number, number][], s: number) {
 
 // ───────── Textures dessinées à la volée ─────────
 
-function canvas(n: number) {
+export function canvas(n: number) {
   const c = document.createElement('canvas');
   c.width = c.height = n;
   return [c, c.getContext('2d')!] as const;
 }
 
-function finish(c: HTMLCanvasElement) {
+export function finish(c: HTMLCanvasElement) {
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
   return t;
 }
 
-const ICON_PATHS = new Map<string, Path2D[]>();
+export const ICON_PATHS = new Map<string, Path2D[]>();
 /** Dessine une icône du jeu (contours game-icons, 512×512) centrée en (x, y). */
-function drawIcon(g: CanvasRenderingContext2D, name: keyof typeof GAME_ICONS, x: number, y: number, size: number, rot: number) {
+export function drawIcon(g: CanvasRenderingContext2D, name: keyof typeof GAME_ICONS, x: number, y: number, size: number, rot: number) {
   let paths = ICON_PATHS.get(name);
   if (!paths) {
     const icon = GAME_ICONS[name];
@@ -277,7 +277,7 @@ function drawIcon(g: CanvasRenderingContext2D, name: keyof typeof GAME_ICONS, x:
 }
 
 /** Broderie d'or du tapis : bordure festonnée, lys et yeux en alternance, rosace centrale. */
-function embroideryTexture() {
+export function embroideryTexture() {
   const n = 2048;
   const [c, g] = canvas(n);
   const o = n / 2;
@@ -370,7 +370,7 @@ function embroideryTexture() {
 }
 
 /** Incrustations de laiton dans le chêne, sur la couronne de bois autour du tapis. */
-function inlayTexture() {
+export function inlayTexture() {
   const n = 2048;
   const [c, g] = canvas(n);
   const o = n / 2;
@@ -415,7 +415,7 @@ function inlayTexture() {
 }
 
 /** Tache d'ombre ronde et floue (ombre de contact sous les objets et sous la table). */
-function radialShadowTexture() {
+export function radialShadowTexture() {
   const n = 128;
   const [c, g] = canvas(n);
   const grad = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);

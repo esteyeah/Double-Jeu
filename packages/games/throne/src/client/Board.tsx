@@ -1,18 +1,24 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
 import {
   Avatar,
+  CENTER_TAG,
   Cinematic,
   Icon,
   RichIcon,
   RoundTable,
   Table3D,
+  ThroneHall3D,
   sfx,
   useAmbient,
   useMediaQuery,
+  useWebGL,
   type GameIconName,
+  type HallCouncillor,
+  type HallFrame,
+  type HallLink,
   type TableLink,
 } from '@arcade/tabletop';
 import {
@@ -69,19 +75,36 @@ export default function ThroneBoard({ view, viewer, actingAs, mode, sendMove }: 
     <Actions view={view} nameOf={nameOf} seatOf={seatOf} sendMove={sendMove} actingAs={actingAs} privateView={privateView} pick={pick} setPick={setPick} />
   ) : null;
 
+  const hall = useWebGL() === true;
+  const centerRef = useRef<HTMLDivElement>(null);
+  const callRef = useRef<HTMLDivElement>(null);
+  const frame = useHallFrame(hall && wide, centerRef, callRef);
+  const instruction = <Instruction {...instructionFor(view, actingAs, privateView, mode, nameOf)} />;
+  const council = hall ? (
+    <CouncilHall view={view} viewer={viewer} nameOf={nameOf} picking={picking} pick={pick} setPick={setPick} frame={wide ? frame : NO_FRAME} wide={wide} />
+  ) : (
+    <>
+      <ThroneStage />
+      <div className="tv-court-table">
+        <CouncilTable view={view} viewer={viewer} wide={wide} nameOf={nameOf} picking={picking} pick={pick} setPick={setPick} />
+      </div>
+    </>
+  );
+
   return (
-    <div className="tv">
+    <div className={`tv ${hall ? 'has-hall' : ''}`}>
       <style href="arcade-throne-v1" precedence="default">
         {THRONE_CSS}
       </style>
       <div className="tv-wall" />
-      <PalaceHall />
+      {!hall && <PalaceHall />}
       <div className="tv-light" />
       <div className="tv-motes" aria-hidden="true">
         {Array.from({ length: 14 }, (_, i) => (
           <i key={i} style={{ left: `${(i * 41 + 7) % 100}%`, animationDelay: `${(i * 1.7) % 12}s`, animationDuration: `${14 + (i % 4) * 3}s` }} />
         ))}
       </div>
+      {hall && wide && <div className="tv-hall3d is-fixed">{council}</div>}
 
       <Header view={view} wide={wide} />
       {wide ? (
@@ -91,12 +114,9 @@ export default function ThroneBoard({ view, viewer, actingAs, mode, sendMove }: 
             <History view={view} nameOf={nameOf} />
             <Journal lines={view.log} open />
           </div>
-          <div className="tv-court-center">
-            <Instruction {...instructionFor(view, actingAs, privateView, mode, nameOf)} />
-            <ThroneStage />
-            <div className="tv-court-table">
-              <CouncilTable view={view} viewer={viewer} wide={wide} nameOf={nameOf} picking={picking} pick={pick} setPick={setPick} />
-            </div>
+          <div className="tv-court-center" ref={centerRef}>
+            <div ref={callRef}>{instruction}</div>
+            {!hall && council}
           </div>
           <div className="tv-court-side">
             {action}
@@ -107,17 +127,12 @@ export default function ThroneBoard({ view, viewer, actingAs, mode, sendMove }: 
         <>
           <div className="mx-auto w-[min(1240px,calc(100%-20px))]">
             <StepTrack view={view} />
-            <Instruction {...instructionFor(view, actingAs, privateView, mode, nameOf)} />
+            {instruction}
           </div>
           <div className="mx-auto mt-4 flex w-[min(1240px,calc(100%-20px))] flex-col gap-4 pb-16">
             {action}
             {me && <Letter view={view} me={me} nameOf={nameOf} />}
-            <div className="min-w-0">
-              <ThroneStage />
-              <div className="tv-court-table">
-                <CouncilTable view={view} viewer={viewer} wide={wide} nameOf={nameOf} picking={picking} pick={pick} setPick={setPick} />
-              </div>
-            </div>
+            <div className="min-w-0">{hall ? <div className="tv-hall3d is-inline">{council}</div> : council}</div>
             <History view={view} nameOf={nameOf} />
             <Journal lines={view.log} />
           </div>
@@ -390,7 +405,7 @@ function instructionFor(
     }
     case 'nomination':
       return mine(view.regent)
-        ? { icon: 'banging-gavel', mine: true, text: you('tu es Régent : propose un Sénéchal (touche son blason sur la table).') }
+        ? { icon: 'banging-gavel', mine: true, text: you('tu es Régent : propose un Sénéchal (touche son nom à la table).') }
         : { icon: 'banging-gavel', mine: false, text: `${regent}, Régent, choisit un Sénéchal. Discutez : qui mérite votre confiance ?` };
     case 'vote':
       if (view.config.votes === 'hands') {
@@ -511,6 +526,198 @@ function CouncilTable({
         }}
       />
     </section>
+  );
+}
+
+const NO_FRAME: HallFrame = { left: 0, right: 0, top: 0, bottom: 0 };
+
+/** Sur grand écran, la scène 3D est derrière toute l'interface : on mesure la zone restée libre. */
+function useHallFrame(enabled: boolean, center: React.RefObject<HTMLDivElement | null>, call: React.RefObject<HTMLDivElement | null>): HallFrame {
+  const [frame, setFrame] = useState<HallFrame>(NO_FRAME);
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    const measure = () => {
+      const c = center.current?.getBoundingClientRect();
+      if (!c) return;
+      const i = call.current?.getBoundingClientRect();
+      const next = { left: Math.round(c.left), right: Math.round(window.innerWidth - c.right), top: Math.round((i ? i.bottom : c.top) + 6), bottom: 0 };
+      setFrame((f) => (f.left === next.left && f.right === next.right && f.top === next.top ? f : next));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (center.current) ro.observe(center.current);
+    if (call.current) ro.observe(call.current);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [enabled, center, call]);
+  return frame;
+}
+
+const TEAM_OF_ROLE = { loyal: 'crown', conspirator: 'shadow', usurper: 'shadow' } as const;
+
+/** Le Conseil en 3D : chaque joueur est un personnage assis autour de la table, dans la salle du trône. */
+function CouncilHall({
+  view,
+  viewer,
+  nameOf,
+  picking,
+  pick,
+  setPick,
+  frame,
+  wide,
+}: {
+  view: ThroneView;
+  viewer: PlayerId | null;
+  nameOf: NameOf;
+  picking: { ids: PlayerId[] } | null;
+  pick: PlayerId | null;
+  setPick: (id: PlayerId) => void;
+  frame: HallFrame;
+  wide: boolean;
+}) {
+  const tags = useRef(new Map<string, HTMLElement>());
+  const over = view.phase === 'over';
+  const winner = view.outcome?.winner ?? null;
+  const councillors = useMemo<HallCouncillor[]>(
+    () =>
+      view.players.map((p, i) => {
+        const won = over && winner && p.role ? TEAM_OF_ROLE[p.role as keyof typeof TEAM_OF_ROLE] === winner : false;
+        const ring =
+          pick === p.id
+            ? 'picked'
+            : !over && p.id === view.regent
+              ? 'regent'
+              : !over && p.id === view.nominee && view.phase !== 'nomination'
+                ? 'nominee'
+                : picking?.ids.includes(p.id)
+                  ? 'pickable'
+                  : null;
+        return {
+          id: p.id,
+          model: i % 5,
+          tint: i >= 5 ? MODEL_TINT[(i - 5) % MODEL_TINT.length] : undefined,
+          pose: !p.alive ? 'dead' : won ? 'cheer' : 'sit',
+          ring,
+        };
+      }),
+    [view.players, view.regent, view.nominee, view.phase, over, winner, pick, picking],
+  );
+  const links: HallLink[] = [];
+  const target = ['vote', 'regent', 'seneschal', 'veto'].includes(view.phase) ? view.nominee : view.phase === 'nomination' ? pick : null;
+  if (view.regent && target && target !== view.regent) links.push({ from: view.regent, to: target, color: '#f0cd6e' });
+  if (view.regent && view.phase === 'power' && pick) links.push({ from: view.regent, to: pick, color: view.pendingPower === 'execute' ? '#ff5a4a' : '#a9c4ff' });
+  const register = (id: string) => (el: HTMLElement | null) => {
+    if (el) tags.current.set(id, el);
+    else tags.current.delete(id);
+  };
+  return (
+    <section className="tv-hall3d-stage" aria-label="Le Conseil">
+      <ThroneHall3D
+        councillors={councillors}
+        viewer={viewer}
+        base="/themes/throne/3d/"
+        tags={tags}
+        links={links}
+        frame={frame}
+        mood={over ? (winner === 'crown' ? 'crown' : 'shadow') : 'council'}
+        onPick={(id) => {
+          if (picking?.ids.includes(id)) {
+            sfx.click();
+            setPick(id);
+          }
+        }}
+        fallback={<div className="tv-hall-loading">Le Conseil se réunit…</div>}
+      />
+      <div className="tv-tags">
+        <div ref={register(CENTER_TAG)} className="tv-tag is-center">
+          <CouncilHeart view={view} nameOf={nameOf} />
+        </div>
+        {view.players.map((p) => (
+          <HallTag
+            key={p.id}
+            p={p}
+            view={view}
+            viewer={viewer}
+            wide={wide}
+            picked={pick === p.id}
+            register={register(p.id)}
+            onPick={picking?.ids.includes(p.id) ? () => setPick(p.id) : undefined}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const MODEL_TINT = ['#c9d8ff', '#ffd6c2', '#d8ffd0', '#f4d0ff', '#fff1b8'];
+
+/** Étiquette au-dessus d'un conseiller : statut, nom sur sa banderole, rôle révélé ou bulletin. */
+function HallTag({
+  p,
+  view,
+  viewer,
+  wide,
+  picked,
+  register,
+  onPick,
+}: {
+  p: ThronePlayerView;
+  view: ThroneView;
+  viewer: PlayerId | null;
+  wide: boolean;
+  picked: boolean;
+  register: (el: HTMLElement | null) => void;
+  onPick?: () => void;
+}) {
+  const over = view.phase === 'over';
+  const regent = p.id === view.regent && !over;
+  const nominee = p.id === view.nominee && !over && view.phase !== 'nomination';
+  const chip = seatChip(view, p);
+  const ballot = view.phase !== 'vote' && view.lastVote && Object.hasOwn(view.lastVote.votes, p.id) ? view.lastVote.votes[p.id] : null;
+  const icon = wide ? 18 : 14;
+  const cls = `tv-tag ${onPick ? 'is-pickable' : ''} ${picked ? 'is-picked' : ''} ${p.id === viewer ? 'is-me' : ''} ${p.alive ? '' : 'is-dead'}`;
+  const body = (
+    <>
+      {chip && <span className={`tv-chip tone-${chip.tone}`}>{chip.text}</span>}
+      <span className="tv-seat-plate">
+        {regent && <RichIcon name="banging-gavel" metal="gold" size={icon} title="Régent" />}
+        {nominee && <RichIcon name="quill-ink" metal="silver" size={icon} title="Sénéchal" />}
+        {p.investigated && <RichIcon name="magnifying-glass" metal="brass" size={icon} title="A fait l’objet d’une enquête" />}
+        <span className="tv-seat-name">{p.name}</span>
+        {(p.id === viewer || p.isBot) && <span className="tv-seat-tag">{p.id === viewer ? 'toi' : 'bot'}</span>}
+      </span>
+      {(p.role || (ballot !== null && ballot !== undefined)) && (
+        <span className="flex flex-wrap items-center justify-center gap-1">
+          {p.role && <span className={`tv-role ${p.role === 'loyal' ? 'crown' : 'shadow'}`}>{ROLE_LABEL[p.role]}</span>}
+          {ballot !== null && ballot !== undefined && <span className={`tv-ballot-chip ${ballot ? 'yes' : 'no'}`}>{ballot ? 'Pour' : 'Contre'}</span>}
+        </span>
+      )}
+    </>
+  );
+  if (onPick) {
+    return (
+      <button
+        type="button"
+        ref={register}
+        className={cls}
+        data-anchor={p.id === viewer ? 'below' : undefined}
+        aria-label={`Choisir ${p.name}`}
+        onClick={() => {
+          sfx.click();
+          onPick();
+        }}
+      >
+        {body}
+      </button>
+    );
+  }
+  return (
+    <div ref={register} className={cls} data-anchor={p.id === viewer ? 'below' : undefined}>
+      {body}
+    </div>
   );
 }
 

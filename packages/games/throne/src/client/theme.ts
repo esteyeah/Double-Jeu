@@ -374,6 +374,32 @@ button[aria-pressed=true] > .tv-edict{box-shadow:0 0 0 2px #c9973e,0 0 0 4px #f4
   .tv .tv-seat-plate::before,.tv .tv-seat-plate::after{width:9px;top:4px}
   .tv .tv-seat-plate::before{left:-7px}.tv .tv-seat-plate::after{right:-7px}
 }
+/* ───── Salle du trône en 3D ───── */
+.tv-hall3d{overflow:hidden}
+.tv-hall3d.is-fixed{position:fixed;inset:0;z-index:0}
+.tv-hall3d.is-inline{position:relative;height:min(76vh,620px);margin:0 -10px;border-top:2px solid #c9973e;border-bottom:2px solid #c9973e;box-shadow:0 0 0 1px rgba(0,0,0,.6),0 18px 40px rgba(0,0,0,.6)}
+.tv-hall3d-stage{position:absolute;inset:0}
+.tv-hall-loading{position:absolute;inset:0;display:grid;place-items:center;font-family:'Marcellus SC',serif;letter-spacing:.2em;color:#e9c46a;
+  background:radial-gradient(50% 40% at 50% 45%,rgba(255,190,110,.18),transparent 70%),#0d0605}
+.tv.has-hall > header,.tv.has-hall .tv-court{position:relative;z-index:1}
+.tv.has-hall > header,.tv.has-hall .tv-court,.tv.has-hall .tv-court-center{pointer-events:none}
+.tv.has-hall > header .tv-track,.tv.has-hall > header .tv-head-mid > *,.tv.has-hall .tv-court-side,.tv.has-hall .tv-court-center .tv-call{pointer-events:auto}
+.tv.has-hall .tv-court{min-height:calc(100dvh - 230px)}
+
+.tv-tags{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.tv-tag{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:3px;visibility:hidden;will-change:transform;pointer-events:auto;padding:0;background:none;border:0;text-align:center}
+.tv-tag .tv-chip{position:static;transform:none}
+.tv-tag .tv-seat-plate{display:inline-flex;align-items:center;gap:5px}
+.tv-tag.is-pickable{cursor:pointer}
+.tv-tag.is-pickable .tv-seat-plate{animation:tv-tagpick 1.6s ease-in-out infinite}
+@keyframes tv-tagpick{50%{box-shadow:0 0 0 3px rgba(255,236,170,.75),0 0 18px rgba(255,236,170,.8)}}
+.tv-tag.is-pickable:hover{filter:brightness(1.08)}
+.tv-tag.is-picked .tv-seat-plate{border-color:#fff;box-shadow:0 0 0 3px #fff,0 0 24px rgba(255,240,200,.95);animation:none}
+.tv-tag.is-me .tv-seat-plate{border-color:#1b3a8f;box-shadow:0 0 0 2px rgba(80,120,230,.55),0 4px 8px rgba(0,0,0,.55)}
+.tv-tag.is-dead{opacity:.7}
+.tv-tag.is-center{pointer-events:none;padding:14px 26px;border-radius:50%;background:radial-gradient(closest-side,rgba(8,5,3,.55),transparent)}
+.tv-tag.is-center .tv-title{font-size:14px}
+@media (max-width:1023px){.tv-tag.is-center{transform-origin:50% 50%;scale:.8}}
 @media (prefers-reduced-motion:reduce){.tv *{animation:none!important;transition:none!important}.tv-banner,.tv-scroll{animation:tv-fade .2s both!important}}
 @keyframes tv-fade{from{opacity:0}to{opacity:1}}
 `;
