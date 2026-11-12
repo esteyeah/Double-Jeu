@@ -52,28 +52,28 @@ export function Vault() {
             <path className="go-fire" d="M0 -74 Q24 -42 13 -19 Q6 -8 0 -12 Q-6 -8 -13 -19 Q-24 -42 0 -74 Z" fill="#ff7a1c" />
             <path className="go-fire" d="M0 -52 Q13 -34 6 -19 Q0 -14 -6 -19 Q-13 -34 0 -52 Z" fill="#ffd27a" />
           </g>
-          <path id="go-arches" d="M90 680 V340 Q90 170 260 170 Q430 170 430 340 V680 Z M620 680 V310 Q620 130 800 130 Q980 130 980 310 V680 Z M1170 680 V340 Q1170 170 1340 170 Q1510 170 1510 340 V680 Z" />
+          <path id="go-arches" d="M90 540 V330 Q90 170 260 170 Q430 170 430 330 V540 Z M620 540 V300 Q620 130 800 130 Q980 130 980 300 V540 Z M1170 540 V330 Q1170 170 1340 170 Q1510 170 1510 330 V540 Z" />
         </defs>
 
         <rect width="1600" height="1000" fill="url(#go-stone)" />
 
         {/* Les voûtes : niches sombres garnies de fûts */}
         <use href="#go-arches" fill="#0a0b0e" />
-        <rect x="90" y="560" width="340" height="120" fill="#121418" />
-        <rect x="1170" y="560" width="340" height="120" fill="#121418" />
-        <use href="#go-cask" x="150" y="540" />
-        <use href="#go-cask" x="150" y="410" />
-        <use href="#go-cask" x="1230" y="540" />
-        <use href="#go-cask" x="1230" y="410" />
-        <use href="#go-cask" x="690" y="540" />
+        <rect x="90" y="440" width="340" height="100" fill="#121418" />
+        <rect x="1170" y="440" width="340" height="100" fill="#121418" />
+        <use href="#go-cask" x="150" y="402" />
+        <use href="#go-cask" x="150" y="272" />
+        <use href="#go-cask" x="1230" y="402" />
+        <use href="#go-cask" x="1230" y="272" />
+        <use href="#go-cask" x="690" y="402" />
         <use href="#go-arches" fill="none" stroke="#4a4f57" strokeWidth="24" />
         <use href="#go-arches" fill="none" stroke="#17191d" strokeWidth="24" strokeDasharray="3 41" />
         <use href="#go-arches" fill="none" stroke="#0b0c0f" strokeWidth="3" />
 
         {/* Le sol dallé */}
-        <rect y="680" width="1600" height="320" fill="url(#go-flags)" />
-        <rect y="680" width="1600" height="320" fill="url(#go-floorshade)" />
-        <rect y="672" width="1600" height="10" fill="#3a3e45" />
+        <rect y="540" width="1600" height="460" fill="url(#go-flags)" />
+        <rect y="540" width="1600" height="460" fill="url(#go-floorshade)" />
+        <rect y="532" width="1600" height="10" fill="#3a3e45" />
 
         {/* Les torches et leur lueur */}
         <g className="go-glow">

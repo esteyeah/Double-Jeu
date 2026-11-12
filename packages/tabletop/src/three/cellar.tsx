@@ -7,7 +7,7 @@ import { Bloom, EffectComposer } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { CellarDrinker, CellarProps, DrinkerPose } from './Cellar3D';
-import { lathe, radialShadowTexture } from './council';
+import { canvas, finish, lathe, radialShadowTexture } from './council';
 import { Flame, FlickerLight } from './parts';
 
 /** Personnages (KayKit « Adventurers » de Kay Lousberg, CC0), les mêmes que la salle du trône. */
@@ -93,6 +93,7 @@ function World(p: CellarProps) {
     <>
       <Rig L={L} />
       <Lights L={L} />
+      <Floor L={L} />
       <Barrel L={L} mats={mats} />
       {seats.map(({ d, a, pos, yaw }) => (
         <group key={d.id}>
@@ -259,6 +260,65 @@ function Lights({ L }: { L: Layout }) {
       <pointLight position={[0, 2.6, 0.6]} intensity={14} distance={9} decay={1.6} color="#ffc27a" />
     </>
   );
+}
+
+// ───────── Le sol : dalles de pierre sous la tablée, qui se fondent dans le décor ─────────
+
+function Floor({ L }: { L: Layout }) {
+  const mat = useMemo(() => {
+    const map = flagstoneTexture();
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    map.repeat.set(3, 3);
+    return new THREE.MeshStandardMaterial({ map, alphaMap: fadeTexture(), transparent: true, depthWrite: false, roughness: 0.85, color: '#a9adb4' });
+  }, []);
+  const r = L.S + 1.7;
+  return (
+    <mesh material={mat} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+      <circleGeometry args={[r, 72]} />
+    </mesh>
+  );
+}
+
+/** Dalles irrégulières, joints sombres, comme le sol peint du décor. */
+function flagstoneTexture() {
+  const n = 1024;
+  const [c, g] = canvas(n);
+  g.fillStyle = '#141619';
+  g.fillRect(0, 0, n, n);
+  const rows = 6;
+  const h = n / rows;
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+  for (let r = 0; r < rows; r++) {
+    let x = r % 2 ? -h * 0.5 : 0;
+    while (x < n) {
+      const w = h * (0.9 + rnd() * 0.8);
+      const shade = 34 + Math.floor(rnd() * 12);
+      g.fillStyle = `rgb(${shade},${shade + 3},${shade + 8})`;
+      g.fillRect(x + 5, r * h + 5, w - 10, h - 10);
+      // grain de la pierre
+      for (let k = 0; k < 40; k++) {
+        g.fillStyle = `rgba(255,255,255,${0.015 + rnd() * 0.03})`;
+        g.fillRect(x + 5 + rnd() * (w - 14), r * h + 5 + rnd() * (h - 14), 2 + rnd() * 6, 2 + rnd() * 4);
+      }
+      x += w;
+    }
+  }
+  return finish(c);
+}
+
+/** Masque : plein au centre, qui s'efface vers le bord (le sol se fond dans celui du décor). */
+function fadeTexture() {
+  const n = 256;
+  const [c, g] = canvas(n);
+  const grad = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  grad.addColorStop(0, '#fff');
+  grad.addColorStop(0.3, '#fff');
+  grad.addColorStop(0.7, '#555');
+  grad.addColorStop(1, '#000');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, n, n);
+  return new THREE.CanvasTexture(c);
 }
 
 // ───────── Le tonneau-table ─────────
