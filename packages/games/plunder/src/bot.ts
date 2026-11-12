@@ -21,10 +21,13 @@ export function plunderBot(view: PlunderView, me: PlayerId, rng: Rng): PlunderMo
 
     case 'order': {
       if (view.captain !== me) return null;
+      // D'abord détourner ceux qui le visent ; sinon, parfois, envoyer un tir vers le plus riche.
       const aimers = view.pirates.filter((p) => !p.sunk && p.aim === me);
-      if (aimers.length === 0) return { type: 'order' };
-      const pirate = rng.pick(aimers).id;
-      const targets = others.filter((p) => p.id !== pirate);
+      const pool = aimers.length ? aimers : rng.int(100) < 35 ? others.filter((p) => p.aim) : [];
+      if (pool.length === 0) return { type: 'order' };
+      const pirate = rng.pick(pool).id;
+      const current = view.pirates.find((p) => p.id === pirate)?.aim;
+      const targets = others.filter((p) => p.id !== pirate && p.id !== current);
       if (targets.length === 0) return { type: 'order' };
       return { type: 'order', pirate, target: richest(targets).id };
     }

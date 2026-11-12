@@ -27,8 +27,10 @@ function play(s: PlunderState, by: string, move: unknown): PlunderState {
 const ok = (s: PlunderState, by: string, move: unknown) => applyMove(plunder, s, by, move, seededRng(2), 1000).ok;
 
 /** Charges et cibles imposées : { p0: ['dry', 'p1'], ... } */
-function prepareAll(s: PlunderState, plan: Record<string, ['dry' | 'wet', string]>): PlunderState {
+function prepareAll(s: PlunderState, plan: Record<string, ['dry' | 'wet', string]>, stopAtOrder = false): PlunderState {
   for (const [id, [charge, target]] of Object.entries(plan)) s = play(s, id, { type: 'prepare', charge, target });
+  // Le Capitaine laisse faire, sauf si le test examine son ordre.
+  if (!stopAtOrder && s.phase === 'order') s = play(s, s.captain, { type: 'order' });
   return s;
 }
 function courageAll(s: PlunderState, fleeing: string[] = []): PlunderState {
@@ -73,17 +75,28 @@ describe('Butin — mise en place et secrets', () => {
 describe('Butin — visées, Capitaine et courage', () => {
   it('le Capitaine visé peut forcer un pirate à viser ailleurs', () => {
     let s = setup(4);
-    s = prepareAll(s, { p0: ['wet', 'p1'], p1: ['dry', 'p0'], p2: ['dry', 'p3'], p3: ['wet', 'p0'] });
+    s = prepareAll(s, { p0: ['wet', 'p1'], p1: ['dry', 'p0'], p2: ['dry', 'p3'], p3: ['wet', 'p0'] }, true);
     expect(s.phase).toBe('order');
-    expect(ok(s, 'p0', { type: 'order', pirate: 'p2', target: 'p1' })).toBe(false); // p2 ne vise pas le Capitaine
-    expect(ok(s, 'p0', { type: 'order', pirate: 'p1', target: 'p0' })).toBe(false);
+    expect(ok(s, 'p0', { type: 'order', pirate: 'p1', target: 'p0' })).toBe(false); // pas vers le Capitaine
+    expect(ok(s, 'p0', { type: 'order', pirate: 'p0', target: 'p2' })).toBe(false); // pas son propre pistolet
+    expect(ok(s, 'p0', { type: 'order', pirate: 'p2', target: 'p3' })).toBe(false); // vise déjà p3
     s = play(s, 'p0', { type: 'order', pirate: 'p1', target: 'p3' });
     expect(s.aims.p1).toBe('p3');
     expect(s.phase).toBe('courage');
   });
 
-  it('sans visée sur le Capitaine, on passe directement au courage', () => {
-    const s = prepareAll(setup(4), { p0: ['wet', 'p1'], p1: ['wet', 'p2'], p2: ['wet', 'p3'], p3: ['wet', 'p1'] });
+  it('le Capitaine peut aussi réorienter un pirate qui ne le vise pas', () => {
+    let s = prepareAll(setup(4), { p0: ['wet', 'p1'], p1: ['wet', 'p2'], p2: ['wet', 'p3'], p3: ['wet', 'p1'] }, true);
+    expect(s.phase).toBe('order');
+    s = play(s, 'p0', { type: 'order', pirate: 'p2', target: 'p1' });
+    expect(s.aims.p2).toBe('p1');
+    expect(s.phase).toBe('courage');
+  });
+
+  it('à deux pirates debout, pas d’ordre du Capitaine', () => {
+    let s = setup(3);
+    s.pirates.p2!.sunk = true;
+    s = prepareAll(s, { p0: ['wet', 'p1'], p1: ['wet', 'p0'] }, true);
     expect(s.phase).toBe('courage');
   });
 

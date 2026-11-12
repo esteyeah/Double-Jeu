@@ -44,7 +44,7 @@ export const plunderMeta: GameMeta = {
   rules: [
     'Abordage réussi ! Les pirates se partagent le trésor… mais personne n’a envie de partager. À chaque manche, un nouveau butin est déposé sur le pont.',
     `Chaque pirate possède ${START_DRY + START_WET} balles : ${START_DRY} réelles et ${START_WET} à blanc. Au début de chaque manche, chacun charge en secret son pistolet (pistolet chargé ou balle à blanc) et choisit le pirate qu’il vise.`,
-    'Les visées sont révélées. Le Capitaine peut forcer un pirate qui le vise à viser quelqu’un d’autre. Puis chacun décide : tenir bon ou plonger dans la cale. Ceux qui plongent ne risquent rien… mais ne prennent rien, et leur balle reste secrète.',
+    'Les visées sont révélées. Le Capitaine peut obliger un pirate, qu’il le vise ou non, à viser quelqu’un d’autre. Puis chacun décide : tenir bon ou plonger dans la cale. Ceux qui plongent ne risquent rien… mais ne prennent rien, et leur balle reste secrète.',
     `On tire ! Chaque pistolet chargé blesse sa cible (une balle à blanc ne fait que du bruit) ; un pirate touché ne participe pas au partage. À ${MAX_WOUNDS} blessures, il est coulé et ne peut plus gagner.`,
     'Les pirates indemnes se servent un objet chacun à leur tour, en commençant par le Capitaine, jusqu’à ce que le pont soit vide. Ce que personne ne prend reste pour la manche suivante.',
     `Doublons (5, 10 ou 20) ; perles (${PEARL_VALUE} chacune, +${PEARL_BONUS} pour le plus gros collier) ; fragments de carte (1 : 5, 2 : 15, 3 : 30, 4 : 50, puis +25 chacun) ; rhum (soigne une blessure, sinon vaut ${RUM_VALUE}) ; munitions (une balle réelle en plus) ; bicorne (tu seras Capitaine à la manche suivante). Après ${ROUNDS} manches, le pirate encore à flot le plus riche gagne.`,
@@ -117,8 +117,8 @@ export function scoreOf(s: PlunderState, id: PlayerId): number {
 function revealAims(s: PlunderState): void {
   for (const id of standing(s)) s.aims[id] = s.prepared[id]!.target;
   log(s, 'Les pistolets sont braqués !');
-  const aimedAtCaptain = standing(s).some((id) => s.aims[id] === s.captain);
-  s.phase = aimedAtCaptain && standing(s).length >= 3 ? 'order' : 'courage';
+  // Le Capitaine peut réorienter le pistolet de n'importe quel pirate (à partir de 3 pirates debout).
+  s.phase = standing(s).length >= 3 && standing(s).includes(s.captain) ? 'order' : 'courage';
 }
 
 /** On tire : balles réelles des pirates restés debout, sur des cibles restées debout. */
@@ -270,8 +270,8 @@ export const plunder = defineGame<PlunderState, PlunderMove, PlunderView, Plunde
         if (by !== s.captain) return 'Seul le Capitaine donne des ordres.';
         if (!move.pirate && !move.target) return null; // laisser faire
         if (!move.pirate || !move.target) return 'Ordre incomplet.';
-        if (s.aims[move.pirate] !== s.captain) return 'Ce pirate ne te vise pas.';
-        if (move.target === move.pirate || move.target === s.captain || !afloat(s, move.target)) {
+        if (move.pirate === s.captain || !afloat(s, move.pirate) || !Object.hasOwn(s.aims, move.pirate)) return 'Choisis un autre pirate.';
+        if (move.target === move.pirate || move.target === s.captain || move.target === s.aims[move.pirate] || !afloat(s, move.target)) {
           return 'Choisis une nouvelle cible valable.';
         }
         return null;

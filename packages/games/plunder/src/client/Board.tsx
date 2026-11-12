@@ -512,7 +512,7 @@ function DeckTag({
 
 const BANNER = {
   prepare: { title: 'Chargez vos pistolets', sub: 'Chacun choisit sa balle et sa cible, en secret.' },
-  order: { title: 'Le Capitaine a la main', sub: 'Visé, il peut détourner un pistolet.' },
+  order: { title: 'Le Capitaine a la main', sub: 'Il peut détourner le pistolet de n’importe quel pirate.' },
   courage: { title: 'Tenir bon… ou plonger ?', sub: 'Regardez les flèches : qui vise qui ?' },
 } as const;
 
@@ -577,8 +577,8 @@ function instructionFor({
     }
     case 'order':
       if (canAct && actingAs === view.captain)
-        return { icon: 'pirate-hat', mine: true, text: you('tu es Capitaine et on te vise : tu peux obliger un tireur à viser quelqu’un d’autre.') };
-      return { icon: 'pirate-hat', mine: false, text: `Le Capitaine ${nameOf(view.captain)} est visé : il peut obliger un tireur à changer de cible.` };
+        return { icon: 'pirate-hat', mine: true, text: you('tu es Capitaine : tu peux obliger un pirate à viser quelqu’un d’autre, qu’il te vise ou non.') };
+      return { icon: 'pirate-hat', mine: false, text: `Le Capitaine ${nameOf(view.captain)} peut obliger un pirate à changer de cible.` };
     case 'courage': {
       if (view.config.courage === 'table')
         return { icon: 'crossed-sabres', mine: false, text: 'À trois, chacun annonce à voix haute : tenir bon ou plonger dans la cale !' };
@@ -1362,18 +1362,37 @@ function CaptainOrder({
   seatOf: (id: PlayerId | null) => number;
   sendMove: (m: PlunderMove) => void;
 }) {
-  const aimers = view.pirates.filter((p) => !p.sunk && p.aim === view.captain);
+  // Ceux qui visent le Capitaine d'abord, puis tous les autres pirates armés.
+  const shooters = view.pirates
+    .filter((p) => !p.sunk && p.id !== view.captain && !!p.aim)
+    .sort((a, b) => Number(b.aim === view.captain) - Number(a.aim === view.captain));
   const [pirate, setPirate] = useState<PlayerId | null>(null);
   const [target, setTarget] = useState<PlayerId | null>(null);
-  const targets = view.pirates.filter((p) => !p.sunk && p.id !== pirate && p.id !== view.captain);
+  const current = view.pirates.find((p) => p.id === pirate)?.aim ?? null;
+  const targets = view.pirates.filter((p) => !p.sunk && p.id !== pirate && p.id !== view.captain && p.id !== current);
+  const aimers = view.pirates.filter((p) => !p.sunk && p.aim === view.captain);
   return (
     <div>
       <h4 className="bt-title text-center text-[1.7rem]">Ordre du Capitaine</h4>
-      <p className="bt-muted text-center text-sm italic">Des pirates te visent ! Lequel doit changer de cible ?</p>
-      <PortraitPicker items={aimers} value={pirate} onPick={setPirate} label="Pirate" view={view} seatOf={seatOf} />
+      <p className="bt-muted text-center text-sm italic">
+        {aimers.length ? `${aimers.map((p) => p.name).join(', ')} te ${aimers.length > 1 ? 'visent' : 'vise'} ! ` : ''}Quel pirate doit changer de cible ?
+      </p>
+      <PortraitPicker
+        items={shooters}
+        value={pirate}
+        onPick={(id) => {
+          setPirate(id);
+          setTarget(null);
+        }}
+        label="Pirate"
+        view={view}
+        seatOf={seatOf}
+      />
       {pirate && (
         <>
-          <p className="bt-muted mt-3 text-center text-sm italic">Nouvelle cible pour {nameOf(pirate)} :</p>
+          <p className="bt-muted mt-3 text-center text-sm italic">
+            {nameOf(pirate)} vise {current === view.captain ? 'toi' : nameOf(current)}. Nouvelle cible :
+          </p>
           <PortraitPicker items={targets} value={target} onPick={setTarget} label="Nouvelle cible" view={view} seatOf={seatOf} />
         </>
       )}
