@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { PlayerInfo, SetupExtras } from '@arcade/game-sdk';
 import { NAME_MAX } from '@arcade/protocol';
-import { getClientGame, type ClientGame } from '@/games/registry';
+import { getClientGame, withAmbiance, type ClientGame } from '@/games/registry';
+import { useAmbiance } from '@/lib/ambiance';
+import { AmbianceToggle } from '../ui/AmbianceToggle';
 import { fetchWords } from '@/lib/api';
 import { KEYS, storage } from '@/lib/storage';
 import { Button, ErrorNote, Panel, Rules } from '../ui/kit';
@@ -19,7 +21,9 @@ interface RosterEntry {
 }
 
 export function LocalScreen({ gameId }: { gameId: string }) {
-  const game = getClientGame(gameId);
+  const [ambiance] = useAmbiance();
+  const found = getClientGame(gameId);
+  const game = found && withAmbiance(found, ambiance);
   const [players, setPlayers] = useState<PlayerInfo[] | null>(null);
   const [config, setConfig] = useState<Record<string, unknown>>(() => ({
     ...((game?.module.defaultConfig as Record<string, unknown> | undefined) ?? {}),
@@ -58,6 +62,7 @@ export function LocalScreen({ gameId }: { gameId: string }) {
           <div className="text-xs uppercase tracking-wide text-muted">Partie locale · un seul téléphone</div>
           <div className="text-lg font-bold">{game.module.meta.name}</div>
         </div>
+        <AmbianceToggle />
       </header>
 
       {players ? (

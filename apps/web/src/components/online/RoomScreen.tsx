@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { NAME_MAX } from '@arcade/protocol';
 import { getClientGame } from '@/games/registry';
+import { useAmbiance } from '@/lib/ambiance';
+import { AmbianceToggle } from '../ui/AmbianceToggle';
 import { getSocket, request, resetOnlineRoom, useOnline } from '@/lib/online';
 import { KEYS, storage, mySkin } from '@/lib/storage';
 import { Button, ErrorNote, Panel } from '../ui/kit';
@@ -20,6 +22,7 @@ export function RoomScreen({ code }: { code: string }) {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [ambiance] = useAmbiance();
   const [seenChat, setSeenChat] = useState(0);
 
   useEffect(() => {
@@ -119,7 +122,7 @@ export function RoomScreen({ code }: { code: string }) {
   }
 
   // Jeux immersifs : en partie, le plateau occupe tout l'écran (chat et menu passent en panneaux).
-  if (room.status !== 'lobby' && getClientGame(room.gameId)?.immersive) {
+  if (ambiance && room.status !== 'lobby' && getClientGame(room.gameId)?.immersive) {
     return <OnlineGame room={room} snapshot={snapshot} me={playerId} onLeave={leave} />;
   }
 
@@ -140,6 +143,7 @@ export function RoomScreen({ code }: { code: string }) {
             />
           </div>
         </div>
+        <AmbianceToggle />
         <Button variant="ghost" onClick={leave}>
           Quitter
         </Button>

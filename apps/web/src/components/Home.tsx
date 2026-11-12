@@ -9,6 +9,7 @@ import { loadAccount, useAccount } from '@/lib/api';
 import { request } from '@/lib/online';
 import { KEYS, storage, mySkin } from '@/lib/storage';
 import { Button, ErrorNote, Panel } from './ui/kit';
+import { AmbianceToggle } from './ui/AmbianceToggle';
 
 export function Home() {
   const router = useRouter();
@@ -88,6 +89,7 @@ export function Home() {
           Rôles cachés, bluff et déduction. En ligne entre amis, ou sur un seul téléphone qu’on se
           passe.
         </p>
+        <AmbianceToggle className="mt-3" />
       </header>
 
       <div className="grid gap-4 md:grid-cols-2">

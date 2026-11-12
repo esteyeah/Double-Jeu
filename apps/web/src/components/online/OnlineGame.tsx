@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import type { GameSnapshot, PlayerId } from '@arcade/game-sdk';
 import type { RoomState } from '@arcade/protocol';
-import { getClientGame, type ClientGame } from '@/games/registry';
+import { getClientGame, withAmbiance, type ClientGame } from '@/games/registry';
+import { useAmbiance } from '@/lib/ambiance';
 import { request, useOnline } from '@/lib/online';
 import { AvatarProvider } from '@arcade/tabletop';
-import { Drawer, FullscreenButton, HudButton, HudIcon, ResultOverlay, SoundButton, Stage, StageButton, Table3DSetting, Toast } from '../immersive/Stage';
+import { Drawer, FullscreenButton, HudButton, HudIcon, ResultOverlay, SoundButton, Stage, StageButton, Table3DSetting, AmbianceSetting, Toast } from '../immersive/Stage';
 import { Button, ErrorNote, ResultBanner, Rules } from '../ui/kit';
 import { Chat } from './Chat';
 
@@ -22,7 +23,9 @@ export function OnlineGame({
   onLeave?: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
-  const game = getClientGame(room.gameId);
+  const [ambiance] = useAmbiance();
+  const base = getClientGame(room.gameId);
+  const game = base && withAmbiance(base, ambiance);
 
   useEffect(() => {
     if (!error) return;
@@ -236,6 +239,7 @@ function ImmersiveOnline({
               ))}
             </ul>
           </section>
+          <AmbianceSetting />
           {game.table3d && <Table3DSetting />}
           <Rules rules={game.module.meta.rules} />
           <div className="flex flex-col gap-2">

@@ -3,28 +3,40 @@ import type { AnyGameModule, BoardProps } from '@arcade/game-sdk';
 import type { AvatarLook, StageSkin } from '@arcade/tabletop';
 import { cauldron } from '@arcade/cauldron';
 import CauldronBoard, { skin as cauldronSkin } from '@arcade/cauldron/client';
+import CauldronClassic from '@arcade/cauldron/classic';
 import { compass } from '@arcade/compass';
 import CompassBoard, { skin as compassSkin } from '@arcade/compass/client';
+import CompassClassic from '@arcade/compass/classic';
 import { court } from '@arcade/court';
 import CourtBoard, { skin as courtSkin } from '@arcade/court/client';
+import CourtClassic from '@arcade/court/classic';
 import { cups } from '@arcade/cups';
 import CupsBoard, { skin as cupsSkin } from '@arcade/cups/client';
+import CupsClassic from '@arcade/cups/classic';
 import { expedition } from '@arcade/expedition';
 import ExpeditionBoard, { skin as expeditionSkin } from '@arcade/expedition/client';
+import ExpeditionClassic from '@arcade/expedition/classic';
 import { interrogation } from '@arcade/interrogation';
 import InterrogationBoard, { skin as interrogationSkin } from '@arcade/interrogation/client';
+import InterrogationClassic from '@arcade/interrogation/classic';
 import { plunder } from '@arcade/plunder';
 import PlunderBoard, { skin as plunderSkin } from '@arcade/plunder/client';
+import PlunderClassic from '@arcade/plunder/classic';
 import { reactor } from '@arcade/reactor';
 import ReactorBoard, { skin as reactorSkin } from '@arcade/reactor/client';
+import ReactorClassic from '@arcade/reactor/classic';
 import { throne } from '@arcade/throne';
 import ThroneBoard, { skin as throneSkin } from '@arcade/throne/client';
+import ThroneClassic from '@arcade/throne/classic';
 
 export interface ClientGame {
   /** Le moteur sert au mode local (un seul téléphone) : en ligne, c'est le serveur qui l'exécute. */
   module: AnyGameModule;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Board: ComponentType<BoardProps<any, any>>;
+  /** Plateau d'origine, simple et sans thème (quand le joueur coupe l'ambiance). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Classic: ComponentType<BoardProps<any, any>>;
   /**
    * Plateau immersif : le jeu occupe tout l'écran avec son propre décor (le site s'efface),
    * et les écrans communs (passage du téléphone, fin de partie, menus) prennent son habillage.
@@ -41,27 +53,35 @@ const games: Record<string, ClientGame> = {
   reactor: {
     module: reactor,
     Board: ReactorBoard,
+    Classic: ReactorClassic,
     immersive: reactorSkin,
     look: 'crew',
   },
-  interrogation: { module: interrogation, Board: InterrogationBoard, immersive: interrogationSkin, look: 'suspect' },
-  throne: { module: throne, Board: ThroneBoard, immersive: throneSkin, look: 'council', table3d: true },
+  interrogation: { module: interrogation, Board: InterrogationBoard, Classic: InterrogationClassic, immersive: interrogationSkin, look: 'suspect' },
+  throne: { module: throne, Board: ThroneBoard, Classic: ThroneClassic, immersive: throneSkin, look: 'council', table3d: true },
   plunder: {
     module: plunder,
     Board: PlunderBoard,
+    Classic: PlunderClassic,
     immersive: plunderSkin,
     table3d: true,
     look: 'pirate',
   },
-  expedition: { module: expedition, Board: ExpeditionBoard, immersive: expeditionSkin, look: 'polar' },
-  court: { module: court, Board: CourtBoard, immersive: courtSkin, look: 'masked' },
-  cauldron: { module: cauldron, Board: CauldronBoard, immersive: cauldronSkin, look: 'alchemist', table3d: true },
-  cups: { module: cups, Board: CupsBoard, immersive: cupsSkin, look: 'tavern', table3d: true },
-  compass: { module: compass, Board: CompassBoard, immersive: compassSkin, look: 'explorer' },
+  expedition: { module: expedition, Board: ExpeditionBoard, Classic: ExpeditionClassic, immersive: expeditionSkin, look: 'polar' },
+  court: { module: court, Board: CourtBoard, Classic: CourtClassic, immersive: courtSkin, look: 'masked' },
+  cauldron: { module: cauldron, Board: CauldronBoard, Classic: CauldronClassic, immersive: cauldronSkin, look: 'alchemist', table3d: true },
+  cups: { module: cups, Board: CupsBoard, Classic: CupsClassic, immersive: cupsSkin, look: 'tavern', table3d: true },
+  compass: { module: compass, Board: CompassBoard, Classic: CompassClassic, immersive: compassSkin, look: 'explorer' },
 };
 
 export function getClientGame(id: string): ClientGame | undefined {
   return Object.hasOwn(games, id) ? games[id] : undefined;
+}
+
+/** Le jeu tel qu'il s'affiche : sans ambiance, on retrouve le plateau simple d'origine. */
+export function withAmbiance(game: ClientGame, ambiance: boolean): ClientGame {
+  if (ambiance) return game;
+  return { ...game, Board: game.Classic, immersive: undefined, table3d: false };
 }
 
 export interface CatalogEntry {

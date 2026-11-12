@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { setTable3DEnabled, table3DEnabled, useSoundSetting, type StageSkin } from '@arcade/tabletop';
+import { useAmbiance } from '@/lib/ambiance';
 
 /**
  * Scène plein écran : le jeu occupe toute la fenêtre avec son propre décor, sans l'habillage du site.
@@ -136,6 +137,26 @@ export function Table3DSetting() {
           setOn(e.target.checked);
           setTable3DEnabled(e.target.checked);
         }}
+      />
+    </label>
+  );
+}
+
+/** Interrupteur du menu : ambiance immersive, ou plateaux simples et sans thème. Vaut pour tous les jeux. */
+export function AmbianceSetting() {
+  const [on, setOn] = useAmbiance();
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-line px-3 py-2.5">
+      <span>
+        <span className="block font-semibold">Ambiance</span>
+        <span className="block text-xs text-muted">Décors et personnages. Coupée : les jeux simples, sans thème.</span>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        className="h-5 w-5 accent-[var(--color-accent)]"
+        checked={on}
+        onChange={(e) => setOn(e.target.checked)}
       />
     </label>
   );
