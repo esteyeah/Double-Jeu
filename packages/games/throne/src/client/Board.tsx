@@ -32,6 +32,7 @@ import {
   type ThroneView,
 } from '../shared';
 import { THRONE_CSS } from './theme';
+import { PalaceHall, ThroneStage, TitleCartouche } from './palace';
 
 export { skin } from './skin';
 
@@ -74,10 +75,7 @@ export default function ThroneBoard({ view, viewer, actingAs, mode, sendMove }: 
         {THRONE_CSS}
       </style>
       <div className="tv-wall" />
-      <div className="tv-windows" aria-hidden="true">
-        <span className="win is-left" />
-        <span className="win is-right" />
-      </div>
+      <PalaceHall />
       <div className="tv-light" />
       <div className="tv-motes" aria-hidden="true">
         {Array.from({ length: 14 }, (_, i) => (
@@ -86,24 +84,45 @@ export default function ThroneBoard({ view, viewer, actingAs, mode, sendMove }: 
       </div>
 
       <Header view={view} wide={wide} />
-      <div className="mx-auto w-[min(1240px,calc(100%-20px))]">
-        <StepTrack view={view} />
-        <Instruction {...instructionFor(view, actingAs, privateView, mode, nameOf)} />
-      </div>
-
-      <div className="mx-auto mt-4 grid w-[min(1240px,calc(100%-20px))] gap-x-6 gap-y-4 pb-16 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-        <div className="flex flex-col gap-4 lg:col-start-2 lg:row-start-1">
-          {action}
-          {me && <Letter view={view} me={me} nameOf={nameOf} />}
+      {wide ? (
+        <div className="tv-court">
+          <div className="tv-court-side">
+            <StepTrack view={view} vertical />
+            <History view={view} nameOf={nameOf} />
+            <Journal lines={view.log} open />
+          </div>
+          <div className="tv-court-center">
+            <Instruction {...instructionFor(view, actingAs, privateView, mode, nameOf)} />
+            <ThroneStage />
+            <div className="tv-court-table">
+              <CouncilTable view={view} viewer={viewer} wide={wide} nameOf={nameOf} picking={picking} pick={pick} setPick={setPick} />
+            </div>
+          </div>
+          <div className="tv-court-side">
+            {action}
+            {me && <Letter view={view} me={me} nameOf={nameOf} />}
+          </div>
         </div>
-        <div className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
-          <CouncilTable view={view} viewer={viewer} wide={wide} nameOf={nameOf} picking={picking} pick={pick} setPick={setPick} />
-        </div>
-        <div className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-2">
-          <History view={view} nameOf={nameOf} />
-          <Journal lines={view.log} open={wide} />
-        </div>
-      </div>
+      ) : (
+        <>
+          <div className="mx-auto w-[min(1240px,calc(100%-20px))]">
+            <StepTrack view={view} />
+            <Instruction {...instructionFor(view, actingAs, privateView, mode, nameOf)} />
+          </div>
+          <div className="mx-auto mt-4 flex w-[min(1240px,calc(100%-20px))] flex-col gap-4 pb-16">
+            {action}
+            {me && <Letter view={view} me={me} nameOf={nameOf} />}
+            <div className="min-w-0">
+              <ThroneStage />
+              <div className="tv-court-table">
+                <CouncilTable view={view} viewer={viewer} wide={wide} nameOf={nameOf} picking={picking} pick={pick} setPick={setPick} />
+              </div>
+            </div>
+            <History view={view} nameOf={nameOf} />
+            <Journal lines={view.log} />
+          </div>
+        </>
+      )}
 
       <Cinematic trigger={event.key} onMount={mode !== 'hotseat'} duration={event.kind === 'edict' ? 2600 : 2000}>
         <EventBanner view={view} kind={event.kind} nameOf={nameOf} />
@@ -227,79 +246,40 @@ function Header({ view, wide }: { view: ThroneView; wide: boolean }) {
       ))}
     </span>
   );
+  const pile = (
+    <span>
+      Pile {view.deckCount} · Défausse {view.discardCount}
+    </span>
+  );
   return (
-    <header className="relative px-3 pb-1 pt-[3.6rem] sm:pt-4">
+    <header className="relative px-3 pb-1 pt-[3.6rem]">
       {wide ? (
-        <div className="relative flex flex-col items-center">
-          <HangingBanner team="crown" />
-          <HangingBanner team="shadow" />
-          <div className="tv-throne">
-            <RichIcon name="stone-throne" metal="gold" size={74} />
-          </div>
-          <div className="tv-title tv-gold mt-1 text-[2rem] leading-none">Le Trône Vide</div>
-          <div className="tv-anger mt-2 flex items-center gap-4 text-[14px] text-[#d9c08a]">
-            <span className="italic">Colère du peuple</span>
-            {torches(24)}
-            <span className="text-[#bba77f]">
-              Pile : {view.deckCount} · Défausse : {view.discardCount}
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center gap-3 px-1">
-          <span className="tv-throne">
-            <RichIcon name="stone-throne" metal="gold" size={44} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="tv-title tv-gold text-[1.4rem] leading-none">Le Trône Vide</div>
-            <div className="mt-1 text-[13px] text-[#bba77f]">
-              Pile : {view.deckCount} · Défausse : {view.discardCount}
+        <div className="tv-head">
+          <Track team="crown" view={view} />
+          <div className="tv-head-mid">
+            <TitleCartouche />
+            <div className="tv-anger">
+              <span>Colère</span>
+              {torches(20)}
+              {pile}
             </div>
           </div>
-          {torches(20)}
+          <Track team="shadow" view={view} />
         </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-3 px-1">
+            <TitleCartouche small />
+            {torches(18)}
+          </div>
+          <div className="tv-anger mx-auto mt-2 w-fit">{pile}</div>
+          <div className="mx-auto mt-3 grid w-[min(1240px,100%)] gap-3">
+            <Track team="crown" view={view} />
+            <Track team="shadow" view={view} />
+          </div>
+        </>
       )}
-      <div className="mx-auto mt-3 grid w-[min(1240px,100%)] gap-3 lg:grid-cols-2 lg:gap-5">
-        <Track team="crown" view={view} />
-        <Track team="shadow" view={view} />
-      </div>
     </header>
-  );
-}
-
-/** Bannière de velours suspendue à une tringle dorée, aux armes de son camp. */
-function HangingBanner({ team }: { team: Edict }) {
-  const crown = team === 'crown';
-  const id = `tvb-${team}`;
-  return (
-    <div className={`tv-pennant ${crown ? 'is-left' : 'is-right'}`} aria-hidden="true">
-      <svg viewBox="0 0 100 200" width="100%" height="100%">
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor={crown ? '#0f2462' : '#3e0604'} />
-            <stop offset=".22" stopColor={crown ? '#2a56b8' : '#a3201a'} />
-            <stop offset=".5" stopColor={crown ? '#173a8c' : '#6e0f0a'} />
-            <stop offset=".78" stopColor={crown ? '#2f62c8' : '#b52a20'} />
-            <stop offset="1" stopColor={crown ? '#0f2462' : '#3e0604'} />
-          </linearGradient>
-          <linearGradient id="tvb-gold" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#fff2bf" />
-            <stop offset=".45" stopColor="#d8a948" />
-            <stop offset="1" stopColor="#7a5414" />
-          </linearGradient>
-        </defs>
-        <path d="M12,10 H88 V182 L50,160 L12,182 Z" fill={`url(#${id})`} />
-        <path d="M18,16 H82 V172 L50,152 L18,172 Z" fill="none" stroke="url(#tvb-gold)" strokeWidth="2" />
-        <path d="M22,20 H78" stroke="url(#tvb-gold)" strokeWidth="1" opacity=".7" />
-        <path d="M12,182 L50,160 L88,182" fill="none" stroke="#d8a948" strokeWidth="1.5" opacity=".6" />
-        <rect x="4" y="5" width="92" height="7" rx="3.5" fill="url(#tvb-gold)" />
-        <circle cx="5" cy="8.5" r="5" fill="url(#tvb-gold)" />
-        <circle cx="95" cy="8.5" r="5" fill="url(#tvb-gold)" />
-      </svg>
-      <span className="emb">
-        <RichIcon name={crown ? 'fleur-de-lys' : 'all-seeing-eye'} metal="gold" size={46} />
-      </span>
-    </div>
   );
 }
 
@@ -320,12 +300,9 @@ function Track({ team, view }: { team: Edict; view: ThroneView }) {
   return (
     <section className={`tv-track ${team}`} aria-label={crown ? 'Édits royaux' : 'Édits de l’Ombre'}>
       <div className="tv-track-head">
-        <span className="flex items-center gap-2">
-          <RichIcon name={crown ? 'crown' : 'all-seeing-eye'} metal={crown ? 'gold' : 'bone'} size={22} />
-          <span className="tv-title text-[13px] uppercase tracking-[0.18em]">{crown ? 'La Couronne' : 'L’Ombre'}</span>
-        </span>
-        <span className="tv-num text-sm">
-          {count} / {total}
+        <span className="lbl">{crown ? 'La Couronne' : 'L’Ombre'}</span>
+        <span className="cnt">
+          {ROMAN[count - 1] ?? '0'} / {ROMAN[total - 1]}
         </span>
       </div>
       <div className="tv-slots" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
@@ -340,26 +317,18 @@ function Track({ team, view }: { team: Edict; view: ThroneView }) {
               title={filled ? EDICT_LABEL[team] : last ? 'Victoire' : power ? POWER_LABEL[power] : undefined}
             >
               {filled ? (
-                <>
-                  <span className="ribbon" aria-hidden="true" />
-                  <Seal team={team} size={32} />
-                </>
+                <Icon name={crown ? 'fleur-de-lys' : 'all-seeing-eye'} size={30} className="emblem" />
               ) : last ? (
                 <>
-                  <RichIcon name={crown ? 'laurel-crown' : 'crowned-skull'} metal={crown ? 'gold' : 'bone'} size={22} />
-                  Victoire
-                </>
-              ) : power ? (
-                <>
-                  <RichIcon name={POWER_ICON[power]} metal="bone" size={20} />
-                  {POWER_LABEL[power]}
+                  <RichIcon name={crown ? 'laurel-crown' : 'crowned-skull'} metal={crown ? 'gold' : 'bone'} size={20} />
+                  <span className="lbl">Victoire</span>
                 </>
               ) : (
-                <span className="ghost" aria-hidden="true">
-                  <RichIcon name={crown ? 'fleur-de-lys' : 'all-seeing-eye'} metal={crown ? 'gold' : 'bone'} size={26} />
-                </span>
+                <>
+                  <span className="numeral">{ROMAN[i]}</span>
+                  {power && <span className="lbl">{POWER_LABEL[power]}</span>}
+                </>
               )}
-              {!filled && <span className="numeral" aria-hidden="true">{ROMAN[i]}</span>}
               {!crown && i + 1 === USURPER_DANGER && <span className="mark" title="Dès ce 3e édit, élire l’Usurpateur Sénéchal le couronne">danger</span>}
               {!crown && i + 1 === VETO_AT && <span className="mark" title="Le Sénéchal peut proposer un veto">veto</span>}
             </div>
@@ -367,7 +336,7 @@ function Track({ team, view }: { team: Edict; view: ThroneView }) {
         })}
       </div>
       {!crown && view.shadow >= USURPER_DANGER && view.phase !== 'over' && (
-        <p className="mt-2 text-center text-[13px] italic text-[#ffd0c4]">Élire l’Usurpateur Sénéchal lui donne le trône !</p>
+        <p className="warn">Élire l’Usurpateur Sénéchal lui donne le trône !</p>
       )}
     </section>
   );
@@ -383,15 +352,15 @@ const STEPS: { label: string; icon: GameIconName }[] = [
   { label: 'Pouvoir', icon: 'crystal-ball' },
 ];
 
-function StepTrack({ view }: { view: ThroneView }) {
+function StepTrack({ view, vertical = false }: { view: ThroneView; vertical?: boolean }) {
   if (view.phase === 'reveal') return null;
   const now = { reveal: -1, nomination: 0, vote: 1, regent: 2, seneschal: 3, veto: 3, power: 4, powerResult: 4, over: 5 }[view.phase];
   return (
-    <ol className="tv-steps" aria-label="Étapes du tour">
+    <ol className={`tv-steps ${vertical ? 'is-vertical' : ''}`} aria-label="Étapes du tour">
       {STEPS.map((step, i) => (
         <li key={step.label} className={i < now ? 'done' : i === now ? 'now' : ''} aria-current={i === now ? 'step' : undefined}>
           <span className="n">
-            <Icon name={step.icon} size={14} />
+            <Icon name={step.icon} size={13} />
           </span>
           <span className="t">{step.label}</span>
         </li>
@@ -1156,13 +1125,13 @@ function EdictCard({ edict }: { edict: Edict }) {
 function History({ view, nameOf }: { view: ThroneView; nameOf: NameOf }) {
   if (view.history.length === 0) return null;
   return (
-    <section className="rounded-xl border border-[#3a2410] bg-black/45 px-4 py-3 backdrop-blur-[2px]">
-      <h3 className="tv-title text-[15px] uppercase tracking-[0.14em] text-[#e9c46a]">Registre des édits</h3>
+    <section className="tv-chron">
+      <h3 className="tv-chron-title">Registre des édits</h3>
       <ol className="mt-2 flex flex-col gap-1.5">
         {view.history.map((e, i) => (
           <li key={i} className="flex items-center gap-2">
             <Seal team={e.edict} size={22} />
-            <span className="text-[#efe3c8]">{e.regent ? `${nameOf(e.regent)} → ${nameOf(e.seneschal)}` : 'Émeute du peuple'}</span>
+            <span>{e.regent ? `${nameOf(e.regent)} → ${nameOf(e.seneschal)}` : 'Émeute du peuple'}</span>
           </li>
         ))}
       </ol>
@@ -1173,11 +1142,11 @@ function History({ view, nameOf }: { view: ThroneView; nameOf: NameOf }) {
 function Journal({ lines, open = false }: { lines: string[]; open?: boolean }) {
   const recent = lines.slice(-8).reverse();
   return (
-    <details open={open} className="rounded-xl border border-[#3a2410] bg-black/45 px-4 py-2.5 backdrop-blur-[2px]">
-      <summary className="tv-title cursor-pointer select-none text-[15px] uppercase tracking-[0.14em] text-[#e9c46a]">Chronique du Conseil</summary>
+    <details open={open} className="tv-chron">
+      <summary className="tv-chron-title cursor-pointer select-none">Chronique du Conseil</summary>
       <ol className="mt-1 flex flex-col gap-1">
         {recent.map((line, i) => (
-          <li key={lines.length - i} className={i === 0 ? 'text-[#f6e7c4]' : 'text-[#bba77f]'}>
+          <li key={lines.length - i} className={i === 0 ? 'is-new' : ''}>
             {line}
           </li>
         ))}

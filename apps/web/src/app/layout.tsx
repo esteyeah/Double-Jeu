@@ -24,6 +24,10 @@ import '@fontsource/outfit/800.css';
 import '@fontsource/outfit/500.css';
 import '@fontsource/outfit/700.css';
 import '@fontsource/lilita-one';
+import '@fontsource/marcellus-sc';
+import '@fontsource/limelight';
+import '@fontsource/cinzel-decorative/700.css';
+import '@fontsource/cinzel-decorative/900.css';
 
 export const metadata: Metadata = {
   title: 'Double Jeu · jeux de société de bluff et de déduction',

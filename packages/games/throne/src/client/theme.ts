@@ -185,69 +185,195 @@ button[aria-pressed=true] > .tv-edict{transform:translateY(-10px);box-shadow:0 0
 .tv-ui-pill{font-family:'Tv Digits','Cormorant Garamond',Georgia,serif;font-size:14px;color:#2a1a0c;padding:6px 14px;border-radius:999px;
   background:url(/themes/throne/parchment.jpg) center/200px;border:1px solid #8b6a33;box-shadow:0 6px 16px rgba(0,0,0,.5)}
 
-/* ───── Interface moderne : verre fumé, cartes épurées, typo actuelle ───── */
-.tv{font-family:'Outfit',system-ui,sans-serif;font-weight:500}
-.tv-num{font-family:'Outfit',sans-serif;font-weight:800}
-.tv-wall::before{opacity:.16}
-.tv-anger{font-weight:600}
-.tv-steps li{background:rgba(24,15,8,.58);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border-color:rgba(233,196,106,.16);color:#d6c29a;font-weight:600}
-.tv-steps li.now{background:linear-gradient(180deg,#ffe08a,#e2a93a);color:#2a1505;border-color:transparent;box-shadow:0 8px 22px rgba(233,180,70,.45)}
-.tv-call{background:linear-gradient(180deg,rgba(36,22,10,.72),rgba(12,7,3,.82));backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid rgba(233,196,106,.22);border-radius:20px;box-shadow:0 14px 34px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,230,180,.14)}
-.tv-call .ic{background:linear-gradient(180deg,#5b86ff,#2a49b8);box-shadow:0 6px 14px rgba(80,120,255,.45)}
-.tv-call strong{font-weight:700}
-.tv-letter,.tv-dock{background:linear-gradient(180deg,#fffdf8,#f2e9da);border-radius:22px;box-shadow:0 26px 60px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.75),0 0 0 1px rgba(90,60,20,.22);padding:22px 18px 20px}
-.tv-letter .muted,.tv-dock .muted{color:#7a6448}
-.tv-btn{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:.04em;text-transform:uppercase;font-size:.95rem;border-radius:999px;padding:.75rem 1.6rem;border:0;text-shadow:none;
-  background:linear-gradient(180deg,#ffe08a,#e2a93a 60%,#c58a1e);box-shadow:inset 0 2px 0 rgba(255,255,255,.55),0 4px 0 #8a5a12,0 12px 24px rgba(226,169,58,.35)}
-.tv-btn.danger{background:linear-gradient(180deg,#ff6b5e,#c62828 60%,#8e1515);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 4px 0 #5e0c08,0 12px 24px rgba(198,40,40,.35)}
-.tv-btn2{font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:.02em;border-radius:999px;border-color:rgba(110,80,30,.3);background:rgba(255,255,255,.75)}
-.tv-ballot{background:linear-gradient(180deg,#ffffff,#f1e7d6);border-radius:20px;box-shadow:0 14px 28px rgba(40,20,5,.3),inset 0 0 0 1px rgba(180,140,80,.35)}
-.tv-ballot::before{inset:7px;border:1px solid rgba(180,140,80,.3);border-radius:14px}
-.tv-edict{background:linear-gradient(180deg,#ffffff,#f1e7d6);border-radius:16px;box-shadow:0 10px 22px rgba(40,20,5,.3),inset 0 0 0 1px rgba(180,140,80,.35)}
-.tv-edict .lbl{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:.02em;text-transform:uppercase;font-size:11px}
-.tv-slot.filled{background:linear-gradient(180deg,#fffdf6,#efe3cc);box-shadow:0 4px 10px rgba(0,0,0,.5)}
-.tv-scroll{background:linear-gradient(180deg,#fffdf8,#f2e9da);border-radius:24px;box-shadow:0 30px 70px rgba(0,0,0,.8)}
-.tv-scroll::before,.tv-scroll::after{display:none}
-.tv-seat-plate{border-radius:999px;background:rgba(16,10,4,.8);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);padding:2px 10px}
-.tv-seat-name{font-family:'Outfit',sans-serif;font-weight:800;font-size:12.5px;letter-spacing:.02em}
-.tv-chip,.tv-role,.tv-ballot-chip{font-family:'Outfit',sans-serif;font-weight:700}
-.tv-banner .k{font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:.3em}
-.tv-banner .s{font-style:normal}
-.tv-ui-panel{background:linear-gradient(180deg,#fffdf8,#f2e9da);border-radius:22px;box-shadow:0 26px 60px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.75),0 0 0 1px rgba(90,60,20,.22);font-family:'Outfit',sans-serif}
-.tv-ui-panel::before{display:none}
-.tv-ui-kicker,.tv-ui-text{font-family:'Outfit',sans-serif}
-.tv-ui-drawer,.tv-ui-pill{font-family:'Outfit',sans-serif}
-/* ───── Cases d'édits : filigrane gravé, numéro, et édit promulgué scellé sur son ruban ───── */
-.tv-track.crown .tv-slot{background:radial-gradient(80% 70% at 50% 35%,rgba(150,185,255,.12),transparent 70%),linear-gradient(180deg,rgba(6,14,46,.6),rgba(0,0,0,.55))}
-.tv-track.shadow .tv-slot{background:radial-gradient(80% 70% at 50% 35%,rgba(255,130,110,.12),transparent 70%),linear-gradient(180deg,rgba(46,5,3,.6),rgba(0,0,0,.55))}
-.tv-slot .ghost{opacity:.17;filter:drop-shadow(0 1px 0 rgba(255,255,255,.12))}
-.tv-slot .numeral{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:9px;letter-spacing:.14em;color:rgba(246,231,196,.32)}
-.tv-track .tv-slot.filled{overflow:hidden;background:radial-gradient(120% 90% at 50% 22%,#fffaf0,#f1e2c3 58%,#d8bd8c);
-  box-shadow:0 4px 10px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.65),inset 0 0 16px rgba(140,95,35,.4)}
-.tv-slot.filled .ribbon{position:absolute;top:-2px;bottom:-2px;left:50%;width:30%;transform:translateX(-50%);box-shadow:0 0 6px rgba(0,0,0,.35)}
-.tv-track.crown .tv-slot.filled .ribbon{background:linear-gradient(90deg,#122f74,#3468d0 45%,#5c88e0 52%,#163a8c)}
-.tv-track.shadow .tv-slot.filled .ribbon{background:linear-gradient(90deg,#5a0a07,#b52a20 45%,#d24a3c 52%,#6e0f0a)}
-.tv-slot.filled .tv-seal{position:relative;z-index:1;box-shadow:0 3px 6px rgba(0,0,0,.55),inset 0 -2px 4px rgba(0,0,0,.4),inset 0 2px 3px rgba(255,255,255,.35);
-  animation:tv-stamp .7s .3s cubic-bezier(.2,1.6,.4,1) both}
-@keyframes tv-stamp{0%{transform:scale(2.4) rotate(-20deg);opacity:0}60%{opacity:1}100%{transform:none}}
-@media (max-width:1023px){.tv-slot .numeral{display:none}.tv-slot .ghost{transform:scale(.8)}}
+/* ───── Palais : salle du trône, interface en parchemin enluminé et cadres dorés art déco ───── */
+.tv{font-family:'IM Fell English','Tv Digits',Georgia,serif;font-weight:400;font-size:17px;background:#0c0406}
+.tv-wall{background:radial-gradient(55% 45% at 50% 22%,#5a1d14 0%,#2c0c0a 55%,#0c0406 100%)}
+.tv-wall::before,.tv-wall::after{display:none}
+.tv-light{background:radial-gradient(28% 26% at 50% 26%,rgba(255,196,110,.20),transparent 70%),radial-gradient(140% 100% at 50% 30%,transparent 52%,rgba(0,0,0,.8) 100%)}
+.tv-title{font-family:'Cinzel Decorative','Cinzel',serif}
+.tv-num{font-family:'Limelight','Cinzel',serif;font-weight:400}
 
-/* ───── Vitraux de la salle du Conseil, de part et d'autre de la table ───── */
-.tv-windows{position:absolute;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
-.tv-windows .win{position:absolute;top:190px;width:clamp(80px,6.4vw,130px);aspect-ratio:1/2.7;border-radius:999px 999px 6px 6px;border:7px solid #23160b;
-  box-shadow:0 0 0 2px rgba(233,196,106,.28),inset 0 0 0 2px rgba(0,0,0,.6),0 18px 40px rgba(0,0,0,.6);opacity:.72}
-.tv-windows .win::before{content:'';position:absolute;inset:0;border-radius:inherit;
-  background:repeating-linear-gradient(0deg,rgba(18,10,4,.85) 0 2px,transparent 2px 28px),repeating-linear-gradient(90deg,rgba(18,10,4,.85) 0 2px,transparent 2px 24px),
-    radial-gradient(60% 18% at 50% 14%,rgba(255,236,170,.9),transparent 70%),var(--glass)}
-.tv-windows .win::after{content:'';position:absolute;top:30%;left:50%;width:520%;height:330%;transform-origin:0 0;filter:blur(14px);mix-blend-mode:screen;
-  background:linear-gradient(180deg,var(--shaft),transparent 75%);clip-path:polygon(0 0,18% 0,100% 100%,40% 100%);animation:tv-shaft 9s ease-in-out infinite}
-.tv-windows .win.is-left{left:calc((100vw - 1240px) / 4 - 40px);
-  --glass:linear-gradient(180deg,#2c5bd0,#1b3a8e 35%,#c79a3a 36% 38%,#2a4fb5 39%,#16307a);--shaft:rgba(120,160,255,.16)}
-.tv-windows .win.is-right{right:calc((100vw - 1240px) / 4 - 40px);
-  --glass:linear-gradient(180deg,#d0402e,#8e1a12 35%,#c79a3a 36% 38%,#b02a1e 39%,#5e0c08);--shaft:rgba(255,120,90,.14)}
-.tv-windows .win.is-right::after{left:auto;right:50%;transform-origin:100% 0;clip-path:polygon(82% 0,100% 0,60% 100%,0 100%)}
-@keyframes tv-shaft{50%{opacity:.6}}
-@media (max-width:1599px){.tv-windows{display:none}}
+/* La salle */
+.tv-hall{position:absolute;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.tv-hall > span{position:absolute;display:block}
+.tv-hall .damask{left:0;right:0;top:0;height:720px;background:radial-gradient(circle,rgba(240,190,110,.08) 0 3px,transparent 4px) 0 0/34px 34px,radial-gradient(circle,rgba(240,190,110,.05) 0 2px,transparent 3px) 17px 17px/34px 34px}
+.tv-hall .win{top:150px;width:54px;height:170px;border-radius:27px 27px 0 0;border:4px solid #2a1a10;background:linear-gradient(180deg,#9cc0ff,#3a5ea8);opacity:.5}
+.tv-hall .win.is-left{left:calc(50% - 300px)}.tv-hall .win.is-right{right:calc(50% - 300px)}
+.tv-hall .shaft{top:180px;width:240px;height:620px;filter:blur(14px);background:linear-gradient(180deg,rgba(160,190,255,.2),transparent 85%)}
+.tv-hall .shaft.is-left{left:calc(50% - 330px);clip-path:polygon(10% 0,30% 0,100% 100%,55% 100%)}
+.tv-hall .shaft.is-right{right:calc(50% - 330px);clip-path:polygon(70% 0,90% 0,45% 100%,0 100%)}
+.tv-hall .floor{left:-25%;right:-25%;top:700px;height:760px;transform:perspective(700px) rotateX(64deg);transform-origin:50% 0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Crect width='130' height='130' fill='%23241c18'/%3E%3Crect width='65' height='65' fill='%23a8977a'/%3E%3Crect x='65' y='65' width='65' height='65' fill='%23a8977a'/%3E%3C/svg%3E") 0 0/130px 130px}
+.tv-hall .floor-shade{left:0;right:0;top:700px;bottom:0;background:linear-gradient(180deg,rgba(20,6,6,.62),rgba(10,4,6,.95) 50%)}
+.tv-hall .carpet{left:0;right:0;top:700px;height:900px;background:linear-gradient(90deg,#c9973e 0 2%,#8e1712 2% 98%,#c9973e 98%);clip-path:polygon(44.5% 0,55.5% 0,76% 100%,24% 100%);opacity:.7}
+.tv-hall .col{background:linear-gradient(90deg,#3a2e24,#d9cdb6 35%,#fffaf0 50%,#a8987e 75%,#2e241c)}
+.tv-hall .col.is-right{background:linear-gradient(270deg,#3a2e24,#d9cdb6 35%,#fffaf0 50%,#a8987e 75%,#2e241c)}
+.tv-hall .col.near{top:0;bottom:0;width:clamp(50px,6vw,110px)}
+.tv-hall .col.near.is-left{left:1vw}.tv-hall .col.near.is-right{right:1vw}
+.tv-hall .col.mid{top:80px;height:680px;width:clamp(36px,4.4vw,66px);opacity:.92}
+.tv-hall .col.mid.is-left{left:calc(50% - 600px)}.tv-hall .col.mid.is-right{right:calc(50% - 600px)}
+.tv-hall .col.far{top:170px;height:560px;width:40px;opacity:.78}
+.tv-hall .col.far.is-left{left:calc(50% - 400px)}.tv-hall .col.far.is-right{right:calc(50% - 400px)}
+.tv-hall .col i{position:absolute;left:-14%;right:-14%;height:22px;background:linear-gradient(180deg,#fff0bf,#c9973e 60%,#6d4b12)}
+.tv-hall .col i.cap{top:-16px}.tv-hall .col i.base{bottom:-16px}
+.tv-hall .banner{top:240px;width:70px;height:210px;filter:drop-shadow(0 10px 10px rgba(0,0,0,.6))}
+.tv-hall .banner.is-left{left:calc(50% - 510px)}.tv-hall .banner.is-right{right:calc(50% - 510px)}
+.tv-hall .banner .emb{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%)}
+.tv-hall .chand{top:0;width:110px;height:120px}
+.tv-hall .chand::before{content:'';position:absolute;left:54px;top:0;width:2px;height:62px;background:#c9973e}
+.tv-hall .chand i{position:absolute;left:15px;top:58px;width:80px;height:18px;border-radius:50%;border:3px solid #e2ad44;box-shadow:0 0 34px 16px rgba(255,210,130,.26)}
+.tv-hall .chand.is-left{left:calc(50% - 420px)}.tv-hall .chand.is-right{right:calc(50% - 420px)}
+
+/* Le trône sur son estrade */
+.tv-stage{position:relative;width:440px;height:422px;margin:6px auto 0;transform-origin:50% 0;pointer-events:none}
+.tv-stage > *{position:absolute;display:block}
+.tv-stage .tapestry{left:70px;top:32px;width:300px;height:360px;box-shadow:0 0 30px rgba(0,0,0,.6)}
+.tv-stage .halo{left:90px;top:54px;width:260px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(255,210,130,.5),transparent 65%);animation:tv-flicker 5s ease-in-out infinite}
+.tv-stage .curtain{top:24px;width:92px;height:380px;background:repeating-linear-gradient(90deg,#4a0a08 0,#b8261e 10px,#7a120e 20px,#c42e24 28px,#4a0a08 36px)}
+.tv-stage .curtain.is-left{left:30px;clip-path:polygon(0 0,100% 0,62% 55%,82% 100%,0 100%)}
+.tv-stage .curtain.is-right{right:30px;clip-path:polygon(0 0,100% 0,100% 100%,18% 100%,38% 55%)}
+.tv-stage .valance{left:20px;top:0;width:400px;height:80px;filter:drop-shadow(0 8px 10px rgba(0,0,0,.6))}
+.tv-stage .step{border-top:3px solid #e2ad44}
+.tv-stage .s1{left:60px;top:354px;width:320px;height:22px;background:linear-gradient(180deg,#8e1712,#4a0a08)}
+.tv-stage .s2{left:30px;top:376px;width:380px;height:22px;background:linear-gradient(180deg,#e9dfcc,#9a8a70)}
+.tv-stage .s3{left:0;top:398px;width:440px;height:24px;background:linear-gradient(180deg,#d9ccb2,#7a6a52)}
+.tv-stage .throne{left:100px;top:28px;width:240px;height:330px;filter:drop-shadow(0 0 22px rgba(255,190,90,.45)) drop-shadow(0 14px 12px rgba(0,0,0,.75))}
+.tv-court-table{position:relative;z-index:1;margin-top:-150px}
+@media (min-width:1024px){.tv-stage{transform:scale(.78);margin-bottom:-93px}}
+
+/* Cadre commun : parchemin enluminé dans un double filet doré */
+.tv-cartouche,.tv .tv-track,.tv .tv-call,.tv-letter,.tv-dock,.tv-ui-panel,.tv-chron,.tv .tv-steps.is-vertical{
+  border-radius:0;color:#2b1a10;background:radial-gradient(120% 100% at 50% 40%,#fbf1d8,#ead8ae);
+  border:2px solid #c9973e;outline:1px solid #c9973e;outline-offset:3px;box-shadow:0 16px 30px rgba(0,0,0,.6);backdrop-filter:none;-webkit-backdrop-filter:none}
+
+/* En-tête */
+.tv-head{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:start;gap:22px;width:min(1500px,calc(100% - 12px));margin:0 auto}
+.tv-head-mid{display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:4px}
+.tv-cartouche{display:flex;align-items:center;gap:4px;padding:8px 22px 8px 10px}
+.tv-cartouche .lettrine{width:54px;height:54px;display:grid;place-items:center;background:radial-gradient(circle at 30% 30%,#3f6fd0,#1b3a8f 65%,#0f2259);border:2px solid #d9ad4c;box-shadow:inset 0 0 0 2px #f6e2a4;
+  font-family:'Cinzel Decorative',serif;font-weight:900;font-size:40px;line-height:1;color:#f3d27a;text-shadow:0 2px 0 #6e4a10}
+.tv-cartouche .rest{font-family:'UnifrakturMaguntia',serif;font-size:48px;line-height:1;color:#2b1a10;white-space:nowrap}
+.tv-cartouche.is-small{padding:5px 12px 5px 6px}
+.tv-cartouche.is-small .lettrine{width:38px;height:38px;font-size:28px}
+.tv-cartouche.is-small .rest{font-size:31px}
+.tv .tv-anger{display:flex;align-items:center;gap:10px;padding:5px 16px;border-radius:0;font-family:'Marcellus SC',serif;font-weight:400;font-size:14px;letter-spacing:.12em;color:#f1dca6;
+  background:rgba(12,5,4,.75);border:1px solid rgba(201,151,62,.5);box-shadow:0 6px 16px rgba(0,0,0,.5)}
+
+/* Pistes d'édits : cartes dans le parchemin */
+.tv .tv-track{padding:12px 14px 14px}
+.tv .tv-track::before{display:none}
+.tv-track-head .lbl{font-family:'Marcellus SC',serif;font-size:17px;letter-spacing:.14em}
+.tv-track-head .cnt{font-family:'Limelight',serif;font-size:17px}
+.tv-track.crown .tv-track-head{color:#1b3a8f}.tv-track.shadow .tv-track-head{color:#9b1c12}
+.tv .tv-slots{gap:7px}
+.tv .tv-slot{height:76px;border-radius:0;gap:3px;background:transparent;box-shadow:none;font-size:11px;color:#1b3a8f;
+  border:1px solid rgba(27,58,143,.45);outline:1px dashed rgba(27,58,143,.3);outline-offset:-5px}
+.tv .tv-track.shadow .tv-slot{color:#7a1a10;border-color:rgba(155,28,18,.45);outline-color:rgba(155,28,18,.3)}
+.tv .tv-slot > :first-child:not(.mark){opacity:1}
+.tv-slot .numeral{font-family:'Limelight',serif;font-size:17px;line-height:1;opacity:.6}
+.tv-slot .lbl{font-style:italic;font-size:11.5px;line-height:1.05}
+.tv .tv-slot.goal{outline:0;border:2px solid currentColor;background:repeating-linear-gradient(45deg,rgba(27,58,143,.09) 0 5px,transparent 5px 10px)}
+.tv .tv-track.shadow .tv-slot.goal{background:repeating-linear-gradient(45deg,rgba(155,28,18,.09) 0 5px,transparent 5px 10px)}
+.tv .tv-slot.goal .lbl{font-family:'Marcellus SC',serif;font-style:normal;font-size:11px;letter-spacing:.06em}
+.tv .tv-track.crown .tv-slot.filled{outline:0;border:2px solid #6e4a10;color:#1b3a8f;background:linear-gradient(135deg,#fff0b8,#e2b24a 40%,#a8761d 70%,#f0cf72);box-shadow:inset 0 0 0 3px rgba(255,255,255,.4)}
+.tv .tv-track.shadow .tv-slot.filled{outline:0;border:2px solid #3e0604;color:#f3d27a;background:radial-gradient(circle at 40% 30%,#e0503a,#a3201a 60%,#6e0f0a);box-shadow:inset 0 0 0 3px rgba(240,205,110,.6)}
+.tv-slot .emblem{filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));animation:tv-stamp .7s .3s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes tv-stamp{0%{transform:scale(2.4) rotate(-20deg);opacity:0}60%{opacity:1}100%{transform:none}}
+.tv .tv-slot .mark{border-radius:0;font-family:'Marcellus SC',serif;letter-spacing:.06em}
+.tv-track .warn{margin-top:8px;text-align:center;font-style:italic;font-size:14px;color:#9b1c12}
+
+/* Étapes du tour (losanges) */
+.tv .tv-steps li{font-family:'Marcellus SC',serif;font-weight:400;letter-spacing:.08em;color:#f1dca6;background:rgba(12,5,4,.75);border:1px solid rgba(201,151,62,.45);border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;gap:10px;padding:4px 12px 4px 8px}
+.tv .tv-steps .n{width:22px;height:22px;border-radius:0;transform:rotate(45deg);background:transparent;border:1px solid #c9973e;color:#e9c46a}
+.tv .tv-steps .n > svg{transform:rotate(-45deg)}
+.tv .tv-steps li.now{color:#f6e2a4;background:linear-gradient(90deg,#1b3a8f,#2f5fb3);border-color:#c9973e;box-shadow:0 0 18px rgba(80,120,230,.45);font-weight:400}
+.tv .tv-steps li.now .n{background:#e9c46a;color:#1b3a8f;border-color:#e9c46a}
+.tv .tv-steps.is-vertical{flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:6px;margin:0;padding:14px}
+.tv .tv-steps.is-vertical li{background:transparent;border:0;color:#4a3218;box-shadow:none;font-size:15px}
+.tv .tv-steps.is-vertical li .n{border-color:#b8892e;color:#8a6a2a}
+.tv .tv-steps.is-vertical li.now{color:#f6e2a4;background:linear-gradient(90deg,#1b3a8f,#2f5fb3);margin:0 -4px;box-shadow:0 4px 10px rgba(27,58,143,.35)}
+.tv .tv-steps.is-vertical li.now .n{border-color:#e9c46a;color:#1b3a8f}
+.tv .tv-steps.is-vertical li.done{opacity:.45}
+
+/* Consigne */
+.tv .tv-call{margin-top:10px;font-size:1.12rem;padding:9px 16px 9px 9px}
+.tv .tv-call strong{color:#9b1c12;font-weight:700}
+.tv .tv-call .ic{background:radial-gradient(circle at 35% 30%,#4a7ad8,#1b3a8f 60%,#0f2259);box-shadow:0 0 0 2px #d9ad4c}
+.tv .tv-call.is-mine{color:#2b1a10;animation:tv-callglow 2.2s ease-in-out infinite}
+@keyframes tv-callglow{0%,100%{box-shadow:0 0 0 2px rgba(240,205,110,.0),0 16px 30px rgba(0,0,0,.6)}50%{box-shadow:0 0 0 6px rgba(240,205,110,.45),0 0 34px rgba(240,205,110,.55),0 16px 30px rgba(0,0,0,.6)}}
+
+/* Panneaux, lettre et dialogues */
+.tv-letter,.tv-dock,.tv-ui-panel{padding:24px 20px 20px;font-family:'IM Fell English',Georgia,serif}
+.tv-ui-panel::before{display:none}
+.tv-dock h4,.tv-letter h4{font-family:'UnifrakturMaguntia',serif;font-weight:400;font-size:1.95rem;line-height:1.05;letter-spacing:0;color:#2b1a10}
+.tv-letter .muted,.tv-dock .muted{color:#6b4f2a}
+.tv-letter .tv-title{font-family:'Marcellus SC',serif}
+.tv-ui-kicker{font-family:'Marcellus SC',serif;font-size:13px;letter-spacing:.24em;color:#9b1c12}
+.tv-ui-title{font-family:'UnifrakturMaguntia',serif;font-weight:400;font-size:2.3rem;color:#2b1a10}
+.tv-ui-text{font-family:'IM Fell English',Georgia,serif;color:#4a3218}
+.tv-ui-drawer{font-family:'IM Fell English',Georgia,serif}
+.tv-ui-pill{font-family:'IM Fell English',Georgia,serif;border-radius:0}
+
+/* Boutons : lapis et or, ou vermillon pour les gestes graves */
+.tv-btn{font-family:'Cinzel Decorative','Cinzel',serif;font-weight:900;letter-spacing:.03em;text-transform:none;font-size:1rem;border-radius:2px;padding:.75rem 1.4rem;color:#f6e2a4;
+  border:2px solid #d9ad4c;outline:1px solid #1b3a8f;outline-offset:2px;background:radial-gradient(circle at 35% 25%,#4a7ad8,#1b3a8f 60%,#0f2259);text-shadow:0 1px 0 rgba(0,0,0,.45);
+  box-shadow:inset 0 -4px 6px rgba(0,0,0,.3),inset 0 3px 4px rgba(255,255,255,.25),0 4px 0 #0a1638,0 10px 18px rgba(0,0,0,.35)}
+.tv-btn.danger{outline-color:#6e0f0a;background:radial-gradient(circle at 35% 25%,#e0503a,#a3201a 60%,#5e0c08);box-shadow:inset 0 -4px 6px rgba(0,0,0,.3),inset 0 3px 4px rgba(255,255,255,.25),0 4px 0 #3e0604,0 10px 18px rgba(0,0,0,.35)}
+.tv-btn:disabled{opacity:.5;filter:grayscale(.6)}
+.tv-btn2{font-family:'Marcellus SC',serif;font-weight:400;letter-spacing:.1em;border-radius:2px;color:#3a2410;border:1px solid #b8892e;background:rgba(255,250,235,.6)}
+
+/* Bulletins de vote : deux sceaux de cire */
+.tv-ballot{max-width:150px;aspect-ratio:1/1.02;border-radius:48% 52% 50% 50% / 52% 48% 52% 48%;gap:2px;color:#f6e2a4;
+  background:radial-gradient(circle at 35% 30%,#4a7ad8,#1b3a8f 60%,#0f2259);box-shadow:inset 0 -6px 10px rgba(0,0,0,.35),inset 0 5px 8px rgba(255,255,255,.3),0 5px 0 #0a1638,0 14px 22px rgba(0,0,0,.35)}
+.tv-ballot:nth-child(2){border-radius:52% 48% 50% 50% / 48% 52% 48% 52%;background:radial-gradient(circle at 35% 30%,#e0503a,#a3201a 60%,#5e0c08);box-shadow:inset 0 -6px 10px rgba(0,0,0,.35),inset 0 5px 8px rgba(255,255,255,.3),0 5px 0 #3e0604,0 14px 22px rgba(0,0,0,.35)}
+.tv-ballot::before{display:none}
+.tv-ballot .word{font-family:'Cinzel Decorative',serif;font-weight:900;font-size:1.6rem;color:#f6e2a4!important;text-shadow:0 2px 2px rgba(0,0,0,.4)}
+.tv-ballot .muted{color:rgba(246,226,164,.85)!important}
+.tv-ballot:hover{transform:translateY(-5px) rotate(-2deg)}
+
+/* Édits à choisir */
+.tv-edict{border-radius:2px;background:radial-gradient(120% 90% at 50% 30%,#fffaf0,#ead8ae);box-shadow:0 0 0 2px #c9973e,0 0 0 4px #f4e6c2,0 0 0 5px #c9973e,0 10px 18px rgba(0,0,0,.4)}
+.tv-edict .lbl{font-family:'Marcellus SC',serif;font-weight:400;font-size:12px;letter-spacing:.04em}
+button[aria-pressed=true] > .tv-edict{box-shadow:0 0 0 2px #c9973e,0 0 0 4px #f4e6c2,0 0 0 6px #1b3a8f,0 18px 28px rgba(0,0,0,.45)}
+.tv-pick[aria-checked=true]{background:rgba(27,58,143,.12);box-shadow:0 0 0 2px #1b3a8f;border-radius:4px}
+
+/* Conseillers : nom sur une banderole */
+.tv .tv-seat-plate{position:relative;isolation:isolate;border-radius:0;padding:1px 14px 2px;background:linear-gradient(180deg,#fbf1d8,#ead8ae);border:1.5px solid #b8892e;box-shadow:0 4px 8px rgba(0,0,0,.55);backdrop-filter:none;-webkit-backdrop-filter:none}
+.tv .tv-seat-plate::before,.tv .tv-seat-plate::after{content:'';position:absolute;top:5px;width:13px;height:100%;background:#7a1810;z-index:-1}
+.tv .tv-seat-plate::before{left:-10px;clip-path:polygon(0 0,100% 0,100% 100%,0 100%,45% 50%)}
+.tv .tv-seat-plate::after{right:-10px;clip-path:polygon(0 0,100% 0,55% 50%,100% 100%,0 100%)}
+.tv .tv-seat-name{font-family:'IM Fell English',Georgia,serif;font-style:italic;font-weight:400;font-size:15px;letter-spacing:0;color:#2b1a10}
+.tv .tv-seat-tag{font-family:'Marcellus SC',serif;font-size:11px;color:#1b3a8f}
+.tv .tv-seat.is-me .tv-seat-plate{border-color:#1b3a8f;box-shadow:0 0 0 2px rgba(80,120,230,.55),0 4px 8px rgba(0,0,0,.55)}
+.tv .tv-chip,.tv .tv-role,.tv .tv-ballot-chip{font-family:'Marcellus SC',serif;font-weight:400;border-radius:0;letter-spacing:.06em}
+.tv-cloth{background:radial-gradient(closest-side,rgba(140,175,255,.18),transparent 70%),repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.03) 0 2px,transparent 2px 6px),radial-gradient(closest-side,#2f56b8,#14306e 70%,#0a1838)}
+
+/* Registre et chronique */
+.tv-chron{padding:14px 16px;font-size:15.5px;line-height:1.4;color:#3a2614}
+.tv-chron-title{font-family:'Marcellus SC',serif;font-size:15px;letter-spacing:.14em;color:#9b1c12}
+.tv-chron li{color:#6b4f2a}
+.tv-chron li.is-new{color:#2b1a10}
+.tv-chron li.is-new::first-letter{font-family:'UnifrakturMaguntia',serif;font-size:1.55em;color:#9b1c12}
+
+/* Mise en page « cour » sur grand écran */
+.tv-court{display:grid;grid-template-columns:260px minmax(0,1fr) 360px;gap:24px;align-items:start;width:min(1500px,calc(100% - 24px));margin:16px auto 0;padding-bottom:64px}
+.tv-court-side{display:flex;flex-direction:column;gap:22px;min-width:0;padding-top:4px}
+.tv-court-center{min-width:0}
+@media (max-width:1279px){.tv-court{grid-template-columns:220px minmax(0,1fr) 330px;gap:16px}.tv-cartouche .rest{font-size:40px}}
+
+@media (max-width:1023px){
+  .tv-hall .win,.tv-hall .shaft,.tv-hall .col.mid,.tv-hall .col.far,.tv-hall .banner,.tv-hall .chand,.tv-hall .floor,.tv-hall .floor-shade,.tv-hall .carpet{display:none}
+  .tv-hall .col.near{width:22px;opacity:.5}
+  .tv-stage{transform:scale(.6);margin:4px auto -169px}
+  .tv-court-table{margin-top:-64px}
+  .tv .tv-slot{height:56px}
+  .tv-slot .numeral{font-size:14px}
+  .tv-slot .lbl{font-size:9.5px}
+  .tv .tv-track{padding:10px 10px 12px}
+  .tv .tv-seat-plate{padding:0 8px 1px}
+  .tv .tv-seat-name{font-size:13px}
+  .tv .tv-seat-plate::before,.tv .tv-seat-plate::after{width:9px;top:4px}
+  .tv .tv-seat-plate::before{left:-7px}.tv .tv-seat-plate::after{right:-7px}
+}
 @media (prefers-reduced-motion:reduce){.tv *{animation:none!important;transition:none!important}.tv-banner,.tv-scroll{animation:tv-fade .2s both!important}}
 @keyframes tv-fade{from{opacity:0}to{opacity:1}}
 `;

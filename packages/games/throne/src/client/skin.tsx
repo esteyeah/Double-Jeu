@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { RichIcon, type StageSkin } from '@arcade/tabletop';
 import { THRONE_CSS } from './theme';
+import { PalaceHall } from './palace';
 
 /** Habillage des écrans communs du Trône Vide : parchemin scellé, pierre et chandelles. */
 export const skin: StageSkin = {
@@ -9,6 +10,7 @@ export const skin: StageSkin = {
   scenery: (
     <div className="tv" style={{ position: 'fixed', inset: 0, minHeight: 0 }} aria-hidden="true">
       <div className="tv-wall" />
+      <PalaceHall />
       <div className="tv-light" />
     </div>
   ),
@@ -32,7 +34,7 @@ export const skin: StageSkin = {
     secondary: 'tv-btn2',
     hud: 'tv-hud',
     drawer: 'tv-ui-drawer',
-    drawerTitle: "text-xl text-[#e9c46a] [font-family:'Cinzel',serif] font-bold",
+    drawerTitle: "text-xl text-[#e9c46a] [font-family:'Marcellus_SC',serif]",
     pill: 'tv-ui-pill',
     toast: 'tv-ui-pill',
   },

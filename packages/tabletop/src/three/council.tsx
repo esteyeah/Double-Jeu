@@ -24,7 +24,7 @@ export function CouncilScene({ fit, seats }: { fit: Fit; seats: number }) {
       apron: new THREE.MeshStandardMaterial({ map: wood, color: '#3a1d0c', roughness: 0.6 }),
       gold: new THREE.MeshStandardMaterial({ color: '#e5b24c', metalness: 1, roughness: 0.22 }),
       brass: new THREE.MeshStandardMaterial({ color: '#c9973e', metalness: 0.9, roughness: 0.32 }),
-      cloth: new THREE.MeshPhysicalMaterial({ map: velvet, color: '#8a1813', roughness: 0.92, sheen: 1, sheenColor: new THREE.Color('#ff8a70'), sheenRoughness: 0.42 }),
+      cloth: new THREE.MeshPhysicalMaterial({ bumpMap: velvet, bumpScale: 0.6, color: '#1d3f9e', roughness: 0.9, sheen: 1, sheenColor: new THREE.Color('#8fb0ff'), sheenRoughness: 0.4 }),
       thread: new THREE.MeshStandardMaterial({
         map: tex.embroidery,
         color: '#f3c766',

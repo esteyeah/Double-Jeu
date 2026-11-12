@@ -116,6 +116,9 @@ importers:
       '@fontsource/cinzel':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/cinzel-decorative':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/cormorant-garamond':
         specifier: ^5.3.0
         version: 5.3.0
@@ -126,6 +129,12 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource/lilita-one':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/limelight':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/marcellus-sc':
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource/orbitron':
@@ -834,6 +843,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@fontsource/cinzel-decorative@5.3.0':
+    resolution: {integrity: sha512-9T6Fsv6l+5CUjvKWcTlMtkAYR/C8p2ll0bgT5krOU+DTLJRmaZYpXzcRoxPvENA6+uApa+Yyn0Ft/hdq083iVA==}
+
   '@fontsource/cinzel@5.3.0':
     resolution: {integrity: sha512-KEOYTsrRppW0uRIPWBDPrQgunCS6f8u4nzZxYRBfo9SCknKojLYjK7B0ZoVmJhyVLefz271ZQRF9EOpHZlfhRw==}
 
@@ -848,6 +860,12 @@ packages:
 
   '@fontsource/lilita-one@5.3.0':
     resolution: {integrity: sha512-bNW3tD+m5pOsAQpW/NvtRbFthFe+B73hDJK2DLLCFCtF+1p+UMBgo7ibxdcb9Sftr06LKAVbt080wiMdSqGbOg==}
+
+  '@fontsource/limelight@5.3.0':
+    resolution: {integrity: sha512-jiuuCdbk9/u0TA/bIZfp35cvJrfz1CJFSEFh4lk5Ma8Nh42897GbF0ny85emdYiJ6WJQjnD/BK/X0D5Oe6bxbg==}
+
+  '@fontsource/marcellus-sc@5.3.0':
+    resolution: {integrity: sha512-i4URFFrg7hgJnp05puIVvDuCmSqRZwKBrY6tx+Z4I6XQs5JTiMbpKMYttU8Oioup/0LxfvrJY0FPFku592hJew==}
 
   '@fontsource/orbitron@5.3.0':
     resolution: {integrity: sha512-+BhPsbUAo/AF7sRcf+TEexm+EWWkgTiR9Zwb7AhYIPkc5oplfvw0C45Oc2xlKPhwVEmxG8hHuA6/Ansbl+Bc6w==}
@@ -2595,6 +2613,8 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
+  '@fontsource/cinzel-decorative@5.3.0': {}
+
   '@fontsource/cinzel@5.3.0': {}
 
   '@fontsource/cormorant-garamond@5.3.0': {}
@@ -2604,6 +2624,10 @@ snapshots:
   '@fontsource/im-fell-english@5.3.0': {}
 
   '@fontsource/lilita-one@5.3.0': {}
+
+  '@fontsource/limelight@5.3.0': {}
+
+  '@fontsource/marcellus-sc@5.3.0': {}
 
   '@fontsource/orbitron@5.3.0': {}
 
