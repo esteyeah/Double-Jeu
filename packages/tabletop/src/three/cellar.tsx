@@ -149,7 +149,7 @@ function Rig({ L }: { L: Layout }) {
         const v = q.clone().project(camera);
         const x = ((v.x + 1) / 2) * W;
         const y = ((1 - v.y) / 2) * H;
-        return v.z < 1 && x > m && x < W - m && y > m + 34 && y < H - m - 44;
+        return v.z < 1 && x > m && x < W - m && y > m + 34 + H * 0.14 && y < H - m - 44;
       });
     };
     let lo = 2;
@@ -268,12 +268,13 @@ function Floor({ L }: { L: Layout }) {
   const mat = useMemo(() => {
     const map = flagstoneTexture();
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
-    map.repeat.set(3, 3);
+    map.repeat.set(4.5, 4.5);
     return new THREE.MeshStandardMaterial({ map, alphaMap: fadeTexture(), transparent: true, depthWrite: false, roughness: 0.85, color: '#a9adb4' });
   }, []);
-  const r = L.S + 1.7;
+  // Le sol s'étend loin derrière les joueurs du fond : où que tombe le décor, personne ne flotte.
+  const r = L.S + 3.4;
   return (
-    <mesh material={mat} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+    <mesh material={mat} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -1.1]} receiveShadow>
       <circleGeometry args={[r, 72]} />
     </mesh>
   );
@@ -313,8 +314,8 @@ function fadeTexture() {
   const [c, g] = canvas(n);
   const grad = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
   grad.addColorStop(0, '#fff');
-  grad.addColorStop(0.3, '#fff');
-  grad.addColorStop(0.7, '#555');
+  grad.addColorStop(0.5, '#fff');
+  grad.addColorStop(0.8, '#666');
   grad.addColorStop(1, '#000');
   g.fillStyle = grad;
   g.fillRect(0, 0, n, n);
