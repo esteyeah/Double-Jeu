@@ -15,7 +15,7 @@ export interface Piece {
 /** Ligne 0 = rangée 8 (en haut côté Blancs), colonne 0 = colonne a. */
 export type BoardGrid = (Piece | null)[][];
 
-export const MODES = ['missions', 'vanish', 'imposter', 'swap', 'blind'] as const;
+export const MODES = ['freestyle', 'missions', 'vanish', 'imposter', 'swap', 'blind'] as const;
 export type Mode = (typeof MODES)[number];
 
 export const configSchema = z.object({

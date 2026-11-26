@@ -45,6 +45,35 @@ describe('échecs classiques', () => {
   });
 });
 
+describe('freestyle', () => {
+  it('tire une position de Chess960 valide et permet de roquer', () => {
+    const cfg: ChessConfig = { ...base, modes: ['freestyle'] };
+    const seen = new Set<string>();
+    for (let i = 0; i < 200; i++) {
+      const s = chess.setup(players, cfg, seededRng(i));
+      const back = s.core.board[7].map((p: { type: string }) => p.type).join('');
+      seen.add(back);
+      expect(s.core.board[0].map((p: { type: string }) => p.type).join('')).toBe(back);
+      const bs = [...back].flatMap((t, f) => (t === 'b' ? [f % 2] : []));
+      expect(bs.sort()).toEqual([0, 1]);
+      expect(back.replace(/[^rk]/g, '')).toBe('rkr');
+    }
+    expect(seen.size).toBeGreaterThan(100);
+  });
+  it('roque Freestyle : roi en g, tour en f', () => {
+    const cfg: ChessConfig = { ...base, modes: ['freestyle'] };
+    const s = chess.setup(players, cfg, seededRng(1));
+    const core = s.core;
+    // Vide la rangée arrière blanche sauf roi et tours.
+    for (let c = 0; c < 8; c++) if (core.board[7][c] && !'kr'.includes(core.board[7][c].type)) core.board[7][c] = null;
+    const moves = legalMoves(core, 'w').filter((m) => m.castle === 'K');
+    expect(moves.length).toBe(1);
+    const after = simMove(core, moves[0]!);
+    expect(after.board[7][6].type).toBe('k');
+    expect(after.board[7][5].type).toBe('r');
+  });
+});
+
 describe('retour en arrière et revue', () => {
   const go = (s: ChessState, by: string, mv: unknown) => {
     const out = applyMove<ChessState>(chess, s, by, mv, seededRng(1));
@@ -90,6 +119,8 @@ describe('simulation', () => {
     { ...base, modes: ['vanish'] },
     { ...base, modes: ['vanish'], walled: false },
     { ...base, modes: ['imposter', 'swap'] },
+    { ...base, modes: ['freestyle'] },
+    { ...base, modes: ['freestyle', 'vanish', 'missions'] },
     { ...base, modes: ['missions', 'vanish', 'imposter', 'swap', 'blind'], reward: 'queen' },
   ];
   it('des centaines de parties entre bots se terminent sans erreur', () => {

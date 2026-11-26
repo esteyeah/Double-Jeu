@@ -41,6 +41,7 @@ export interface ChessState {
 }
 
 const MODE_LABEL: Record<(typeof MODES)[number], { label: string; hint: string }> = {
+  freestyle: { label: 'Freestyle (Chess960)', hint: 'Pièces de la rangée arrière placées au hasard (une des 960 positions).' },
   missions: { label: 'Missions secrètes', hint: 'Contraintes cachées et une mission à réussir.' },
   vanish: { label: 'Cases effondrées', hint: 'Une case se fissure à chaque passage et s’effondre au 3e.' },
   imposter: { label: 'Imposteur', hint: 'Un pion et une pièce adverses peuvent passer dans ton camp.' },
@@ -90,6 +91,7 @@ export const chessMeta: GameMeta = {
   ],
   rules: [
     'Les règles des échecs classiques s’appliquent : roque, prise en passant, promotion, échec et mat, pat.',
+    'Freestyle (Chess960) : la rangée arrière est tirée au hasard parmi 960 positions (fous de couleurs différentes, roi entre les tours), la même pour les deux camps. Pour roquer, touche le roi puis la tour : le roi finit en g ou c, la tour en f ou d, comme au roque classique.',
     'Missions secrètes : chacun reçoit en secret des contraintes (ex. « interdit de jouer dans la colonne E ») et une mission. Si aucun coup ne respecte tes contraintes, elles sont levées pour ce coup. Une mission réussie fait gagner, ou donne une dame à poser, selon le réglage.',
     'Cases effondrées : chaque arrivée d’une pièce fissure la case ; au 3e passage elle s’effondre avec la pièce posée dessus. Les trous bloquent tours, fous, dames et pions ; seuls les cavaliers les sautent.',
     'Imposteur : au début, chacun désigne en secret un pion et une pièce adverses (pas le roi). À ton tour, au lieu de jouer, tu peux faire passer un traître dans ton camp. Chaque traître ne sert qu’une fois.',
@@ -132,7 +134,7 @@ export const chess: GameModule<ChessState, ChessMove, ChessView, ChessConfig> = 
 
   setup(players: PlayerInfo[], config, rng) {
     const [a, b] = rng.shuffle(players);
-    const core = newCore(config);
+    const core = newCore(config, rng);
     if (has(config, 'missions')) dealSecrets(core, rng);
     return {
       players: { w: { id: a!.id, name: a!.name }, b: { id: b!.id, name: b!.name } },

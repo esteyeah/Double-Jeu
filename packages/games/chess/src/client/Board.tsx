@@ -274,6 +274,7 @@ function Game({ view, actingAs, mode, sendMove }: Props) {
     }
 
   const chips = [
+    has(cfg, 'freestyle') && <span key="f" className="ch-chip" style={{ ['--cc' as string]: 'var(--ch-accent)' }}>Freestyle</span>,
     has(cfg, 'missions') && <span key="m" className="ch-chip" style={{ ['--cc' as string]: 'var(--mission)' }}>Missions · {cfg.constraints} contr. · {cfg.reward === 'win' ? 'victoire' : 'dame'}</span>,
     has(cfg, 'vanish') && <span key="v" className="ch-chip" style={{ ['--cc' as string]: 'var(--vanish)' }}>Effondrement{cfg.walled ? ' · roi enfermé = défaite' : ''}</span>,
     has(cfg, 'imposter') && <span key="i" className="ch-chip" style={{ ['--cc' as string]: 'var(--imposter)' }}>Imposteur</span>,

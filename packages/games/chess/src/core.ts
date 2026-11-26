@@ -76,6 +76,8 @@ export interface MoveFull extends LegalMove {
   ep?: boolean;
   double?: boolean;
   promo?: PieceType;
+  /** Roque : colonne de départ de la tour. */
+  rc?: number;
 }
 
 export const inB = (r: number, c: number) => r >= 0 && r < 8 && c >= 0 && c < 8;
@@ -110,7 +112,7 @@ export const CDEF: Record<string, CDef> = {
       const f = rng.pick([2, 3, 4, 5]);
       return { f, text: `Interdit de jouer dans la colonne ${'ABCDEFGH'[f]}` };
     },
-    ok: (s, m, c, k) => m.tc !== k.f && !(m.castle && (m.castle === 'K' ? 5 : 3) === k.f),
+    ok: (s, m, c, k) => (m.castle ? k.f !== (m.castle === 'K' ? 6 : 2) && k.f !== (m.castle === 'K' ? 5 : 3) : m.tc !== k.f),
   },
   norank: {
     gen: (rng) => {
@@ -119,7 +121,7 @@ export const CDEF: Record<string, CDef> = {
     },
     ok: (s, m, c, k) => 8 - m.tr !== k.n,
   },
-  edges: { gen: fixed('Interdit de jouer dans les colonnes A et H'), ok: (s, m) => m.tc !== 0 && m.tc !== 7 },
+  edges: { gen: fixed('Interdit de jouer dans les colonnes A et H'), ok: (s, m) => !!m.castle || (m.tc !== 0 && m.tc !== 7) },
   same: { group: 'repeat', gen: fixed('Jamais deux fois de suite la même pièce'), ok: (s, m, c) => m.pid !== s.last[c] },
   sametype: { group: 'repeat', gen: fixed('Jamais deux fois de suite le même type de pièce'), ok: (s, m, c) => m.type !== s.lastType[c] },
   pawnstreak: { group: 'repeat', gen: fixed('Jamais plus de 2 coups de pion de suite'), ok: (s, m, c) => m.type !== 'p' || s.pawnStreak[c] < 2 },
@@ -269,10 +271,29 @@ function updateHolds(s: Core, me: Color): void {
 
 // ───────── Plateau ─────────
 
-export function newCore(cfg: ChessConfig): Core {
+/**
+ * Freestyle (Chess960) : rangée arrière tirée au hasard, fous sur des cases de couleurs différentes,
+ * roi entre les deux tours. Les Noirs ont la même rangée, en miroir.
+ */
+export function freestyleRank(rng: Rng): string {
+  const r: (PieceType | null)[] = Array(8).fill(null);
+  r[rng.pick([0, 2, 4, 6])] = 'b';
+  r[rng.pick([1, 3, 5, 7])] = 'b';
+  const free = () => r.flatMap((x, i) => (x ? [] : [i]));
+  r[rng.pick(free())] = 'q';
+  r[rng.pick(free())] = 'n';
+  r[rng.pick(free())] = 'n';
+  const [a, k, b] = free();
+  r[a!] = 'r';
+  r[k!] = 'k';
+  r[b!] = 'r';
+  return r.join('');
+}
+
+export function newCore(cfg: ChessConfig, rng?: Rng): Core {
   let uid = 0;
   const mk = (t: PieceType, c: Color) => ({ id: ++uid, type: t, color: c, moved: false });
-  const backRank = 'rnbqkbnr';
+  const backRank = has(cfg, 'freestyle') && rng ? freestyleRank(rng) : 'rnbqkbnr';
   const board: any = Array.from({ length: 8 }, () => Array(8).fill(null));
   for (let c = 0; c < 8; c++) {
     board[0][c] = mk(backRank[c] as PieceType, 'b');
@@ -411,13 +432,20 @@ export function genMoves(s: Core, color: Color): MoveFull[] {
           const t = B[tr][tc];
           if (!t || t.color !== color) add(p, r, c, tr, tc);
         }
-        if (p.type === 'k' && !p.moved && c === 4 && r === (color === 'w' ? 7 : 0) && !attacked(s, r, c, other(color))) {
-          for (const side of ['K', 'Q'] as const) {
-            const rook = B[r][side === 'K' ? 7 : 0];
+        // Roque (classique ou Freestyle) : le roi va en g ou c, la tour en f ou d.
+        if (p.type === 'k' && !p.moved && r === (color === 'w' ? 7 : 0) && !attacked(s, r, c, other(color))) {
+          for (let rc = 0; rc < 8; rc++) {
+            const rook = B[r][rc];
             if (!rook || rook.type !== 'r' || rook.color !== color || rook.moved) continue;
-            if ((side === 'K' ? [5, 6] : [1, 2, 3]).some((x) => !open(s, r, x) || B[r][x])) continue;
-            if ((side === 'K' ? [5, 6] : [3, 2]).some((x) => attacked(s, r, x, other(color)))) continue;
-            add(p, r, c, r, side === 'K' ? 6 : 2, { castle: side });
+            const side = rc > c ? 'K' : 'Q';
+            const kd = side === 'K' ? 6 : 2,
+              rd = side === 'K' ? 5 : 3;
+            let ok = true;
+            for (let x = Math.min(c, kd, rc, rd); x <= Math.max(c, kd, rc, rd); x++)
+              if (!open(s, r, x) || (B[r][x] && x !== c && x !== rc)) ok = false;
+            for (let x = Math.min(c, kd); x <= Math.max(c, kd); x++) if (attacked(s, r, x, other(color))) ok = false;
+            // En Freestyle, on roque en touchant le roi puis la tour.
+            if (ok) add(p, r, c, r, has(s.cfg, 'freestyle') ? rc : kd, { castle: side, rc, capture: false });
           }
         }
       } else {
@@ -445,6 +473,19 @@ export function genMoves(s: Core, color: Color): MoveFull[] {
 function doMove(s: Core, m: MoveFull): { captured: any; vanished: any[] } {
   const B = s.board,
     p = B[m.fr][m.fc];
+  if (m.castle) {
+    const kd = m.castle === 'K' ? 6 : 2,
+      rd = m.castle === 'K' ? 5 : 3,
+      rook = B[m.fr][m.rc!];
+    B[m.fr][m.fc] = null;
+    B[m.fr][m.rc!] = null;
+    B[m.fr][kd] = p;
+    B[m.fr][rd] = rook;
+    p.moved = true;
+    rook.moved = true;
+    s.ep = null;
+    return { captured: null, vanished: vanishAt(s, [[m.fr, kd], [m.fr, rd]], m) };
+  }
   let captured = B[m.tr][m.tc];
   if (m.ep) {
     captured = B[m.fr][m.tc];
@@ -454,17 +495,12 @@ function doMove(s: Core, m: MoveFull): { captured: any; vanished: any[] } {
   B[m.fr][m.fc] = null;
   p.moved = true;
   if (m.promo) p.type = m.promo;
-  const arrivals: Sq[] = [[m.tr, m.tc]];
-  if (m.castle) {
-    const rc = m.castle === 'K' ? 7 : 0,
-      nc = m.castle === 'K' ? 5 : 3,
-      rook = B[m.fr][rc];
-    B[m.fr][nc] = rook;
-    B[m.fr][rc] = null;
-    rook.moved = true;
-    arrivals.push([m.fr, nc]);
-  }
   s.ep = m.double ? [(m.fr + m.tr) / 2, m.fc] : null;
+  return { captured, vanished: vanishAt(s, [[m.tr, m.tc]], m) };
+}
+/** Cases effondrées : chaque arrivée fissure la case ; au 3e passage, elle tombe avec sa pièce. */
+function vanishAt(s: Core, arrivals: Sq[], m: MoveFull): any[] {
+  const B = s.board;
   const vanished: any[] = [];
   if (has(s.cfg, 'vanish'))
     for (const [r, c] of arrivals) {
@@ -476,7 +512,7 @@ function doMove(s: Core, m: MoveFull): { captured: any; vanished: any[] } {
         if (s.ep && r === m.tr && c === m.tc) s.ep = null;
       }
     }
-  return { captured, vanished };
+  return vanished;
 }
 function doFlip(s: Core, a: FlipAction) {
   const p = s.board[a.r][a.c];
