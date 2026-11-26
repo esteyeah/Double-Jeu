@@ -6,7 +6,7 @@ import { audioOut } from './sound';
 /**
  * Musique de fond synthétisée (rien à télécharger) : une harpe à cordes pincées (synthèse
  * Karplus-Strong) sur un bourdon grave de vielle, dans la réverbération d'une cave voûtée.
- * Air original en ré dorien, rythme de danse à 6/8. Elle suit le réglage général du son et
+ * Gigue originale en ré dorien (6/8, enlevée), avec tambour sur cadre et tambourin. Elle suit le réglage général du son et
  * se coupe à part (réglage « musique »).
  */
 
@@ -66,29 +66,29 @@ const A = 45;
 const bar = (root: number, minor: boolean, tune: Note[]): Bar => ({ root, minor, tune });
 
 const TUNE: Bar[] = [
-  // A
-  bar(D, true, [[69, 3], [74, 2], [72, 1]]),
-  bar(D, true, [[69, 2], [67, 1], [65, 2], [67, 1]]),
-  bar(C, false, [[64, 2], [67, 1], [72, 3]]),
-  bar(D, true, [[69, 2], [65, 1], [62, 3]]),
-  bar(F, false, [[65, 2], [69, 1], [72, 2], [74, 1]]),
-  bar(C, false, [[76, 3], [74, 2], [72, 1]]),
-  bar(A, true, [[69, 2], [72, 1], [71, 2], [67, 1]]),
-  bar(D, true, [[69, 6]]),
-  // B
-  bar(F, false, [[72, 2], [69, 1], [65, 2], [69, 1]]),
-  bar(C, false, [[67, 2], [64, 1], [60, 3]]),
-  bar(D, true, [[62, 1], [65, 1], [69, 1], [74, 3]]),
-  bar(C, false, [[72, 2], [71, 1], [67, 3]]),
-  bar(D, true, [[69, 2], [74, 1], [77, 2], [76, 1]]),
-  bar(C, false, [[74, 2], [72, 1], [76, 3]]),
-  bar(A, true, [[74, 2], [72, 1], [69, 2], [67, 1]]),
-  bar(D, true, [[62, 6]]),
+  // A : la gigue
+  bar(D, true, [[74, 1], [72, 1], [69, 1], [74, 2], [69, 1]]),
+  bar(C, false, [[72, 1], [71, 1], [67, 1], [72, 2], [67, 1]]),
+  bar(D, true, [[69, 1], [71, 1], [72, 1], [74, 1], [76, 1], [77, 1]]),
+  bar(C, false, [[76, 2], [74, 1], [72, 2], [67, 1]]),
+  bar(D, true, [[74, 1], [72, 1], [69, 1], [74, 2], [69, 1]]),
+  bar(C, false, [[72, 1], [71, 1], [67, 1], [72, 2], [74, 1]]),
+  bar(F, false, [[77, 1], [76, 1], [74, 1], [72, 1], [69, 1], [67, 1]]),
+  bar(D, true, [[69, 2], [74, 1], [74, 3]]),
+  // B : on monte, on tape du pied
+  bar(F, false, [[77, 2], [77, 1], [76, 1], [74, 1], [72, 1]]),
+  bar(C, false, [[76, 2], [76, 1], [74, 1], [72, 1], [71, 1]]),
+  bar(D, true, [[74, 1], [72, 1], [69, 1], [65, 1], [69, 1], [72, 1]]),
+  bar(C, false, [[67, 1], [71, 1], [72, 1], [74, 2], [72, 1]]),
+  bar(F, false, [[77, 2], [77, 1], [76, 1], [74, 1], [72, 1]]),
+  bar(C, false, [[76, 1], [74, 1], [72, 1], [71, 1], [72, 1], [74, 1]]),
+  bar(A, true, [[76, 1], [72, 1], [69, 1], [71, 1], [67, 1], [71, 1]]),
+  bar(D, true, [[74, 3], [62, 3]]),
 ];
-/** Mesures d'accompagnement seul après l'air, pour respirer. */
-const REST: Bar[] = [bar(D, true, []), bar(C, false, []), bar(F, false, []), bar(D, true, [])];
-const SONG = [...TUNE, ...TUNE, ...REST];
-const EIGHTH = 0.34;
+/** Deux mesures de tambour seul entre deux tours. */
+const BREAK: Bar[] = [bar(D, true, []), bar(D, true, [])];
+const SONG = [...TUNE, ...TUNE, ...BREAK];
+const EIGHTH = 0.19;
 
 const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
 
@@ -155,13 +155,13 @@ export function startMusic(kind: MusicKind): { stop: () => void } {
   bus.gain.setTargetAtTime(0.4, ac.currentTime, 2);
   const tone = ac.createBiquadFilter();
   tone.type = 'lowpass';
-  tone.frequency.value = 4200;
+  tone.frequency.value = 6500;
   const dry = ac.createGain();
   dry.gain.value = 0.8;
   const verb = ac.createConvolver();
   verb.buffer = caveImpulse(ac);
   const wet = ac.createGain();
-  wet.gain.value = 0.32;
+  wet.gain.value = 0.22;
   bus.connect(tone);
   tone.connect(dry).connect(out);
   tone.connect(verb).connect(wet).connect(out);
@@ -209,17 +209,59 @@ export function startMusic(kind: MusicKind): { stop: () => void } {
     src.stop(t + 3.2);
   };
 
+  // Tambour sur cadre (bodhrán) : un coup sourd dont la hauteur tombe.
+  const drum = (at: number, gain: number) => {
+    const o = ac.createOscillator();
+    o.frequency.setValueAtTime(130, at);
+    o.frequency.exponentialRampToValueAtTime(52, at + 0.16);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(gain, at + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
+    o.connect(g).connect(bus);
+    o.start(at);
+    o.stop(at + 0.25);
+  };
+  // Tambourin : un frisson de cymbalettes.
+  const noiseBuf = (() => {
+    const len = Math.floor(ac.sampleRate * 0.12);
+    const nb = ac.createBuffer(1, len, ac.sampleRate);
+    const d = nb.getChannelData(0);
+    for (let k = 0; k < len; k++) d[k] = Math.random() * 2 - 1;
+    return nb;
+  })();
+  const jingle = (at: number, gain: number) => {
+    const src = ac.createBufferSource();
+    src.buffer = noiseBuf;
+    const bp = ac.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 7500;
+    bp.Q.value = 1.2;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(gain, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.1);
+    src.connect(bp).connect(g).connect(bus);
+    src.start(at);
+  };
+
   const scheduleBar = (b: Bar, at: number) => {
     const third = b.root + (b.minor ? 3 : 4);
-    // Basse et arpège de harpe, main gauche.
-    note(at, b.root, 0.5, 0.45);
-    note(at + 2 * EIGHTH, third + 12, 0.16, 0.6);
-    note(at + 3 * EIGHTH, b.root + 7, 0.3, 0.5);
-    note(at + 5 * EIGHTH, b.root + 12, 0.14, 0.6);
+    // Rythme de gigue : « boum-tchi-tchi, boum-tchi-tchi ».
+    drum(at, 0.55);
+    drum(at + 3 * EIGHTH, 0.45);
+    if (Math.random() < 0.35) drum(at + 5 * EIGHTH, 0.2);
+    for (const k of [1, 2, 4, 5]) jingle(at + k * EIGHTH, k === 2 || k === 5 ? 0.05 : 0.03);
+    // Basse qui saute et accords plaqués sur les temps faibles.
+    note(at, b.root, 0.5, 0.5);
+    note(at + 3 * EIGHTH, b.root + 7, 0.4, 0.5);
+    for (const k of [2, 5]) {
+      note(at + k * EIGHTH, third + 12, 0.14, 0.7);
+      note(at + k * EIGHTH, b.root + 19, 0.12, 0.7);
+    }
     // L'air, main droite.
     let t = at;
     for (const [midi, len] of b.tune) {
-      note(t, midi, 0.42, 0.75);
+      note(t, midi, 0.42, 0.85);
       t += len * EIGHTH;
     }
   };
