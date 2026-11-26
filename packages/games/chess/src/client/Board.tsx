@@ -29,18 +29,34 @@ type Props = BoardProps<ChessView, ChessMove>;
 const glyph = (t: PieceType) => GLYPH[t] + '︎';
 const same = (a: Sq, b: Sq) => a[0] === b[0] && a[1] === b[1];
 
+const THEME_KEY = 'arcade-chess-theme';
+
 export default function ChessBoard(props: Props) {
+  // Sombre par défaut ; le choix est retenu sur cet appareil.
+  const [dark, setDark] = useState(true);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(THEME_KEY) === 'light') setDark(false);
+    } catch {}
+  }, []);
+  const toggle = () =>
+    setDark((d) => {
+      try {
+        localStorage.setItem(THEME_KEY, d ? 'light' : 'dark');
+      } catch {}
+      return !d;
+    });
   return (
-    <div className="ch">
+    <div className={dark ? 'ch dark' : 'ch'}>
       <style href="arcade-chess-v1" precedence="default">
         {CHESS_CSS}
       </style>
-      <Game {...props} />
+      <Game {...props} dark={dark} toggleTheme={toggle} />
     </div>
   );
 }
 
-function Game({ view, actingAs, mode, sendMove }: Props) {
+function Game({ view, actingAs, mode, sendMove, dark, toggleTheme }: Props & { dark: boolean; toggleTheme: () => void }) {
   const cfg = view.config;
   // Couleur qui agit depuis cet écran (écran partagé sans secrets : le joueur au trait).
   const actColor: Color | null = actingAs === view.players.w.id ? 'w' : actingAs === view.players.b.id ? 'b' : null;
@@ -289,7 +305,12 @@ function Game({ view, actingAs, mode, sendMove }: Props) {
         <div className="ch-title">
           Échecs <b>Sournois</b>
         </div>
-        <div className="ch-chips">{chips.length ? chips : <span className="ch-chip">Classique</span>}</div>
+        <div className="ch-chips" style={{ alignItems: 'center' }}>
+          {chips.length ? chips : <span className="ch-chip">Classique</span>}
+          <button className="ch-btn" style={{ padding: '6px 12px' }} onClick={toggleTheme} aria-label={dark ? 'Passer en mode clair' : 'Passer en mode sombre'}>
+            {dark ? '☀ Clair' : '☾ Sombre'}
+          </button>
+        </div>
       </div>
       <div className="ch-play">
         <div className="ch-boardwrap" onContextMenu={(e) => e.preventDefault()} onPointerDown={onDown}>

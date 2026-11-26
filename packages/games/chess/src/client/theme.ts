@@ -8,6 +8,17 @@ export const CHESS_CSS = `
   --danger:#c0392b;--ok:#2f7d4f;--arrow:rgba(214,110,20,.82);--pre:rgba(192,57,43,.34);--pre-dot:rgba(192,57,43,.6);
   --color-fg:#18202d;--color-muted:#5a6475;--color-accent:#a8701a;--color-bg:#eceff3;--color-surface:#ffffff;--color-surface-2:#f5f7fa;--color-line:#d3d9e2;
   background:#eceff3}
+.ch.dark{color:#e6eaf0;
+  --ch-bg:#10141a;--ch-surface:#181f28;--ch-surface2:#1f2732;--ch-line:#2c3543;--ch-muted:#9aa5b6;--ch-accent:#e2a647;--ch-accent-ink:#1a1408;
+  --sq-l:#aeb8c6;--sq-d:#4d6382;--void:#030407;--void-edge:#1c2430;--pw:#fbfaf6;--pw-edge:#1e2533;--pb:#161a23;--pb-edge:#b9c3d1;
+  --sel:rgba(226,166,71,.6);--last:rgba(226,166,71,.3);--dot:rgba(10,14,20,.42);--mission:#e2a647;--vanish:#fb8a4c;--imposter:#a98bfa;--swap:#4fd1c5;
+  --danger:#f0705f;--ok:#5fc48a;--arrow:rgba(240,140,40,.85);--pre:rgba(240,112,95,.38);--pre-dot:rgba(240,112,95,.75);
+  --color-fg:#e6eaf0;--color-muted:#9aa5b6;--color-accent:#e2a647;--color-bg:#10141a;--color-surface:#181f28;--color-surface-2:#1f2732;--color-line:#2c3543;
+  background:radial-gradient(90% 60% at 50% 0%,#1a222d 0%,#10141a 70%);color-scheme:dark}
+.ch.dark .ch-sw{border-color:#e6eaf0}
+.ch.dark .ch-board{box-shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.45)}
+.ch.dark .ch-btn.imp{color:#160d2c}.ch.dark .ch-btn.swp{color:#06201f}
+.ch.dark .ch-promo{background:rgba(5,8,12,.75)}
 .ch *{box-sizing:border-box}
 .ch-wrap{max-width:1400px;margin:0 auto;padding:4.2rem 14px 5rem}
 .ch-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px}
