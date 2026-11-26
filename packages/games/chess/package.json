@@ -1,0 +1,29 @@
+{
+  "name": "@arcade/chess",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client/Board.tsx",
+    "./classic": "./src/client/Classic.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@arcade/game-sdk": "workspace:*",
+    "zod": "^4.6.7",
+    "@arcade/tabletop": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "react": "^19.3.1",
+    "typescript": "~5.9.3",
+    "vitest": "^5.1.0"
+  }
+}

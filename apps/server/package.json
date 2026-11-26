@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@arcade/cauldron": "workspace:*",
+    "@arcade/chess": "workspace:*",
     "@arcade/compass": "workspace:*",
     "@arcade/court": "workspace:*",
     "@arcade/cups": "workspace:*",

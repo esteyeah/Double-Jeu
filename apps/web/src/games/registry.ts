@@ -4,6 +4,9 @@ import type { AvatarLook, StageSkin } from '@arcade/tabletop';
 import { cauldron } from '@arcade/cauldron';
 import CauldronBoard, { skin as cauldronSkin } from '@arcade/cauldron/client';
 import CauldronClassic from '@arcade/cauldron/classic';
+import { chess } from '@arcade/chess';
+import ChessBoard, { skin as chessSkin } from '@arcade/chess/client';
+import ChessClassic from '@arcade/chess/classic';
 import { compass } from '@arcade/compass';
 import CompassBoard, { skin as compassSkin } from '@arcade/compass/client';
 import CompassClassic from '@arcade/compass/classic';
@@ -71,6 +74,7 @@ const games: Record<string, ClientGame> = {
   court: { module: court, Board: CourtBoard, Classic: CourtClassic, immersive: courtSkin, look: 'masked' },
   cauldron: { module: cauldron, Board: CauldronBoard, Classic: CauldronClassic, immersive: cauldronSkin, look: 'alchemist', table3d: true },
   cups: { module: cups, Board: CupsBoard, Classic: CupsClassic, immersive: cupsSkin, look: 'tavern', table3d: true },
+  chess: { module: chess, Board: ChessBoard, Classic: ChessClassic, immersive: chessSkin, look: 'council' },
   compass: { module: compass, Board: CompassBoard, Classic: CompassClassic, immersive: compassSkin, look: 'explorer' },
 };
 
@@ -167,5 +171,13 @@ export const catalog: CatalogEntry[] = [
     players: '4–8',
     ready: true,
     accent: 'from-muted/30',
+  },
+  {
+    id: 'chess',
+    name: 'Échecs Sournois',
+    tagline: 'Les échecs à deux, avec missions secrètes, traîtres, échanges, plateau qui s’effondre ou partie à l’aveugle.',
+    players: '2',
+    ready: true,
+    accent: 'from-key/25 via-tech/10',
   },
 ];

@@ -1,5 +1,6 @@
 import type { AnyGameModule } from '@arcade/game-sdk';
 import { cauldron } from '@arcade/cauldron';
+import { chess } from '@arcade/chess';
 import { compass } from '@arcade/compass';
 import { court } from '@arcade/court';
 import { cups } from '@arcade/cups';
@@ -20,6 +21,7 @@ const registry: Record<string, AnyGameModule> = {
   [cauldron.meta.id]: cauldron,
   [cups.meta.id]: cups,
   [compass.meta.id]: compass,
+  [chess.meta.id]: chess,
 };
 
 export function getGame(id: string): AnyGameModule | undefined {
