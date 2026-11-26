@@ -45,6 +45,43 @@ describe('échecs classiques', () => {
   });
 });
 
+describe('retour en arrière et revue', () => {
+  const go = (s: ChessState, by: string, mv: unknown) => {
+    const out = applyMove<ChessState>(chess, s, by, mv, seededRng(1));
+    if (!out.ok) throw new Error(out.error);
+    return out.state;
+  };
+  it('annule un coup seulement si l’adversaire accepte', () => {
+    let s = chess.setup(players, base, seededRng(2));
+    const w = s.players.w.id,
+      b = s.players.b.id;
+    s = go(s, w, { t: 'move', fr: 6, fc: 4, tr: 4, tc: 4 });
+    s = go(s, w, { t: 'undo-request' });
+    expect(chess.expectedActors(s)).toEqual([b]);
+    expect(chess.validate(s, b, { t: 'move', fr: 1, fc: 4, tr: 3, tc: 4 })).toMatch(/demande/);
+    const refused = go(s, b, { t: 'undo-decline' });
+    expect(refused.core.history.length).toBe(1);
+    s = go(s, b, { t: 'undo-accept' });
+    expect(s.core.history.length).toBe(0);
+    expect(s.core.turn).toBe('w');
+    // Après la réponse adverse, annuler revient deux demi-coups en arrière.
+    s = go(s, w, { t: 'move', fr: 6, fc: 4, tr: 4, tc: 4 });
+    s = go(s, b, { t: 'move', fr: 1, fc: 4, tr: 3, tc: 4 });
+    s = go(s, w, { t: 'undo-request' });
+    s = go(s, b, { t: 'undo-accept' });
+    expect(s.core.history.length).toBe(0);
+    expect(s.core.turn).toBe('w');
+  });
+  it('donne toutes les positions en fin de partie', () => {
+    let s = chess.setup(players, base, seededRng(5));
+    const w = s.players.w.id;
+    expect(chess.view(s, w).frames).toBeNull();
+    s = go(s, w, { t: 'move', fr: 6, fc: 4, tr: 4, tc: 4 });
+    s = go(s, w, { t: 'resign' });
+    expect(chess.view(s, w).frames?.length).toBe(2);
+  });
+});
+
 describe('simulation', () => {
   const combos: ChessConfig[] = [
     base,

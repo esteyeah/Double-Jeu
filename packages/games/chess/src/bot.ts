@@ -11,6 +11,7 @@ export function chessBot(view: ChessView, me: PlayerId, rng: Rng): ChessMove | n
   const c = view.me;
   if (!c || view.phase === 'over') return null;
   if (view.drawOffer && view.drawOffer !== c) return { t: 'draw-accept' };
+  if (view.undoRequest && view.undoRequest !== c) return { t: 'undo-accept' };
   if (view.phase === 'pick') {
     if (view.picked[c]) return null;
     const pawns: number[] = [];

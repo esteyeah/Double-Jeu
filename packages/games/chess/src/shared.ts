@@ -36,6 +36,10 @@ export const moveSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('resign') }),
   z.object({ t: z.literal('draw-offer') }),
   z.object({ t: z.literal('draw-accept') }),
+  z.object({ t: z.literal('draw-decline') }),
+  z.object({ t: z.literal('undo-request') }),
+  z.object({ t: z.literal('undo-accept') }),
+  z.object({ t: z.literal('undo-decline') }),
 ]);
 export type ChessMove = z.infer<typeof moveSchema>;
 
@@ -88,6 +92,13 @@ export interface HistoryEntry {
   cls: '' | 'flip' | 'swap' | 'queen';
 }
 
+export interface Frame {
+  board: BoardGrid;
+  holes: boolean[][];
+  visits: number[][];
+  lastMove: { from?: Sq; to?: Sq } | null;
+}
+
 export interface ChessView {
   phase: 'pick' | 'play' | 'place' | 'over';
   players: Record<Color, { id: PlayerId; name: string }>;
@@ -104,6 +115,12 @@ export interface ChessView {
   swapsLeft: Record<Color, number>;
   check: boolean;
   drawOffer: Color | null;
+  /** Demande de retour au coup précédent, en attente de l'adversaire. */
+  undoRequest: Color | null;
+  /** Le demandeur peut-il revenir en arrière maintenant ? */
+  canUndo: Record<Color, boolean>;
+  /** Fin de partie : toutes les positions, pour revoir la partie. */
+  frames: Frame[] | null;
   picked: Record<Color, boolean>;
   over: { winner: Color | null; reason: string } | null;
   /** Mes secrets (contraintes, mission, traîtres). */

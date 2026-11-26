@@ -35,6 +35,9 @@ export interface ChessState {
   picked: Record<Color, boolean>;
   pending: { text: string; cls: HistoryEntry['cls'] } | null;
   drawOffer: Color | null;
+  undoRequest: Color | null;
+  /** États avant chaque action, pour revenir en arrière et revoir la partie. */
+  stack: Core[];
 }
 
 const MODE_LABEL: Record<(typeof MODES)[number], { label: string; hint: string }> = {
@@ -114,6 +117,9 @@ function legalFor(s: ChessState, c: Color): Legal | null {
   };
 }
 
+/** Coups à annuler : le sien, plus la réponse adverse si elle a déjà été jouée. */
+const undoDepth = (s: ChessState, c: Color) => (s.core.turn === c ? 2 : 1);
+
 function end(s: ChessState, over: { winner: Color | null; reason: string }): ChessState {
   return { ...s, phase: 'over', drawOffer: null, core: { ...s.core, over } };
 }
@@ -135,11 +141,15 @@ export const chess: GameModule<ChessState, ChessMove, ChessView, ChessConfig> = 
       picked: { w: false, b: false },
       pending: null,
       drawOffer: null,
+      undoRequest: null,
+      stack: [],
     };
   },
 
   expectedActors(s) {
     if (s.phase === 'over') return [];
+    if (s.undoRequest) return [s.players[other(s.undoRequest)].id];
+    if (s.drawOffer) return [s.players[other(s.drawOffer)].id];
     if (s.phase === 'pick') return (['w', 'b'] as const).filter((c) => !s.picked[c]).map((c) => s.players[c].id);
     return [s.players[s.core.turn].id];
   },
@@ -149,8 +159,16 @@ export const chess: GameModule<ChessState, ChessMove, ChessView, ChessConfig> = 
     if (!c) return 'Tu ne joues pas dans cette partie.';
     if (s.phase === 'over') return 'La partie est terminée.';
     if (mv.t === 'resign') return null;
-    if (mv.t === 'draw-offer') return s.phase === 'pick' ? 'La partie n’a pas commencé.' : s.drawOffer === c ? 'Nulle déjà proposée.' : null;
+    if (mv.t === 'undo-request') {
+      if (s.phase !== 'play') return 'Pas maintenant.';
+      if (s.undoRequest || s.drawOffer) return 'Une demande est déjà en attente.';
+      return s.stack.length >= undoDepth(s, c) ? null : 'Aucun de tes coups à annuler.';
+    }
+    if (mv.t === 'undo-accept' || mv.t === 'undo-decline') return s.undoRequest === other(c) ? null : 'Aucune demande d’annulation.';
+    if (mv.t === 'draw-decline') return s.drawOffer === other(c) ? null : 'Aucune nulle proposée.';
     if (mv.t === 'draw-accept') return s.drawOffer === other(c) ? null : 'Aucune nulle proposée.';
+    if (s.undoRequest || s.drawOffer) return 'Une demande attend la réponse de l’adversaire.';
+    if (mv.t === 'draw-offer') return s.phase !== 'play' ? 'La partie n’a pas commencé.' : s.drawOffer === c ? 'Nulle déjà proposée.' : null;
     if (mv.t === 'pick') {
       if (s.phase !== 'pick' || s.picked[c]) return 'Pas de traître à choisir maintenant.';
       const pawn = findPiece(s.core, mv.pawn),
@@ -187,6 +205,14 @@ export const chess: GameModule<ChessState, ChessMove, ChessView, ChessConfig> = 
     if (mv.t === 'resign') return end(s, { winner: other(c), reason: `Les ${NAMES[c]} abandonnent` });
     if (mv.t === 'draw-offer') return { ...s, drawOffer: c };
     if (mv.t === 'draw-accept') return end(s, { winner: null, reason: 'Nulle d’un commun accord' });
+    if (mv.t === 'draw-decline') return { ...s, drawOffer: null };
+    if (mv.t === 'undo-request') return { ...s, undoRequest: c };
+    if (mv.t === 'undo-decline') return { ...s, undoRequest: null };
+    if (mv.t === 'undo-accept') {
+      const n = undoDepth(s, other(c));
+      const stack = s.stack.slice(0, s.stack.length - n);
+      return { ...s, core: s.stack[s.stack.length - n]!, stack, undoRequest: null, drawOffer: null, pending: null, phase: 'play' };
+    }
     if (mv.t === 'pick') {
       const core = structuredClone(s.core);
       core.secrets[c].traitors = [mv.pawn, mv.piece];
@@ -195,6 +221,7 @@ export const chess: GameModule<ChessState, ChessMove, ChessView, ChessConfig> = 
     }
     let core: Core;
     let pending: ChessState['pending'] = null;
+    const stack = mv.t === 'place' ? s.stack : [...s.stack, s.core];
     if (mv.t === 'place') core = placeQueen(s.core, mv.r, mv.c, s.pending!);
     else {
       const a = allActions(s.core, c);
@@ -208,7 +235,7 @@ export const chess: GameModule<ChessState, ChessMove, ChessView, ChessConfig> = 
       core = out.s;
       pending = out.pending;
     }
-    return { ...s, core, pending, drawOffer: null, phase: core.over ? 'over' : pending ? 'place' : 'play' };
+    return { ...s, core, stack, pending, drawOffer: null, undoRequest: null, phase: core.over ? 'over' : pending ? 'place' : 'play' };
   },
 
   view(s, viewer) {
@@ -231,6 +258,9 @@ export const chess: GameModule<ChessState, ChessMove, ChessView, ChessConfig> = 
       swapsLeft: core.swaps,
       check: s.phase !== 'over' && inCheck(core, core.turn),
       drawOffer: s.drawOffer,
+      undoRequest: s.undoRequest,
+      canUndo: { w: s.phase === 'play' && s.stack.length >= undoDepth(s, 'w'), b: s.phase === 'play' && s.stack.length >= undoDepth(s, 'b') },
+      frames: s.phase === 'over' ? [...s.stack, core].map((k) => ({ board: k.board, holes: k.holes, visits: k.visits, lastMove: k.lastMove })) : null,
       picked: s.picked,
       over: core.over,
       mine: me && secretsOn(core.cfg) ? secretView(core, me) : null,

@@ -43,7 +43,7 @@ export default function ChessBoard(props: Props) {
 function Game({ view, actingAs, mode, sendMove }: Props) {
   const cfg = view.config;
   // Couleur qui agit depuis cet écran (écran partagé sans secrets : le joueur au trait).
-  const actColor: Color | null = actingAs ? (view.me ?? (view.legal ? view.turn : null)) : null;
+  const actColor: Color | null = actingAs === view.players.w.id ? 'w' : actingAs === view.players.b.id ? 'b' : null;
   const myTurn = !!actColor && view.turn === actColor && view.phase !== 'over' && view.phase !== 'pick';
   const legal = myTurn ? view.legal : null;
   const blind = has(cfg, 'blind') && view.phase !== 'over' && view.phase !== 'pick';
@@ -61,10 +61,24 @@ function Game({ view, actingAs, mode, sendMove }: Props) {
   const [typed, setTyped] = useState('');
   const [msg, setMsg] = useState('');
   const [confirm, setConfirm] = useState<'resign' | null>(null);
+  const [replay, setReplay] = useState<number | null>(null);
   const rightStart = useRef<Sq | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setFlipped(view.me === 'b'), [view.me]);
+  const frames = view.frames;
+  useEffect(() => setReplay(null), [frames?.length]);
+  useEffect(() => {
+    if (!frames) return;
+    const key = (e: KeyboardEvent) => {
+      const last = frames.length - 1;
+      if (e.key === 'ArrowLeft') setReplay((i) => Math.max(0, (i ?? last) - 1));
+      if (e.key === 'ArrowRight') setReplay((i) => Math.min(last, (i ?? last) + 1));
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [frames]);
+  const shown = frames && replay !== null ? frames[replay]! : view;
 
   // À chaque nouveau coup : on remet l'interface à zéro et on joue le prémove s'il est toujours légal.
   const plies = view.history.length;
@@ -217,7 +231,7 @@ function Game({ view, actingAs, mode, sendMove }: Props) {
     else legal.moves.filter((m) => m.fr === sel[0] && m.fc === sel[1]).forEach((m) => targets.push([m.tr, m.tc, m.capture ? 'cap' : '']));
   }
   const swapSrc = swapMode && legal && !sel ? legal.swaps.map((a) => [a.fr, a.fc] as Sq) : [];
-  const kingChk = view.check && view.phase !== 'over' ? findKing(view, view.turn) : null;
+  const kingChk = view.check && view.phase !== 'over' && replay === null ? findKing(view, view.turn) : null;
   const moles = new Set<number>();
   if (view.phase === 'pick') [pick.pawn, pick.piece].forEach((id) => id && moles.add(id));
   else if (reveal && view.mine) view.mine.traitors.filter((t) => !t.used).forEach((t) => moles.add(t.id));
@@ -227,12 +241,12 @@ function Game({ view, actingAs, mode, sendMove }: Props) {
     for (let vc = 0; vc < 8; vc++) {
       const r = flipped ? 7 - vr : vr,
         c = flipped ? 7 - vc : vc;
-      const p = view.board[r]?.[c] ?? null;
-      const hole = !!view.holes[r]?.[c];
-      const visits = view.visits[r]?.[c] ?? 0;
+      const p = shown.board[r]?.[c] ?? null;
+      const hole = !!shown.holes[r]?.[c];
+      const visits = shown.visits[r]?.[c] ?? 0;
       const cl = ['ch-cell', (r + c) % 2 ? 'dk' : 'lt'];
       if (hole) cl.push('hole');
-      const lm = view.lastMove;
+      const lm = shown.lastMove;
       if (lm && ((lm.from && same(lm.from, [r, c])) || (lm.to && same(lm.to, [r, c])))) cl.push('last');
       if (sel && same(sel, [r, c])) cl.push('sel');
       if (premove && ((premove.fr === r && premove.fc === c) || (premove.tr === r && premove.tc === c))) cl.push('premove');
@@ -267,7 +281,7 @@ function Game({ view, actingAs, mode, sendMove }: Props) {
     has(cfg, 'blind') && <span key="b" className="ch-chip">À l’aveugle</span>,
   ].filter(Boolean);
 
-  const viewerColor = view.me ?? actColor;
+  const viewerColor = actColor ?? view.me;
   return (
     <div className="ch-wrap">
       <div className="ch-head">
@@ -327,6 +341,59 @@ function Game({ view, actingAs, mode, sendMove }: Props) {
               </p>
             )}
           </div>
+
+          {frames && (
+            <div className="ch-panel">
+              <h3>Revoir la partie</h3>
+              <div className="ch-row" style={{ alignItems: 'center' }}>
+                <button className="ch-btn" aria-label="Début" onClick={() => setReplay(0)}>⏮</button>
+                <button className="ch-btn" aria-label="Coup précédent" onClick={() => setReplay((i) => Math.max(0, (i ?? frames.length - 1) - 1))}>◀</button>
+                <button className="ch-btn" aria-label="Coup suivant" onClick={() => setReplay((i) => Math.min(frames.length - 1, (i ?? frames.length - 1) + 1))}>▶</button>
+                <button className="ch-btn" aria-label="Fin" onClick={() => setReplay(null)}>⏭</button>
+                <span className="ch-prog">
+                  {(replay ?? frames.length - 1) === 0 ? 'Position de départ' : `Coup ${replay ?? frames.length - 1} / ${frames.length - 1}`}
+                </span>
+              </div>
+              <p className="ch-sub">
+                {(() => {
+                  const i = replay ?? frames.length - 1;
+                  const h = view.history[i - 1];
+                  return h ? `${NAMES[h.c]} : ${h.t}` : 'Utilise aussi les flèches ← → du clavier.';
+                })()}
+              </p>
+            </div>
+          )}
+
+          {view.undoRequest && view.phase !== 'over' && (
+            <div className="ch-panel mission">
+              {actColor === other(view.undoRequest) ? (
+                <>
+                  <h3>Les {NAMES[view.undoRequest]} demandent à revenir au coup précédent</h3>
+                  <div className="ch-row">
+                    <button className="ch-btn primary" onClick={() => sendMove({ t: 'undo-accept' })}>Accepter</button>
+                    <button className="ch-btn" onClick={() => sendMove({ t: 'undo-decline' })}>Refuser</button>
+                  </div>
+                </>
+              ) : (
+                <p className="ch-sub" style={{ margin: 0 }}>Demande de retour en arrière envoyée. En attente de la réponse des {NAMES[other(view.undoRequest)]}…</p>
+              )}
+            </div>
+          )}
+          {view.drawOffer && view.phase !== 'over' && (
+            <div className="ch-panel">
+              {actColor === other(view.drawOffer) ? (
+                <>
+                  <h3>Les {NAMES[view.drawOffer]} proposent la nulle</h3>
+                  <div className="ch-row">
+                    <button className="ch-btn primary" onClick={() => sendMove({ t: 'draw-accept' })}>Accepter la nulle</button>
+                    <button className="ch-btn" onClick={() => sendMove({ t: 'draw-decline' })}>Refuser</button>
+                  </div>
+                </>
+              ) : (
+                <p className="ch-sub" style={{ margin: 0 }}>Nulle proposée. En attente de la réponse des {NAMES[other(view.drawOffer)]}…</p>
+              )}
+            </div>
+          )}
 
           {has(cfg, 'swap') && view.phase === 'play' && (
             <div className="ch-panel swap">
@@ -422,8 +489,8 @@ function Game({ view, actingAs, mode, sendMove }: Props) {
             </div>
           </div>
           <div className="ch-panel">
-            <h3>Coups</h3>
-            <History view={view} />
+            <h3>{blind ? 'Dernier coup' : 'Coups'}</h3>
+            {blind ? <LastMove view={view} /> : <History view={view} />}
           </div>
 
           <div className="ch-row">
@@ -437,12 +504,13 @@ function Game({ view, actingAs, mode, sendMove }: Props) {
                 ) : (
                   <button className="ch-btn danger" onClick={() => setConfirm('resign')}>Abandonner</button>
                 )}
-                {view.drawOffer === other(viewerColor) ? (
-                  <button className="ch-btn primary" onClick={() => sendMove({ t: 'draw-accept' })}>Accepter la nulle</button>
-                ) : view.drawOffer === viewerColor ? (
-                  <button className="ch-btn" disabled>Nulle proposée</button>
-                ) : (
-                  <button className="ch-btn" onClick={() => sendMove({ t: 'draw-offer' })}>Proposer la nulle</button>
+                {!view.drawOffer && !view.undoRequest && view.phase === 'play' && (
+                  <>
+                    <button className="ch-btn" disabled={!view.canUndo[viewerColor]} onClick={() => sendMove({ t: 'undo-request' })}>
+                      Revenir au coup précédent
+                    </button>
+                    <button className="ch-btn" onClick={() => sendMove({ t: 'draw-offer' })}>Proposer la nulle</button>
+                  </>
                 )}
               </>
             )}
@@ -452,7 +520,7 @@ function Game({ view, actingAs, mode, sendMove }: Props) {
       {promo && (
         <div className="ch-promo" role="dialog" aria-label="Promotion">
           <div>
-            <strong style={{ fontFamily: 'Cinzel, Georgia, serif', fontSize: 22 }}>Promotion</strong>
+            <strong style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif", fontSize: 22 }}>Promotion</strong>
             <div className="opts">
               {(['q', 'r', 'b', 'n'] as const).map((t) => (
                 <button
@@ -541,6 +609,18 @@ function Taken({ label, list, gone }: { label: string; list: { t: PieceType; c: 
         {list.length ? list.map((x, i) => <span key={i} className={`${x.c}${gone ? ' gone' : ''}`}>{glyph(x.t)}</span>) : <span style={{ fontSize: 14, color: 'var(--ch-muted)' }}>—</span>}
       </span>
     </div>
+  );
+}
+
+/** À l'aveugle : seul le dernier coup reste affiché, le reste se joue de mémoire. */
+function LastMove({ view }: { view: ChessView }) {
+  const last = view.history[view.history.length - 1];
+  if (!last) return <p className="ch-sub" style={{ margin: 0 }}>Aucun coup joué.</p>;
+  return (
+    <p className="ch-hist" style={{ display: 'block', margin: 0, fontSize: 18 }}>
+      <span className="n">{NAMES[last.c]} : </span>
+      <span className={`e ${last.cls}`}>{last.t}</span>
+    </p>
   );
 }
 
