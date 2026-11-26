@@ -6,7 +6,7 @@ import { audioOut } from './sound';
 /**
  * Musique de fond synthétisée (rien à télécharger) : une harpe à cordes pincées (synthèse
  * Karplus-Strong) sur un bourdon grave de vielle, dans la réverbération d'une cave voûtée.
- * Gigue originale en ré dorien (6/8, enlevée), avec tambour sur cadre et tambourin. Elle suit le réglage général du son et
+ * Gigue originale en ré dorien (6/8, enlevée), avec tambour sur cadre, tambourin, et un pipeau qui reprend l'air au second tour. Elle suit le réglage général du son et
  * se coupe à part (réglage « musique »).
  */
 
@@ -244,7 +244,54 @@ export function startMusic(kind: MusicKind): { stop: () => void } {
     src.start(at);
   };
 
-  const scheduleBar = (b: Bar, at: number) => {
+  // Pipeau : son flûté, souffle à l'attaque et vibrato qui arrive après.
+  const whistle = (at: number, midi: number, dur: number, gain: number) => {
+    const f = hz(midi + 12);
+    const o = ac.createOscillator();
+    o.type = 'triangle';
+    o.frequency.value = f;
+    const o2 = ac.createOscillator();
+    o2.frequency.value = f * 2;
+    const g2 = ac.createGain();
+    g2.gain.value = 0.18;
+    const vib = ac.createOscillator();
+    vib.frequency.value = 5.6;
+    const vd = ac.createGain();
+    vd.gain.setValueAtTime(0, at);
+    vd.gain.linearRampToValueAtTime(dur > 0.3 ? f * 0.006 : 0, at + Math.min(dur, 0.25));
+    vib.connect(vd);
+    vd.connect(o.frequency);
+    vd.connect(o2.frequency);
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 3800;
+    const g = ac.createGain();
+    const end = at + dur * 0.92;
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(gain, at + 0.025);
+    g.gain.setValueAtTime(gain * 0.85, Math.max(at + 0.03, end - 0.04));
+    g.gain.exponentialRampToValueAtTime(0.0001, end);
+    o.connect(lp);
+    o2.connect(g2).connect(lp);
+    lp.connect(g).connect(bus);
+    // Souffle.
+    const br = ac.createBufferSource();
+    br.buffer = noiseBuf;
+    const bf = ac.createBiquadFilter();
+    bf.type = 'bandpass';
+    bf.frequency.value = f * 2;
+    const bg = ac.createGain();
+    bg.gain.setValueAtTime(gain * 0.25, at);
+    bg.gain.exponentialRampToValueAtTime(0.0001, at + 0.08);
+    br.connect(bf).connect(bg).connect(bus);
+    for (const n of [o, o2, vib]) {
+      n.start(at);
+      n.stop(end + 0.02);
+    }
+    br.start(at);
+  };
+
+  const scheduleBar = (b: Bar, at: number, flute: boolean) => {
     const third = b.root + (b.minor ? 3 : 4);
     // Rythme de gigue : « boum-tchi-tchi, boum-tchi-tchi ».
     drum(at, 0.55);
@@ -261,7 +308,8 @@ export function startMusic(kind: MusicKind): { stop: () => void } {
     // L'air, main droite.
     let t = at;
     for (const [midi, len] of b.tune) {
-      note(t, midi, 0.42, 0.85);
+      note(t, midi, flute ? 0.28 : 0.42, 0.85);
+      if (flute) whistle(t, midi, len * EIGHTH, 0.075);
       t += len * EIGHTH;
     }
   };
@@ -271,7 +319,7 @@ export function startMusic(kind: MusicKind): { stop: () => void } {
   let next = ac.currentTime + 0.8;
   const tick = () => {
     while (next < ac.currentTime + 1.2) {
-      scheduleBar(SONG[i % SONG.length]!, next);
+      scheduleBar(SONG[i % SONG.length]!, next, i % SONG.length >= TUNE.length && i % SONG.length < 2 * TUNE.length);
       next += 6 * EIGHTH;
       i++;
     }
