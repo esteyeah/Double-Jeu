@@ -42,7 +42,8 @@ export function useMusicSetting(): [boolean, (on: boolean) => void] {
   return [on, setMusicOn];
 }
 
-export type MusicKind = 'tavern';
+/** `tavern` : luth, flûte traversière, tambour léger. `tavern-harp` : harpe, pipeau, tambour et tambourin. */
+export type MusicKind = 'tavern' | 'tavern-harp';
 
 /** Joue la musique tant que le composant est affiché (et que la musique est activée). */
 export function useMusic(kind: MusicKind): void {
@@ -145,7 +146,7 @@ function caveImpulse(ac: AudioContext): AudioBuffer {
 }
 
 export function startMusic(kind: MusicKind): { stop: () => void } {
-  void kind;
+  const lute = kind === 'tavern';
   const io = audioOut();
   if (!io) return { stop: () => {} };
   const { ac, out } = io;
@@ -197,6 +198,25 @@ export function startMusic(kind: MusicKind): { stop: () => void } {
   sources.push(lfo);
 
   const note = (at: number, midi: number, gain: number, bright: number) => {
+    // Luth : cordes doublées (deux chœurs un rien désaccordés), attaque plus sèche.
+    if (lute) {
+      for (const [d, k] of [
+        [0, 1],
+        [0.007, 0.6],
+      ] as const) {
+        const src = ac.createBufferSource();
+        src.buffer = pluck(ac, midi, Math.min(1, bright + 0.15));
+        src.playbackRate.value = 1 + (d ? 0.0018 : 0) + (Math.random() - 0.5) * 0.002;
+        const g = ac.createGain();
+        const t = at + d + Math.random() * 0.01;
+        g.gain.setValueAtTime(gain * k * 0.9, t);
+        g.gain.setTargetAtTime(0.0001, t + 0.35, 0.35);
+        src.connect(g).connect(bus);
+        src.start(t);
+        src.stop(t + 2.4);
+      }
+      return;
+    }
     const src = ac.createBufferSource();
     src.buffer = pluck(ac, midi, bright);
     // Jeu humain : un rien d'irrégularité dans le temps et la force.
@@ -291,7 +311,69 @@ export function startMusic(kind: MusicKind): { stop: () => void } {
     br.start(at);
   };
 
-  const scheduleBar = (b: Bar, at: number, flute: boolean) => {
+  // Flûte traversière : son rond, souffle léger, vibrato doux.
+  const flute = (at: number, midi: number, dur: number, gain: number) => {
+    const f = hz(midi + 12);
+    const o = ac.createOscillator();
+    o.frequency.value = f;
+    const o2 = ac.createOscillator();
+    o2.frequency.value = f * 2;
+    const g2 = ac.createGain();
+    g2.gain.value = 0.08;
+    const vib = ac.createOscillator();
+    vib.frequency.value = 4.8;
+    const vd = ac.createGain();
+    vd.gain.setValueAtTime(0, at);
+    vd.gain.linearRampToValueAtTime(dur > 0.3 ? f * 0.004 : 0, at + Math.min(dur, 0.3));
+    vib.connect(vd);
+    vd.connect(o.frequency);
+    vd.connect(o2.frequency);
+    const g = ac.createGain();
+    const end = at + dur * 0.95;
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(gain, at + 0.04);
+    g.gain.setValueAtTime(gain * 0.9, Math.max(at + 0.05, end - 0.05));
+    g.gain.exponentialRampToValueAtTime(0.0001, end);
+    o.connect(g);
+    o2.connect(g2).connect(g);
+    g.connect(bus);
+    const br = ac.createBufferSource();
+    br.buffer = noiseBuf;
+    br.loop = true;
+    const bf = ac.createBiquadFilter();
+    bf.type = 'bandpass';
+    bf.frequency.value = f * 1.5;
+    bf.Q.value = 0.8;
+    const bg = ac.createGain();
+    bg.gain.setValueAtTime(gain * 0.18, at);
+    bg.gain.exponentialRampToValueAtTime(gain * 0.05, at + 0.12);
+    bg.gain.exponentialRampToValueAtTime(0.0001, end);
+    br.connect(bf).connect(bg).connect(bus);
+    for (const n of [o, o2, vib, br]) {
+      n.start(at);
+      n.stop(end + 0.02);
+    }
+  };
+
+  // Version luth et flûte : tambour léger, luth qui gratte les accords, flûte à la mélodie.
+  const scheduleLuteBar = (b: Bar, at: number) => {
+    const third = b.root + (b.minor ? 3 : 4);
+    drum(at, 0.22);
+    drum(at + 3 * EIGHTH, 0.14);
+    const strum = (t: number, g: number, notes: number[]) => notes.forEach((m, k) => note(t + k * 0.014, m, g, 0.55));
+    strum(at, 0.32, [b.root, b.root + 7, b.root + 12, third + 12]);
+    strum(at + 2 * EIGHTH, 0.14, [b.root + 12, third + 12, b.root + 19]);
+    strum(at + 3 * EIGHTH, 0.22, [b.root + 7, b.root + 12, third + 12]);
+    strum(at + 5 * EIGHTH, 0.14, [b.root + 12, third + 12, b.root + 19]);
+    let t = at;
+    for (const [midi, len] of b.tune) {
+      flute(t, midi, len * EIGHTH, 0.09);
+      t += len * EIGHTH;
+    }
+  };
+
+  const scheduleBar = (b: Bar, at: number, second: boolean) => {
+    if (lute) return scheduleLuteBar(b, at);
     const third = b.root + (b.minor ? 3 : 4);
     // Rythme de gigue : « boum-tchi-tchi, boum-tchi-tchi ».
     drum(at, 0.55);
@@ -308,8 +390,8 @@ export function startMusic(kind: MusicKind): { stop: () => void } {
     // L'air, main droite.
     let t = at;
     for (const [midi, len] of b.tune) {
-      note(t, midi, flute ? 0.28 : 0.42, 0.85);
-      if (flute) whistle(t, midi, len * EIGHTH, 0.075);
+      note(t, midi, second ? 0.28 : 0.42, 0.85);
+      if (second) whistle(t, midi, len * EIGHTH, 0.075);
       t += len * EIGHTH;
     }
   };
