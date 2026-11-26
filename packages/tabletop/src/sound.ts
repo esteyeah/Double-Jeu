@@ -57,6 +57,12 @@ function out(): AudioNode {
   return master!;
 }
 
+/** Contexte audio et sortie générale (coupée par le réglage du son), pour la musique. */
+export function audioOut(): { ac: AudioContext; out: AudioNode } | null {
+  const ac = audio();
+  return ac ? { ac, out: out() } : null;
+}
+
 function noiseBuffer(ac: AudioContext, seconds: number, brown = false): AudioBuffer {
   const buffer = ac.createBuffer(1, Math.ceil(ac.sampleRate * seconds), ac.sampleRate);
   const data = buffer.getChannelData(0);

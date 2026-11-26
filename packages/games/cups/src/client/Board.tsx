@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { BoardProps, PlayerId } from '@arcade/game-sdk';
-import { Avatar, Cellar3D, Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useOnChange, useWebGL, type CellarDrinker, type GameIconName } from '@arcade/tabletop';
+import { Avatar, Cellar3D, Cinematic, RichIcon, RoundTable, sfx, useAmbient, useMediaQuery, useMusic, useMusicSetting, useOnChange, useWebGL, type CellarDrinker, type GameIconName } from '@arcade/tabletop';
 import { CUPS_RULES, FACES, FACE_NAME, bidText, countFace, minQuantity, wild, type CupsMove, type CupsPlayerView, type CupsView, type Face, type Reveal } from '../shared';
 import { CUPS_CSS } from './theme';
 import { Vault } from './vault';
@@ -20,6 +20,8 @@ export default function CupsBoard({ view, viewer, actingAs, mode, sendMove }: Pr
   const hotseatName = mode === 'hotseat' && actor ? `${actor.name}, ` : '';
   const wide = useMediaQuery('(min-width: 1024px)');
   useAmbient('hearth');
+  useMusic('tavern');
+  const [music, setMusic] = useMusicSetting();
   const [rulesOpen, setRulesOpen] = useState(false);
   const openRules = () => {
     sfx.click();
@@ -77,10 +79,14 @@ export default function CupsBoard({ view, viewer, actingAs, mode, sendMove }: Pr
             </span>
           </span>
         </div>
-        <div className="mt-3 flex justify-center">
+        <div className="mt-3 flex justify-center gap-2">
           <button type="button" className="go-rulesbtn" onClick={openRules} aria-haspopup="dialog">
             <BookIcon />
             Règles
+          </button>
+          <button type="button" className="go-rulesbtn" onClick={() => setMusic(!music)} aria-pressed={music} title={music ? 'Couper la musique' : 'Remettre la musique'}>
+            <HarpIcon off={!music} />
+            Musique
           </button>
         </div>
       </header>
@@ -625,6 +631,17 @@ function Reference({ view, onOpen }: { view: CupsView; onOpen: () => void }) {
 }
 
 // ───────── Grimoire des règles (manuscrit enluminé) ─────────
+
+/** Petite harpe (barrée quand la musique est coupée). */
+function HarpIcon({ off }: { off: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke={off ? '#8a8f97' : '#f2c27a'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 21V4c5 0 9 3 12 9l-3 8H6z" />
+      <path d="M9 7v11M12 8.5V18M15 12v6" strokeWidth="1.3" />
+      {off && <path d="M3 3l18 18" stroke="#c9c2b4" />}
+    </svg>
+  );
+}
 
 function BookIcon() {
   return (
